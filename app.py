@@ -229,6 +229,18 @@ def init_database():
         conn.commit()
         print("[DB] Default categories and labels seeded")
 
+        # Clean up any duplicate categories (keep oldest entry per name)
+        cur.execute('''
+            DELETE FROM categories
+            WHERE id NOT IN (
+                SELECT MIN(id)
+                FROM categories
+                GROUP BY LOWER(TRIM(name))
+            )
+        ''')
+        conn.commit()
+        print("[DB] Duplicate categories removed")
+
         # Migrate existing request_type values to categories
         cur.execute('''
             INSERT INTO categories (name, is_custom, is_active)
