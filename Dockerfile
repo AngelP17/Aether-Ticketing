@@ -1,30 +1,43 @@
-# IT Operations Dashboard - Docker Container
-# Uses Python 3.10 slim image for smaller size
-# Works identically on Windows and Mac with Docker Desktop
+FROM node:20-slim AS web-builder
 
-FROM python:3.10-slim
+WORKDIR /app/apps/web
 
-# Set the working directory inside the container
+COPY apps/web/package*.json ./
+RUN npm ci
+
+COPY apps/web/ ./
+RUN npm run build
+
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    NEXT_TELEMETRY_DISABLED=1 \
+    API_INTERNAL_URL=http://127.0.0.1:8000 \
+    PORT=10000
+
 WORKDIR /app
 
-# Copy only requirements first (leverages Docker layer caching)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nodejs npm \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the rest of the application
-COPY . .
+COPY pyproject.toml README.md users.json ./
+COPY apps ./apps
+COPY domain ./domain
+COPY infrastructure ./infrastructure
+COPY pipelines ./pipelines
+COPY docker/start-render.sh ./docker/start-render.sh
 
-# Create .env directory if it doesn't exist (for users.json)
-RUN mkdir -p .env
+RUN pip install --no-cache-dir .
 
-# Environment variables for Flask
-ENV FLASK_APP=app.py
-ENV FLASK_RUN_HOST=0.0.0.0
-ENV PYTHONUNBUFFERED=1
+COPY --from=web-builder /app/apps/web/.next ./apps/web/.next
+COPY --from=web-builder /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=web-builder /app/apps/web/package.json ./apps/web/package.json
+COPY --from=web-builder /app/apps/web/next.config.js ./apps/web/next.config.js
 
-# Expose the port the app runs on
-EXPOSE 5000
+RUN chmod +x ./docker/start-render.sh
 
-# Start the application using Gunicorn (Production-grade server)
-# Workers: 2 for small deployments, increase for more traffic
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--access-logfile", "-", "app:app"]
+EXPOSE 8000 10000
+
+CMD ["./docker/start-render.sh"]

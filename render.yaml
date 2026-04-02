@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: aether-opscenter
+    env: docker
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /login
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: ENV
+        value: production
+      - key: DEBUG
+        value: false
