@@ -2,6 +2,7 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    AUTO_INIT_DB=true \
     USERS_FILE=/app/users.json
 
 WORKDIR /app

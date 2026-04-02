@@ -1,7 +1,19 @@
 import axios from "axios";
 
+import { ACCESS_TOKEN_KEY } from "@/lib/auth";
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "/api",
+});
+
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
 });
 
 export const ticketsApi = {
@@ -11,6 +23,33 @@ export const ticketsApi = {
     api.get(`/tickets/${ticketId}`),
   getEvents: (ticketId: string) =>
     api.get(`/tickets/${ticketId}/events`),
+  create: (payload: Record<string, unknown>) =>
+    api.post("/tickets", payload),
+  update: (ticketId: string, payload: Record<string, unknown>) =>
+    api.put(`/tickets/${ticketId}`, payload),
+  delete: (ticketId: string) =>
+    api.delete(`/tickets/${ticketId}`),
+  move: (ticketId: string, payload: { column?: string; status?: string }) =>
+    api.put(`/tickets/${ticketId}/move`, payload),
+  setLabels: (ticketId: string, label_ids: number[]) =>
+    api.put(`/tickets/${ticketId}/labels`, { label_ids }),
+  getComments: (ticketId: string) =>
+    api.get(`/tickets/${ticketId}/comments`),
+  addComment: (ticketId: string, body: string) =>
+    api.post(`/tickets/${ticketId}/comments`, { body }),
+  updateComment: (ticketId: string, commentId: number, body: string) =>
+    api.put(`/tickets/${ticketId}/comments/${commentId}`, { body }),
+  deleteComment: (ticketId: string, commentId: number) =>
+    api.delete(`/tickets/${ticketId}/comments/${commentId}`),
+  getAttachments: (ticketId: string) =>
+    api.get(`/tickets/${ticketId}/attachments`),
+  uploadAttachment: (ticketId: string, formData: FormData, commentId?: number) =>
+    api.post(`/tickets/${ticketId}/attachments`, formData, {
+      params: commentId ? { comment_id: commentId } : undefined,
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  deleteAttachment: (attachmentId: number) =>
+    api.delete(`/attachments/${attachmentId}`),
 };
 
 export const incidentsApi = {
@@ -46,4 +85,29 @@ export const authApi = {
     api.post("/auth/login", { username, password }),
   logout: () => api.post("/auth/logout"),
   me: () => api.get("/auth/me"),
+  listUsers: () => api.get("/auth/users"),
+  createUser: (payload: Record<string, unknown>) =>
+    api.post("/auth/users", payload),
+  updateUser: (username: string, payload: Record<string, unknown>) =>
+    api.put(`/auth/users/${username}`, payload),
+  deleteUser: (username: string) =>
+    api.delete(`/auth/users/${username}`),
+  changePassword: (current_password: string, new_password: string) =>
+    api.post("/auth/change-password", { current_password, new_password }),
+};
+
+export const catalogApi = {
+  options: () => api.get("/options"),
+  listCategories: () => api.get("/categories"),
+  createCategory: (payload: Record<string, unknown>) =>
+    api.post("/categories", payload),
+  updateCategory: (categoryId: number, payload: Record<string, unknown>) =>
+    api.put(`/categories/${categoryId}`, payload),
+  deleteCategory: (categoryId: number) =>
+    api.delete(`/categories/${categoryId}`),
+  listLabels: () => api.get("/labels"),
+  createLabel: (payload: Record<string, unknown>) =>
+    api.post("/labels", payload),
+  deleteLabel: (labelId: number) =>
+    api.delete(`/labels/${labelId}`),
 };

@@ -27,8 +27,10 @@ import {
   Layers3,
   LogOut,
   MoreHorizontal,
+  Plus,
   Radar,
   Search,
+  Shield,
   ShieldAlert,
   Ticket as TicketIcon,
   Users,
@@ -112,7 +114,7 @@ type RailItem =
     }
   | {
       label: string;
-      href: "/board" | "/reports";
+      href: "/board" | "/reports" | "/admin";
       icon: ComponentType<{ className?: string }>;
     };
 
@@ -1279,6 +1281,7 @@ export default function CommandCenterPage() {
     { label: "Tickets", action: () => scrollToSection("tickets"), icon: TicketIcon },
     { label: "Board", href: "/board", icon: Columns3 },
     { label: "Reports", href: "/reports", icon: FileSpreadsheet },
+    { label: "Admin", href: "/admin", icon: Shield },
   ];
 
   return (
@@ -1372,6 +1375,13 @@ export default function CommandCenterPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/tickets/new"
+                    className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+                  >
+                    <Plus className="h-4 w-4" />
+                    New ticket
+                  </Link>
                   <button
                     type="button"
                     onClick={handleWorkbookDownload}
@@ -1394,6 +1404,13 @@ export default function CommandCenterPage() {
                   >
                     <Activity className="h-4 w-4" />
                     Reports
+                  </Link>
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
                   </Link>
                   <button
                     type="button"

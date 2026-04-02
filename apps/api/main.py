@@ -5,8 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.config import settings
 from apps.api.deps import init_db
+from apps.api.routes.attachments import router as attachments_router
 from apps.api.routes.assets import router as assets_router
 from apps.api.routes.auth import router as auth_router
+from apps.api.routes.catalog import router as catalog_router
+from apps.api.routes.comments import router as comments_router
 from apps.api.routes.decisions import router as decisions_router
 from apps.api.routes.events import router as events_router
 from apps.api.routes.incidents import router as incidents_router
@@ -53,6 +56,9 @@ app.include_router(metrics_router, prefix="/api/metrics", tags=["metrics"])
 app.include_router(assets_router, prefix="/api/assets", tags=["assets"])
 app.include_router(events_router, prefix="/api/events", tags=["events"])
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+app.include_router(catalog_router, prefix="/api", tags=["catalog"])
+app.include_router(comments_router, prefix="/api", tags=["comments"])
+app.include_router(attachments_router, prefix="/api", tags=["attachments"])
 
 
 @app.get("/health")

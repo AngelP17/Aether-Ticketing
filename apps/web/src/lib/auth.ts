@@ -5,6 +5,7 @@ const PROTECTED_PATHS = new Set([
   "/command-center",
   "/board",
   "/reports",
+  "/admin",
 ]);
 
 const PROTECTED_PREFIXES = ["/tickets/", "/incidents/", "/replay/"];
@@ -34,11 +35,32 @@ export function clearStoredSession() {
   }
 }
 
+export function readStoredUser() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(USER_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as AuthUser) : null;
+  } catch {
+    return null;
+  }
+}
+
 export type AuthUser = {
   username: string;
   role: string;
   display_name: string;
 };
+
+export function isAdmin(user: AuthUser | null | undefined) {
+  return user?.role === "admin";
+}
+
+export function canWriteTickets(user: AuthUser | null | undefined) {
+  return user?.role === "admin" || user?.role === "agent";
+}
 
 export type SessionValidationResult =
   | { status: "valid"; user: AuthUser }

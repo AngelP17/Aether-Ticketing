@@ -11,11 +11,18 @@ class TicketStatus(str, Enum):
 
 class EventType(str, Enum):
     TICKET_CREATED = "ticket_created"
+    TICKET_UPDATED = "ticket_updated"
+    TICKET_DELETED = "ticket_deleted"
     STATUS_CHANGED = "status_changed"
     ASSIGNMENT_CHANGED = "assignment_changed"
     COMMENT_ADDED = "comment_added"
+    COMMENT_UPDATED = "comment_updated"
+    COMMENT_DELETED = "comment_deleted"
     PRIORITY_CHANGED = "priority_changed"
     DESCRIPTION_UPDATED = "description_updated"
+    LABELS_UPDATED = "labels_updated"
+    ATTACHMENT_UPLOADED = "attachment_uploaded"
+    ATTACHMENT_DELETED = "attachment_deleted"
     DECISION_GENERATED = "decision_generated"
     RECOMMENDATION_ACCEPTED = "recommendation_accepted"
     RECOMMENDATION_REJECTED = "recommendation_rejected"

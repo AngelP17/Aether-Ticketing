@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { ArrowRight, FileSpreadsheet, Radar, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, FileSpreadsheet, Plus, Radar, Shield, ShieldCheck, Sparkles, Zap } from "lucide-react";
 
 import { useToast } from "@/components/notifications";
 
@@ -217,7 +217,14 @@ export default function ReportsPage() {
 
               <div className="ops-card rounded-[1.5rem] p-5 sm:p-6">
                 <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-zinc-500">Follow-On Surfaces</div>
-                <div className="mt-5 grid gap-3">
+              <div className="mt-5 grid gap-3">
+                  <Link
+                    href="/tickets/new"
+                    className="flex items-center justify-between rounded-[1.1rem] border border-zinc-800 bg-zinc-950/60 px-4 py-3 text-sm text-zinc-200 transition hover:border-amber-500/20 hover:bg-zinc-900/80"
+                  >
+                    <span>Create a new ticket</span>
+                    <Plus size={16} className="text-zinc-500" />
+                  </Link>
                   <Link
                     href="/command-center"
                     className="flex items-center justify-between rounded-[1.1rem] border border-zinc-800 bg-zinc-950/60 px-4 py-3 text-sm text-zinc-200 transition hover:border-amber-500/20 hover:bg-zinc-900/80"
@@ -231,6 +238,13 @@ export default function ReportsPage() {
                   >
                     <span>Open workflow board</span>
                     <ArrowRight size={16} className="text-zinc-500" />
+                  </Link>
+                  <Link
+                    href="/admin"
+                    className="flex items-center justify-between rounded-[1.1rem] border border-zinc-800 bg-zinc-950/60 px-4 py-3 text-sm text-zinc-200 transition hover:border-amber-500/20 hover:bg-zinc-900/80"
+                  >
+                    <span>Open admin console</span>
+                    <Shield size={16} className="text-zinc-500" />
                   </Link>
                 </div>
               </div>

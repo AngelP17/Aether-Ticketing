@@ -16,11 +16,25 @@ const entrances = [
       "Jump straight into the operational board for the current ticket stream, clustering cues, and queue pressure.",
   },
   {
+    title: "New Ticket",
+    href: "/tickets/new",
+    eyebrow: "Transactional",
+    description:
+      "Create and manage real tickets, attach files, and keep the new Aether design tied to actual operational work.",
+  },
+  {
     title: "Reports",
     href: "/reports",
     eyebrow: "Exports",
     description:
       "Download the styled Excel workbook and review the operational summary in a format stakeholders actually use.",
+  },
+  {
+    title: "Admin Console",
+    href: "/admin",
+    eyebrow: "Management",
+    description:
+      "Manage users, privileges, categories, labels, and your own password inside the new control plane.",
   },
   {
     title: "Sign In",
@@ -58,10 +72,10 @@ export default function Home() {
                     Open Command Center
                   </Link>
                   <Link
-                    href="/reports"
+                    href="/tickets/new"
                     className="inline-flex items-center justify-center rounded-full border border-slate-700 px-5 py-3 text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
                   >
-                    Open Reports
+                    Create Ticket
                   </Link>
                 </div>
               </div>

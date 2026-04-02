@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
 
+from apps.api.schemas.management import AttachmentResponse, CommentResponse
+
 
 class TicketResponse(BaseModel):
     ticket_id: str
@@ -31,5 +33,7 @@ class TicketDetailResponse(BaseModel):
     similar_cases: list[dict] = Field(default_factory=list)
     events: list[dict] = Field(default_factory=list)
     linked_incident: Optional[dict] = None
+    comments: list[CommentResponse] = Field(default_factory=list)
+    attachments: list[AttachmentResponse] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}

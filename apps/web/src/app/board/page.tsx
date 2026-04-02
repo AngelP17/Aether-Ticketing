@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Columns3, Radar, Ticket, Zap } from "lucide-react";
+import { ArrowRight, Columns3, Plus, Radar, Shield, Ticket, Zap } from "lucide-react";
 
 import { getServerApiUrl } from "@/lib/server-api";
 import type { Ticket as TicketType } from "@/types";
@@ -177,6 +177,13 @@ export default async function BoardPage() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <Link
+                  href="/tickets/new"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+                >
+                  <Plus size={16} />
+                  New Ticket
+                </Link>
+                <Link
                   href="/command-center"
                   className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
                 >
@@ -189,6 +196,13 @@ export default async function BoardPage() {
                 >
                   <Zap size={16} />
                   Reports
+                </Link>
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
+                >
+                  <Shield size={16} />
+                  Admin
                 </Link>
               </div>
             </div>

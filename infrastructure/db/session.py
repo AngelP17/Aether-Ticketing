@@ -71,13 +71,17 @@ def _import_models() -> None:
     import infrastructure.db.models.action_run  # noqa: F401
     import infrastructure.db.models.asset  # noqa: F401
     import infrastructure.db.models.audit_record  # noqa: F401
+    import infrastructure.db.models.category  # noqa: F401
     import infrastructure.db.models.decision_record  # noqa: F401
     import infrastructure.db.models.incident  # noqa: F401
     import infrastructure.db.models.incident_ticket_link  # noqa: F401
+    import infrastructure.db.models.label  # noqa: F401
     import infrastructure.db.models.operator_feedback  # noqa: F401
     import infrastructure.db.models.recommendation  # noqa: F401
     import infrastructure.db.models.similar_case_link  # noqa: F401
     import infrastructure.db.models.ticket  # noqa: F401
+    import infrastructure.db.models.ticket_attachment  # noqa: F401
+    import infrastructure.db.models.ticket_comment  # noqa: F401
     import infrastructure.db.models.ticket_event  # noqa: F401
 
 
@@ -87,6 +91,7 @@ def _ensure_legacy_compatibility() -> None:
         "source_hash": "ALTER TABLE tickets ADD COLUMN source_hash VARCHAR(64)",
         "site_id": "ALTER TABLE tickets ADD COLUMN site_id VARCHAR(100)",
         "asset_id": "ALTER TABLE tickets ADD COLUMN asset_id INTEGER",
+        "category_id": "ALTER TABLE tickets ADD COLUMN category_id INTEGER REFERENCES categories(id)",
         "resolved_at": "ALTER TABLE tickets ADD COLUMN resolved_at TIMESTAMP",
         "source_system": "ALTER TABLE tickets ADD COLUMN source_system VARCHAR(50) DEFAULT 'legacy'",
         "is_active": "ALTER TABLE tickets ADD COLUMN is_active BOOLEAN DEFAULT TRUE",
@@ -108,4 +113,32 @@ def _ensure_legacy_compatibility() -> None:
         for column_name, statement in statements_by_column.items():
             if column_name in existing_columns:
                 continue
+            connection.execute(text(statement))
+
+        compatibility_statements = [
+            """
+            CREATE TABLE IF NOT EXISTS ticket_labels (
+                ticket_id VARCHAR(20) REFERENCES tickets(ticket_id) ON DELETE CASCADE,
+                label_id INTEGER REFERENCES labels(id) ON DELETE CASCADE,
+                PRIMARY KEY (ticket_id, label_id)
+            )
+            """,
+            """
+            ALTER TABLE ticket_attachments
+            ADD COLUMN IF NOT EXISTS comment_id INTEGER REFERENCES ticket_comments(id) ON DELETE CASCADE
+            """,
+            """
+            ALTER TABLE ticket_attachments
+            ADD COLUMN IF NOT EXISTS uploaded_by VARCHAR(100)
+            """,
+            """
+            ALTER TABLE ticket_comments
+            ADD COLUMN IF NOT EXISTS author_display_name VARCHAR(100)
+            """,
+            """
+            ALTER TABLE ticket_comments
+            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            """,
+        ]
+        for statement in compatibility_statements:
             connection.execute(text(statement))
