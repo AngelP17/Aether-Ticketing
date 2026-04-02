@@ -1,90 +1,169 @@
-Automated Infrastructure & Data Pipeline (IT Ops)
+# Aether OpsCenter
 
-A production-grade, containerized systems monitoring dashboard designed to bridge the gap between legacy manufacturing data (Excel) and modern relational database architectures.
+**Live incident intelligence, ticket orchestration, and audit-ready reporting for modern support and operations teams.**
 
-This project demonstrates a full CI/CD pipeline, Docker orchestration, and an automated ETL (Extract, Transform, Load) process.
+Aether OpsCenter turns live service tickets into ranked, explainable actions across a unified command center, workflow board, incident detail views, replay timelines, and styled Excel exports. The current platform is API-backed end to end, uses authenticated access for protected routes, and keeps operators inside one consistent workflow instead of splitting triage, incident review, and reporting across disconnected tools.
 
-🏗️ System Architecture
+## Screenshots
 
-The application is built using a microservices-inspired architecture to ensure modularity and scalability:
+### Login
 
-Frontend/API: Flask (Python) serving a responsive monitoring dashboard.
+![Aether OpsCenter login](docs/screenshots/login.png)
 
-Database: SQLite (Relational) for high-speed, indexed data retrieval.
+### Command Center
 
-ETL Engine: A background Python service using Pandas/SQLAlchemy that monitors local file changes and syncs data from Excel to SQL.
+![Aether OpsCenter command center](docs/screenshots/command-center.png)
 
-Reverse Proxy: Nginx (Production-ready traffic routing).
+### Workflow Board
 
-Orchestration: Docker Compose for environment parity across Windows, macOS, and Linux.
+![Aether OpsCenter workflow board](docs/screenshots/board.png)
 
-🛠️ Engineering Features
+### Reports
 
-1. Automated ETL Pipeline
+![Aether OpsCenter reports](docs/screenshots/reports.png)
 
-Instead of manual data entry, I engineered a "Watcher" service that:
+## Core Capabilities
 
-Extracts: Monitors tickets.xlsx for updates.
+- **Command Center** — Live ranked queue, KPI overview, trend charts, incident cluster awareness, and ticket inspection in a single operator surface
+- **Workflow Board** — Lane-based operational board for active work, review states, and throughput visibility
+- **Incident Intelligence** — Automatic clustering of related tickets with linked incident detail pages and exportable incident reporting
+- **Ticket Intelligence** — Per-ticket decision context, recommendation stacks, event history, and related-case lookup
+- **Replay & Audit** — Event-sourced replay timeline with decision history, operator feedback, and similar-case traceability
+- **Styled Reporting** — Backend-generated Excel workbook for executive summaries, queue review, incident review, and audit handoff
+- **Authenticated Operations UI** — Login flow, protected routes, logout, persisted notifications, and backend session validation
 
-Transforms: Validates data integrity, cleans NaNs, and formats timestamps using Pandas.
+## Architecture
 
-Loads: Performs atomic updates to the SQLite relational database.
+```mermaid
+flowchart TB
+    A[Ticket Sources] --> B[Ingest Pipeline]
+    B --> C[Normalize & Deduplicate]
+    C --> D[Event Store]
+    D --> E[Feature Derivation]
+    E --> F[Decision Engine]
+    F --> G[Recommendations]
+    F --> H[Incident Clustering]
+    F --> I[Audit Records]
+    G --> J[Operator Command Center]
+    H --> J
+    I --> J
+    J --> K[Feedback Loop]
+    K --> D
+```
 
-Outcome: Reduced data latency and eliminated manual sync errors.
+## Tech Stack
 
-2. DevOps & Containerization
+| Layer | Technology |
+|---|---|
+| Frontend Framework | Next.js 14 App Router, React 18, TypeScript |
+| UI & Styling | Tailwind CSS, Lucide React, custom glass/ops UI system |
+| Frontend Data & Utilities | Axios, date-fns, Zustand, TanStack Table, Recharts |
+| Backend API | FastAPI, SQLAlchemy 2, Pydantic 2, python-jose, Passlib |
+| Database | PostgreSQL on Neon |
+| Migrations | Alembic |
+| Reporting | openpyxl-based styled Excel workbook generation |
+| Data Processing | pandas, openpyxl |
+| Auth | JWT access tokens with backend session validation |
+| Tooling | ESLint, TypeScript, Playwright, Ruff, MyPy, Pytest |
+| Infra & Delivery | Docker, Docker Compose, GitHub Actions |
 
-The entire stack is containerized using Docker. This ensures:
+## Quick Start
 
-Environment Parity: The app runs identically in local development and cloud production.
+```bash
+# From repo root
+cp .env.example .env
 
-Infrastructure as Code (IaC): Server configuration is codified in docker-compose.yml and Dockerfile.
+# Backend
+pip install -e ".[dev]"
+alembic -c infrastructure/db/migrations/alembic.ini upgrade head
+uvicorn apps.api.main:app --reload --port 8000
 
-3. CI/CD Workflow
+# Frontend
+cd apps/web
+npm install
+npm run dev
+```
 
-GitOps: Pushes to the main branch trigger automated builds and deployments.
+## Legacy App Preserved
 
-Cloud Native: Deployed on Render with environment variable management for secure credential handling.
+The original working Flask system is still intact:
 
-🚦 Getting Started
+- `app.py`
+- `etl_pipeline.py`
+- `templates/`
+- `requirements.txt`
+- `docker-compose.yml`
 
-The "Cloud-Native" Way (Recommended)
+The new Aether layer enhances the same ticketing dataset and Neon deployment path instead of deleting the legacy app.
 
-Ensure you have Docker Desktop installed.
+## Project Structure
 
-git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
-cd your-repo-name
-docker-compose up --build
+```
+apps/
+  api/          # FastAPI backend (routes, services, schemas)
+  web/          # Next.js 14 frontend (command center, case views)
+domain/
+  enums.py      # All operational enums
+  policies.py    # Scoring weights and thresholds
+pipelines/
+  ingest/       # Excel loader, delta detector, normalizer
+  features/     # Feature derivation per ticket
+  decisions/    # Priority scoring, root cause rules, recommendations
+  retrieval/    # Similar cases, duplicate detection, clustering
+  reports/      # 5-tab Excel workbook generator
+infrastructure/
+  db/           # SQLAlchemy models, session, migrations
+  messaging/    # WebSocket hub, event bus
+  search/       # Embedding provider, vector store
+  storage/      # Report store, object store
+  logging/      # Audit logger, metrics logger
+docs/
+  architecture/ # Mermaid system diagrams
+  product/      # Operator workflows, screen maps
+  implementation/ # Migration plan, api contracts, roadmap
+```
 
+## Decision Score Formula
 
-Access the app at http://localhost
+```
+priority_score =
+  (0.22 × severity) +
+  (0.18 × urgency) +
+  (0.20 × business_impact) +
+  (0.14 × sla_risk) +
+  (0.10 × recurrence) +
+  (0.08 × dependency_criticality) +
+  (0.08 × actionability) −
+  (0.10 × uncertainty_penalty)
+```
 
-The Legacy Way (Local Python)
+## API Endpoints
 
-If you prefer running without Docker:
+| Method | Path | Description |
+|---|---|---|
+| GET | /api/tickets | List tickets with filters, ranking |
+| GET | /api/tickets/{ticket_id} | Ticket detail with decision, recommendations, events |
+| GET | /api/tickets/{ticket_id}/events | Ticket event timeline |
+| GET | /api/incidents | Clustered incidents |
+| GET | /api/incidents/{incident_id} | Incident detail with linked tickets |
+| GET | /api/decisions/{ticket_id} | Get existing decision for ticket |
+| POST | /api/decisions/recompute/{ticket_id} | Recompute decision |
+| POST | /api/recommendations/{id}/accept | Accept recommendation |
+| POST | /api/recommendations/{id}/reject | Reject recommendation |
+| POST | /api/recommendations/{id}/override | Override with note |
+| GET | /api/reports/excel | Generate 5-tab styled workbook |
+| GET | /api/replay/{ticket_id} | Audit timeline and snapshots |
+| GET | /api/metrics | Operational metrics dashboard data |
+| GET | /api/assets | Asset inventory and relationships |
+| GET | /api/events | Event stream query |
+| POST | /api/auth/login | Authenticate and get session |
 
-Setup: python -m venv venv
+## Root Cause Classes
 
-Activate: source venv/bin/activate (Mac) or venv\Scripts\activate (Windows)
+access_identity | email_messaging | shared_mailbox_forwarding | printer_scanner |
+file_share_permissions | erp_application | workstation_endpoint | network_connectivity |
+infrastructure_service | security_spam_block | production_system_integration | unknown
 
-Install: pip install -r requirements.txt
+## License
 
-Run: python app.py
-
-🧰 Tech Stack
-
-Language: Python 3.10
-
-Framework: Flask
-
-Data Science: Pandas, NumPy
-
-Database: SQLite, SQLAlchemy
-
-DevOps: Docker, Docker Compose, Nginx, GitHub Actions/Hooks
-
-Cloud: Render
-
-👨‍💻 Author
-
-Angel Pinzon Computer Engineer (B.S.Cp.E.) Portfolio | LinkedIn
+MIT

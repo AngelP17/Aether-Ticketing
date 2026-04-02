@@ -1,18 +1,22 @@
-# Environment and secrets
-.env/
-*.env
+.DS_Store
+.env
+.env.local
+.env.*.local
 
-# Python
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+apps/web/node_modules/
+apps/web/.next/
+apps/web/tsconfig.tsbuildinfo
+
 __pycache__/
 *.pyc
-venv/
+*.pyo
+*.pyd
 
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-
-# Database (generated files)
-*.db
+dist/
+build/
+coverage/
