@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from openpyxl import Workbook
 
-from apps.api.services.decision_service import DecisionService
 from apps.api.services.incident_service import IncidentService
 from apps.api.services.operational_intelligence import (
     build_ticket_snapshot,
