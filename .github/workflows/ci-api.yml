@@ -1,0 +1,29 @@
+name: CI API
+
+on:
+  push:
+    paths:
+      - 'apps/api/**'
+      - 'infrastructure/**'
+      - 'pipelines/**'
+      - 'domain/**'
+  pull_request:
+    paths:
+      - 'apps/api/**'
+      - 'infrastructure/**'
+      - 'pipelines/**'
+      - 'domain/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e ".[dev]"
+      - run: python -m compileall apps/api infrastructure pipelines domain scripts tests
+      - run: alembic -c infrastructure/db/migrations/alembic.ini heads
+      - run: pytest tests/ -v --tb=short
+      - run: ruff check apps/ infrastructure/ pipelines/ domain/ scripts/ tests/
