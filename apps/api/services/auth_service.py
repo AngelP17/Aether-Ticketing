@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from jose import JWTError, jwt
@@ -12,11 +12,13 @@ from apps.api.config import settings
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_MINUTES = 60 * 8
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 USERS_FILE_LOCATIONS = [
-    "/Users/apinzon/Desktop/Active Projects/ticketing/users.json",
-    ".env/users.json",
-    "/etc/secrets/users_data.json",
-    "users.json",
+    Path(settings.USERS_FILE).expanduser() if settings.USERS_FILE else None,
+    PROJECT_ROOT / ".env" / "users.json",
+    Path("/etc/secrets/users_data.json"),
+    PROJECT_ROOT / "users.json",
+    Path("users.json"),
 ]
 
 
@@ -74,9 +76,9 @@ class AuthService:
 
     def _load_users(self) -> list[dict[str, Any]]:
         for path in USERS_FILE_LOCATIONS:
-            if not os.path.exists(path):
+            if path is None or not path.exists():
                 continue
-            with open(path, "r", encoding="utf-8") as file:
+            with path.open("r", encoding="utf-8") as file:
                 data = json.load(file)
             return data.get("users", [])
         return []
