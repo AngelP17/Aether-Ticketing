@@ -40,13 +40,13 @@ class ReportService:
                     t.resolution_notes,
                     t.created_at,
                     t.updated_at,
+                    t.resolved_at,
                     t.clean_summary,
                     t.site_id,
                     c.name AS category_name
                 FROM tickets t
                 LEFT JOIN categories c ON c.id = t.category_id
-                ORDER BY t.date_opened DESC NULLS LAST, t.id DESC
-                LIMIT 250
+                ORDER BY COALESCE(t.updated_at, t.created_at) DESC NULLS LAST, t.id DESC
                 """
             )
         ).mappings()

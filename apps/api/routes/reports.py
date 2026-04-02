@@ -25,13 +25,18 @@ def get_excel_report(
         wb.save(output)
         output.seek(0)
 
-        today = datetime.now()
-        filename = f"aether_report_{today.month}_{today.day}_{today.year}.xlsx"
+        now = datetime.now()
+        filename = now.strftime("aether_report_%Y%m%d_%H%M%S.xlsx")
 
         return StreamingResponse(
             output,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc))

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
 from apps.api.schemas.management import (
+    AssigneeCreateRequest,
     CategoryCreateRequest,
     CategoryUpdateRequest,
     LabelCreateRequest,
@@ -49,7 +50,9 @@ def delete_category(
     db: Session = Depends(get_db),
     _: dict = Depends(require_admin),
 ):
-    CatalogService(db).delete_category(category_id)
+    deleted = CatalogService(db).delete_category(category_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Category not found")
     return {"status": "success"}
 
 
@@ -77,6 +80,36 @@ def delete_label(
     _: dict = Depends(require_admin),
 ):
     CatalogService(db).delete_label(label_id)
+    return {"status": "success"}
+
+
+@router.get("/assignees")
+def list_assignees(db: Session = Depends(get_db), _: dict = Depends(get_current_user)):
+    return CatalogService(db).get_options()["assignees"]
+
+
+@router.post("/assignees", status_code=201)
+def create_assignee(
+    body: AssigneeCreateRequest,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    try:
+        return CatalogService(db).create_assignee(body.display_name)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.delete("/assignees")
+def delete_assignee(
+    display_name: str = Query(...),
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    try:
+        CatalogService(db).delete_assignee(display_name)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     return {"status": "success"}
 
 

@@ -31,6 +31,7 @@ export default function AdminPage() {
   });
   const [newCategory, setNewCategory] = useState({ name: "", color: "#6366f1", icon: "fa-tag" });
   const [newLabel, setNewLabel] = useState({ name: "", color: "#3b82f6" });
+  const [newAssignee, setNewAssignee] = useState("");
   const [passwordForm, setPasswordForm] = useState({
     current_password: "",
     new_password: "",
@@ -40,6 +41,7 @@ export default function AdminPage() {
 
   const categories = useMemo<CatalogCategory[]>(() => options?.categories ?? [], [options]);
   const labels = useMemo<TicketLabel[]>(() => options?.labels ?? [], [options]);
+  const assignees = useMemo<string[]>(() => options?.assignees ?? [], [options]);
   const adminAccess = isAdmin(user);
 
   useEffect(() => {
@@ -165,15 +167,15 @@ export default function AdminPage() {
   };
 
   const handleDeleteCategory = async (categoryId: number) => {
-    if (!window.confirm("Deactivate this category?")) {
+    if (!window.confirm("Delete this category? Tickets keeping it will fall back to the category name as request type.")) {
       return;
     }
     try {
       await catalogApi.deleteCategory(categoryId);
-      toast.success("Category deactivated", "Existing tickets keep their current value.");
+      toast.success("Category deleted", "Existing tickets kept their current meaning.");
       await loadConsole();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to deactivate the category.";
+      const message = error instanceof Error ? error.message : "Unable to delete the category.";
       toast.error("Delete failed", message);
     }
   };
@@ -207,6 +209,36 @@ export default function AdminPage() {
       await loadConsole();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to delete the label.";
+      toast.error("Delete failed", message);
+    }
+  };
+
+  const handleCreateAssignee = async () => {
+    if (!newAssignee.trim()) {
+      toast.error("Missing assignee name", "An assignee name is required.");
+      return;
+    }
+    try {
+      await catalogApi.createAssignee(newAssignee.trim());
+      setNewAssignee("");
+      toast.success("Assignee created", "The assignee is ready for ticket assignment.");
+      await loadConsole();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to create the assignee.";
+      toast.error("Create failed", message);
+    }
+  };
+
+  const handleDeleteAssignee = async (displayName: string) => {
+    if (!window.confirm(`Delete assignee ${displayName}?`)) {
+      return;
+    }
+    try {
+      await catalogApi.deleteAssignee(displayName);
+      toast.success("Assignee deleted", displayName);
+      await loadConsole();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to delete the assignee.";
       toast.error("Delete failed", message);
     }
   };
@@ -452,10 +484,51 @@ export default function AdminPage() {
                           onClick={() => handleDeleteCategory(category.id)}
                           className="rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-100 transition hover:bg-rose-500/20"
                         >
-                          Deactivate
+                          Delete
                         </button>
                       </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="ops-card rounded-[1.75rem] p-6">
+              <div className="flex items-center gap-3">
+                <Users className="h-5 w-5 text-amber-300" />
+                <div>
+                  <div className="text-lg font-semibold text-white">Assignee roster</div>
+                  <div className="mt-1 text-sm text-zinc-500">Add or remove the operator names available in ticket assignment.</div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <input
+                  value={newAssignee}
+                  onChange={(event) => setNewAssignee(event.target.value)}
+                  className="min-w-[220px] flex-1 rounded-2xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-sm text-white"
+                  placeholder="Assignee display name"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateAssignee}
+                  className="rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+                >
+                  Create assignee
+                </button>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                {assignees.map((assignee) => (
+                  <div key={assignee} className="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-950/60 px-3 py-2">
+                    <span className="text-xs font-medium text-zinc-200">{assignee}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAssignee(assignee)}
+                      className="rounded-full border border-rose-400/20 bg-rose-500/10 px-2 py-1 text-[11px] text-rose-100 transition hover:bg-rose-500/20"
+                    >
+                      Delete
+                    </button>
                   </div>
                 ))}
               </div>

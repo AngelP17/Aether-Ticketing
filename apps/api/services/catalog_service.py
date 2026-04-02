@@ -63,11 +63,29 @@ class CatalogService:
         return dict(row) if row else None
 
     def delete_category(self, category_id: int):
+        category = self.get_category(category_id)
+        if category is None:
+            return False
+
         self.db.execute(
-            text("UPDATE categories SET is_active = FALSE WHERE id = :category_id"),
+            text(
+                """
+                UPDATE tickets
+                SET
+                    request_type = COALESCE(NULLIF(request_type, ''), :category_name),
+                    category_id = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE category_id = :category_id
+                """
+            ),
+            {"category_id": category_id, "category_name": category["name"]},
+        )
+        self.db.execute(
+            text("DELETE FROM categories WHERE id = :category_id"),
             {"category_id": category_id},
         )
         self.db.commit()
+        return True
 
     def get_category(self, category_id: int):
         row = self.db.execute(
@@ -106,6 +124,109 @@ class CatalogService:
         self.db.execute(text("DELETE FROM labels WHERE id = :label_id"), {"label_id": label_id})
         self.db.commit()
 
+    def create_assignee(self, display_name: str):
+        normalized_name = display_name.strip()
+        if not normalized_name:
+            raise ValueError("Display name is required")
+
+        existing = self.db.execute(
+            text(
+                """
+                SELECT id
+                FROM assignees
+                WHERE LOWER(display_name) = LOWER(:display_name)
+                """
+            ),
+            {"display_name": normalized_name},
+        ).mappings().first()
+
+        if existing:
+            row = self.db.execute(
+                text(
+                    """
+                    UPDATE assignees
+                    SET display_name = :display_name, is_active = TRUE
+                    WHERE id = :assignee_id
+                    RETURNING id, display_name, is_active
+                    """
+                ),
+                {"display_name": normalized_name, "assignee_id": existing["id"]},
+            ).mappings().one()
+        else:
+            row = self.db.execute(
+                text(
+                    """
+                    INSERT INTO assignees (display_name, is_active)
+                    VALUES (:display_name, TRUE)
+                    RETURNING id, display_name, is_active
+                    """
+                ),
+                {"display_name": normalized_name},
+            ).mappings().one()
+
+        self.db.commit()
+        return dict(row)
+
+    def delete_assignee(self, display_name: str):
+        normalized_name = display_name.strip()
+        if not normalized_name:
+            raise ValueError("Display name is required")
+
+        existing = self.db.execute(
+            text(
+                """
+                SELECT id
+                FROM assignees
+                WHERE LOWER(display_name) = LOWER(:display_name)
+                """
+            ),
+            {"display_name": normalized_name},
+        ).mappings().first()
+
+        if existing:
+            self.db.execute(
+                text("UPDATE assignees SET is_active = FALSE WHERE id = :assignee_id"),
+                {"assignee_id": existing["id"]},
+            )
+        else:
+            self.db.execute(
+                text(
+                    """
+                    INSERT INTO assignees (display_name, is_active)
+                    VALUES (:display_name, FALSE)
+                    """
+                ),
+                {"display_name": normalized_name},
+            )
+
+        self.db.commit()
+        return True
+
+    def _active_assignee_names(self):
+        rows = self.db.execute(
+            text(
+                """
+                SELECT display_name
+                FROM assignees
+                WHERE is_active = TRUE
+                ORDER BY display_name ASC
+                """
+            )
+        )
+        return [row[0] for row in rows]
+
+    def _inactive_assignee_names(self):
+        rows = self.db.execute(
+            text(
+                """
+                SELECT display_name
+                FROM assignees
+                WHERE is_active = FALSE
+                """
+            )
+        )
+        return {row[0].casefold() for row in rows if row[0]}
+
     def get_options(self):
         staff_rows = self.db.execute(
             text(
@@ -117,6 +238,7 @@ class CatalogService:
                 """
             )
         )
+        staff_values = [row[0] for row in staff_rows]
         requester_rows = self.db.execute(
             text(
                 """
@@ -127,11 +249,37 @@ class CatalogService:
                 """
             )
         )
+        users = AuthService().list_users()
+        active_assignees = self._active_assignee_names()
+        inactive_assignees = self._inactive_assignee_names()
+        assignee_names: list[str] = []
+
+        for name in active_assignees:
+            if name and name not in assignee_names:
+                assignee_names.append(name)
+
+        for user in users:
+            display_name = user["display_name"].strip()
+            if user["role"] == "viewer":
+                continue
+            if display_name.casefold() in inactive_assignees:
+                continue
+            if display_name not in assignee_names:
+                assignee_names.append(display_name)
+
+        for staff_name in staff_values:
+            if not staff_name:
+                continue
+            if staff_name.casefold() in inactive_assignees:
+                continue
+            if staff_name not in assignee_names:
+                assignee_names.append(staff_name)
 
         return {
             "categories": self.list_categories(active_only=True),
             "labels": self.list_labels(),
-            "staff": [row[0] for row in staff_rows],
+            "staff": staff_values,
             "requesters": [row[0] for row in requester_rows],
-            "users": AuthService().list_users(),
+            "users": users,
+            "assignees": assignee_names,
         }

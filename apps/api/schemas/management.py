@@ -39,6 +39,10 @@ class LabelCreateRequest(BaseModel):
     color: str = "#3b82f6"
 
 
+class AssigneeCreateRequest(BaseModel):
+    display_name: str
+
+
 class TicketCreateRequest(BaseModel):
     title: str
     status: str = "Open"

@@ -109,19 +109,31 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quickCategoryName, setQuickCategoryName] = useState("");
+  const [quickAssigneeName, setQuickAssigneeName] = useState("");
 
   const writable = canWriteTickets(user);
   const admin = isAdmin(user);
 
   const currentLabels = useMemo<TicketLabel[]>(() => options?.labels ?? [], [options]);
-  const currentUsers = useMemo(
-    () => options?.users.filter((entry) => entry.role !== "viewer") ?? [],
-    [options],
-  );
+  const currentAssignees = useMemo(() => {
+    const names = new Set(options?.assignees ?? []);
+    if (form.staff_assigned.trim()) {
+      names.add(form.staff_assigned.trim());
+    }
+    return Array.from(names).sort((left, right) => left.localeCompare(right));
+  }, [form.staff_assigned, options?.assignees]);
 
   useEffect(() => {
     setUser(readStoredUser());
   }, []);
+
+  const loadOptions = async () => {
+    const optionsResponse = await catalogApi.options();
+    const loadedOptions = optionsResponse.data as CatalogOptions;
+    setOptions(loadedOptions);
+    return loadedOptions;
+  };
 
   useEffect(() => {
     let active = true;
@@ -130,17 +142,14 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
       setIsLoading(true);
       setError(null);
       try {
-        const [optionsResponse, detailResponse] = await Promise.all([
-          catalogApi.options(),
+        const [loadedOptions, detailResponse] = await Promise.all([
+          loadOptions(),
           ticketId ? ticketsApi.get(ticketId) : Promise.resolve(null),
         ]);
 
         if (!active) {
           return;
         }
-
-        const loadedOptions = optionsResponse.data as CatalogOptions;
-        setOptions(loadedOptions);
 
         if (detailResponse) {
           const loadedDetail = detailResponse.data as TicketDetailPayload;
@@ -187,6 +196,10 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
     }
     const response = await ticketsApi.get(ticketId);
     setDetail(response.data as TicketDetailPayload);
+  };
+
+  const refreshOptions = async () => {
+    await loadOptions();
   };
 
   const uploadFiles = async (targetTicketId: string, files: File[], commentId?: number) => {
@@ -342,6 +355,89 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
       toast.success("Attachment deleted", "The file was removed.");
     } catch (deleteError) {
       const message = deleteError instanceof Error ? deleteError.message : "Unable to delete the attachment.";
+      toast.error("Delete failed", message);
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!admin) {
+      return;
+    }
+    if (!quickCategoryName.trim()) {
+      toast.error("Missing category name", "Type a category name before adding it.");
+      return;
+    }
+    try {
+      const response = await catalogApi.createCategory({
+        name: quickCategoryName.trim(),
+        color: "#6366f1",
+        icon: "fa-tag",
+      });
+      const created = response.data as { id: number; name: string };
+      setForm((current) => ({ ...current, category_id: String(created.id) }));
+      setQuickCategoryName("");
+      await refreshOptions();
+      toast.success("Category added", created.name);
+    } catch (createError) {
+      const message = createError instanceof Error ? createError.message : "Unable to create the category.";
+      toast.error("Create failed", message);
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!admin || !form.category_id) {
+      return;
+    }
+    const currentCategory = options?.categories.find((category) => String(category.id) === form.category_id);
+    if (!window.confirm(`Delete category ${currentCategory?.name || "selected category"}?`)) {
+      return;
+    }
+    try {
+      await catalogApi.deleteCategory(Number(form.category_id));
+      setForm((current) => ({ ...current, category_id: "" }));
+      await refreshOptions();
+      toast.success("Category deleted", currentCategory?.name || "The category was removed.");
+    } catch (deleteError) {
+      const message = deleteError instanceof Error ? deleteError.message : "Unable to delete the category.";
+      toast.error("Delete failed", message);
+    }
+  };
+
+  const handleCreateAssignee = async () => {
+    if (!admin) {
+      return;
+    }
+    if (!quickAssigneeName.trim()) {
+      toast.error("Missing assignee name", "Type an assignee name before adding it.");
+      return;
+    }
+    try {
+      await catalogApi.createAssignee(quickAssigneeName.trim());
+      setForm((current) => ({ ...current, staff_assigned: quickAssigneeName.trim() }));
+      setQuickAssigneeName("");
+      await refreshOptions();
+      toast.success("Assignee added", "The assignee is now selectable.");
+    } catch (createError) {
+      const message = createError instanceof Error ? createError.message : "Unable to create the assignee.";
+      toast.error("Create failed", message);
+    }
+  };
+
+  const handleDeleteAssignee = async () => {
+    if (!admin || !form.staff_assigned.trim()) {
+      return;
+    }
+    const targetAssignee = form.staff_assigned.trim();
+    if (!window.confirm(`Delete assignee ${targetAssignee}?`)) {
+      return;
+    }
+    try {
+      await catalogApi.deleteAssignee(targetAssignee);
+      setForm((current) => ({ ...current, staff_assigned: "" }));
+      await refreshOptions();
+      toast.success("Assignee deleted", targetAssignee);
+    } catch (deleteError) {
+      const message = deleteError instanceof Error ? deleteError.message : "Unable to delete the assignee.";
       toast.error("Delete failed", message);
     }
   };
@@ -512,6 +608,31 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
                       </option>
                     ))}
                   </select>
+                  {admin ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <input
+                        value={quickCategoryName}
+                        onChange={(event) => setQuickCategoryName(event.target.value)}
+                        className="min-w-[180px] flex-1 rounded-full border border-zinc-700 bg-black/30 px-3 py-2 text-xs text-white"
+                        placeholder="New category name"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateCategory}
+                        className="rounded-full border border-zinc-700 bg-black/30 px-3 py-2 text-xs font-medium text-zinc-200 transition hover:border-zinc-500"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeleteCategory}
+                        disabled={!form.category_id}
+                        className="rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Delete selected
+                      </button>
+                    </div>
+                  ) : null}
                 </label>
                 <label className="block">
                   <span className="text-sm text-zinc-400">Assignee</span>
@@ -521,19 +642,37 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
                     className="mt-2 w-full rounded-2xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-amber-400/50"
                   >
                     <option value="">Unassigned</option>
-                    {currentUsers.map((entry) => (
-                      <option key={entry.username} value={entry.display_name}>
-                        {entry.display_name}
+                    {currentAssignees.map((assignee) => (
+                      <option key={assignee} value={assignee}>
+                        {assignee}
                       </option>
                     ))}
-                    {options.staff
-                      .filter((staff) => !currentUsers.some((entry) => entry.display_name === staff))
-                      .map((staff) => (
-                        <option key={staff} value={staff}>
-                          {staff}
-                        </option>
-                      ))}
                   </select>
+                  {admin ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <input
+                        value={quickAssigneeName}
+                        onChange={(event) => setQuickAssigneeName(event.target.value)}
+                        className="min-w-[180px] flex-1 rounded-full border border-zinc-700 bg-black/30 px-3 py-2 text-xs text-white"
+                        placeholder="New assignee name"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateAssignee}
+                        className="rounded-full border border-zinc-700 bg-black/30 px-3 py-2 text-xs font-medium text-zinc-200 transition hover:border-zinc-500"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeleteAssignee}
+                        disabled={!form.staff_assigned.trim()}
+                        className="rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Delete selected
+                      </button>
+                    </div>
+                  ) : null}
                 </label>
                 <label className="block md:col-span-2">
                   <span className="text-sm text-zinc-400">Fallback request type</span>

@@ -110,4 +110,9 @@ export const catalogApi = {
     api.post("/labels", payload),
   deleteLabel: (labelId: number) =>
     api.delete(`/labels/${labelId}`),
+  listAssignees: () => api.get("/assignees"),
+  createAssignee: (display_name: string) =>
+    api.post("/assignees", { display_name }),
+  deleteAssignee: (display_name: string) =>
+    api.delete("/assignees", { params: { display_name } }),
 };

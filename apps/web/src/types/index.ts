@@ -126,6 +126,7 @@ export interface CatalogOptions {
   categories: CatalogCategory[];
   labels: TicketLabel[];
   staff: string[];
+  assignees: string[];
   requesters: string[];
   users: Array<{ username: string; role: string; display_name: string }>;
 }
