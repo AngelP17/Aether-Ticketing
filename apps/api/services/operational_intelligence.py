@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from domain.policies import SLATargetHours
+from domain.policies import CLUSTERING_THRESHOLDS, SLATargetHours
 from pipelines.decisions.recommendation_engine import generate_recommendations
 from pipelines.decisions.root_cause_rules import (
     classify_root_cause,
@@ -312,9 +312,14 @@ def compute_live_decision(
 
 
 def synthesize_incidents(ticket_snapshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    min_link = CLUSTERING_THRESHOLDS.MIN_CONFIDENCE_TO_LINK * 100
+    min_create = CLUSTERING_THRESHOLDS.MIN_CONFIDENCE_TO_CREATE * 100
+
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for snapshot in ticket_snapshots:
         if snapshot["status"] in {"Resolved", "Closed"}:
+            continue
+        if (snapshot.get("confidence_score") or 0) < min_link:
             continue
         root_cause = snapshot.get("root_cause_hypothesis") or "unknown"
         category = snapshot.get("category") or root_cause
@@ -331,6 +336,8 @@ def synthesize_incidents(ticket_snapshots: list[dict[str, Any]]) -> list[dict[st
         confidence = round(
             sum(ticket.get("confidence_score") or 0 for ticket in tickets) / len(tickets), 2
         )
+        if confidence < min_create:
+            continue
         opened_at = min(ticket["created_at"] for ticket in tickets)
         incidents.append(
             {
