@@ -63,9 +63,9 @@ function formatScore(value?: number | null) {
 
 function ReplayErrorState({ id, message }: { id: string; message: string }) {
   return (
-    <div className="min-h-[100dvh] bg-slate-950 p-8 text-slate-50">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center">
-        <div className="w-full rounded-2xl border border-rose-500/20 bg-slate-900/80 p-8 shadow-xl">
+    <div className="ops-shell ops-safe-bottom min-h-[100dvh] px-4 py-5 text-slate-50 sm:px-6 lg:p-8">
+      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-5xl items-center">
+        <div className="ops-card w-full rounded-2xl border border-rose-500/20 p-6 shadow-xl sm:p-8">
           <div className="text-xs uppercase tracking-[0.3em] text-rose-300">Replay API error</div>
           <h1 className="mt-2 text-2xl font-semibold text-white">Audit replay could not load</h1>
           <p className="mt-4 text-sm leading-7 text-slate-400">{message}</p>
@@ -103,8 +103,8 @@ export default async function ReplayPage({ params }: { params: { id: string } })
   const payload = result.data;
 
   return (
-    <div className="min-h-[100dvh] bg-slate-950 p-8 text-slate-50">
-      <div className="mx-auto max-w-5xl rounded-2xl border border-slate-800 bg-slate-900/80 p-8 shadow-xl">
+    <div className="ops-shell ops-safe-bottom min-h-[100dvh] px-4 py-5 text-slate-50 sm:px-6 lg:p-8">
+      <div className="ops-card mx-auto max-w-5xl rounded-2xl border border-slate-800 p-5 shadow-xl sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Replay & Audit</p>

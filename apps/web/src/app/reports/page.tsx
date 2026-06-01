@@ -105,7 +105,7 @@ export default function ReportsPage() {
   }, [isDownloading, toast]);
 
   return (
-    <div className="ops-shell relative min-h-[100dvh] overflow-hidden text-white">
+    <div className="ops-shell ops-safe-bottom relative min-h-[100dvh] overflow-hidden text-white">
       <div className="ops-grid absolute inset-0 opacity-70" />
       <div className="absolute right-[-8rem] top-[-8rem] h-[26rem] w-[26rem] rounded-full bg-amber-500/10 blur-[120px]" />
       <div className="absolute bottom-[-10rem] left-[6%] h-[22rem] w-[22rem] rounded-full bg-cyan-500/10 blur-[120px]" />

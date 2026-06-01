@@ -17,10 +17,17 @@
   color-scheme: dark;
   --font-display: var(--font-chakra), "Chakra Petch", "Avenir Next", "Segoe UI", sans-serif;
   --font-mono: var(--font-jetbrains), "JetBrains Mono", "SFMono-Regular", "Menlo", "Monaco", ui-monospace, monospace;
+  --bg-void: #060708;
   --bg-deep: #070809;
   --bg-base: #0d0d11;
   --bg-surface: rgba(20, 20, 23, 0.72);
   --bg-elevated: rgba(30, 30, 36, 0.72);
+  --surface-solid: #121317;
+  --surface-card: #131419;
+  --surface-hi: #181a20;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.12);
+  --line-amber: rgba(245, 158, 11, 0.22);
   --border-subtle: rgba(63, 63, 70, 0.25);
   --border-strong: rgba(82, 82, 91, 0.42);
   --text-primary: #fafafa;
@@ -105,22 +112,22 @@ body {
 }
 
 .ops-glass {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  backdrop-filter: blur(18px);
+  background: rgba(10, 11, 13, 0.82);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(20px) saturate(140%);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
 }
 
 .ops-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  backdrop-filter: blur(14px);
+  background: var(--surface-solid);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
 }
 
 .ops-card-strong {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  backdrop-filter: blur(14px);
+  background: var(--surface-card);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 22px 72px rgba(0, 0, 0, 0.26);
 }
 
 .mono-data {
@@ -205,11 +212,17 @@ body {
 }
 
 .ops-mobile-item {
+  appearance: none;
+  border: 0;
+  background: transparent;
   display: flex;
   min-width: 58px;
   flex-direction: column;
   align-items: center;
   gap: 0.24rem;
+  font-family: var(--font-display), "Avenir Next", "Segoe UI", sans-serif;
+  font-size: 0.6875rem;
+  line-height: 1;
   color: #666672;
   -webkit-tap-highlight-color: transparent;
 }
@@ -259,6 +272,19 @@ body {
   z-index: 45;
 }
 
+.rise {
+  animation: rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(12px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 .ops-ticket-table {
   display: grid;
   grid-template-columns: 130px minmax(0, 1fr) 110px 90px 96px;
@@ -301,5 +327,25 @@ body {
 
   .ops-ticket-card {
     display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .scan-line,
+  .rise {
+    animation: none !important;
+  }
+
+  .ops-mobile-sheet,
+  .ops-mobile-sheet-panel,
+  .ops-rail,
+  .ops-rail-label {
+    transition: none !important;
   }
 }

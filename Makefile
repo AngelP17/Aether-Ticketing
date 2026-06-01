@@ -1,4 +1,4 @@
-.PHONY: dev test lint lint-py lint-web migrate rollback clean deps api web typecheck build-docker run-docker
+.PHONY: dev test lint lint-py lint-web migrate rollback clean deps api web typecheck build-docker run-docker seed-auth
 
 dev:
 	uvicorn apps.api.main:app --reload --port 8000
@@ -46,3 +46,7 @@ build-docker:
 
 run-docker:
 	docker compose -f docker/docker-compose.yml up -d
+
+seed-auth:
+	python scripts/seed_auth.py
+
