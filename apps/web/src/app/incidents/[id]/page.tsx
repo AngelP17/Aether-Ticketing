@@ -79,7 +79,7 @@ function impactTone(value?: number | null) {
 
 function IncidentErrorState({ id, message }: { id: string; message: string }) {
   return (
-    <div className="min-h-screen bg-[#060816] px-4 py-5 text-slate-50 sm:px-6 lg:px-8">
+    <div className="min-h-[100dvh] bg-[#060816] px-4 py-5 text-slate-50 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl items-center">
         <div className="w-full rounded-[2rem] border border-rose-500/20 bg-black/20 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl">
           <div className="text-xs uppercase tracking-[0.28em] text-rose-300">Incident API error</div>
@@ -119,7 +119,7 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
   const payload = result.data;
 
   return (
-    <div className="min-h-screen bg-[#060816] px-4 py-5 text-slate-50 sm:px-6 lg:px-8">
+    <div className="min-h-[100dvh] bg-[#060816] px-4 py-5 text-slate-50 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="rounded-[2rem] border border-white/8 bg-black/20 shadow-2xl shadow-black/30 backdrop-blur-xl">
           <div className="border-b border-white/6 px-5 py-5 sm:px-7">

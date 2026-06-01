@@ -47,7 +47,7 @@ const entrances = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-50 sm:px-6 lg:px-8">
+    <main className="min-h-[100dvh] bg-slate-950 px-4 py-6 text-slate-50 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl flex-col justify-center">
         <div className="overflow-hidden rounded-[2rem] border border-slate-800 bg-slate-900/70 shadow-2xl shadow-cyan-950/20">
           <div className="grid gap-0 lg:grid-cols-[1.2fr,0.8fr]">

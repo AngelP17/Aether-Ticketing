@@ -7,7 +7,6 @@ import {
   startTransition,
   useDeferredValue,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -15,7 +14,6 @@ import type { ComponentType } from "react";
 import {
   Activity,
   AlertTriangle,
-  ArrowUpRight,
   CheckCircle2,
   ChevronRight,
   Clock3,
@@ -33,9 +31,17 @@ import {
   Shield,
   ShieldAlert,
   Ticket as TicketIcon,
-  Users,
 } from "lucide-react";
 
+import { SectionEmptyState } from "@/components/command-center/section-empty-state";
+import { CompactStatusChart } from "@/components/command-center/status-donut";
+import { PriorityStackChart } from "@/components/command-center/priority-donut";
+import { TrendChart } from "@/components/command-center/trend-chart";
+import { QueueTable } from "@/components/command-center/queue-table";
+import { IncidentList } from "@/components/command-center/incident-list";
+import { DecisionDetailPanel } from "@/components/command-center/decision-detail-panel";
+import { priorityPalette, statusPalette, chartPalette } from "@/components/command-center/palettes";
+import type { BreakdownItem, IncidentCard, QueueTicket } from "@/components/command-center/types";
 import { NotificationBell, useToast } from "@/components/notifications";
 import { clearStoredSession } from "@/lib/auth";
 import type { Incident, Ticket } from "@/types";
@@ -67,41 +73,11 @@ type MetricCard = {
   icon: ComponentType<{ className?: string }>;
 };
 
-type BreakdownItem = {
-  label: string;
-  value: number;
-  color: string;
-};
-
-type QueueTicket = {
-  ticketId: string;
-  title: string;
-  status: string;
-  priority: string;
-  score: number;
-  assignee: string;
-  category: string;
-  daysOpen: number;
-  createdAt?: string;
-  incidentId?: string;
-  recommendation: string;
-  requester?: string;
-};
-
 type ActivityItem = {
   id: string;
   text: string;
   subtext: string;
   color: string;
-};
-
-type IncidentCard = {
-  id: string;
-  title: string;
-  rootCause: string;
-  ticketCount: number;
-  confidence: number;
-  impact: number;
 };
 
 type TicketFilter = "all" | "active" | "waiting" | "closed";
@@ -117,32 +93,6 @@ type RailItem =
       href: "/board" | "/reports" | "/admin";
       icon: ComponentType<{ className?: string }>;
     };
-
-const statusPalette: Record<string, string> = {
-  Closed: "#22c55e",
-  Resolved: "#06b6d4",
-  "In Progress": "#f59e0b",
-  "Waiting for Info": "#8b5cf6",
-  Open: "#f97316",
-};
-
-const priorityPalette: Record<string, string> = {
-  Critical: "#f43f5e",
-  High: "#f97316",
-  Medium: "#f59e0b",
-  Low: "#71717a",
-};
-
-const chartPalette = [
-  "#f59e0b",
-  "#06b6d4",
-  "#8b5cf6",
-  "#f97316",
-  "#22c55e",
-  "#ec4899",
-  "#38bdf8",
-  "#eab308",
-];
 
 const ticketFilterOptions: Array<{ key: TicketFilter; label: string }> = [
   { key: "all", label: "All" },
@@ -165,22 +115,6 @@ function isClosedStatus(status: string) {
   return status === "Closed" || status === "Resolved";
 }
 
-function formatDate(value?: string) {
-  if (!value) {
-    return "--";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
 function formatSync(seconds: number) {
   if (seconds < 60) {
     return `${seconds}s ago`;
@@ -191,48 +125,6 @@ function formatSync(seconds: number) {
   }
   const hours = Math.floor(minutes / 60);
   return `${hours}h ago`;
-}
-
-function useMountedFlag() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const raf = window.requestAnimationFrame(() => setMounted(true));
-    return () => window.cancelAnimationFrame(raf);
-  }, []);
-
-  return mounted;
-}
-
-function useElementWidth<T extends HTMLElement = HTMLDivElement>(fallbackWidth = 400, minWidth = 280) {
-  const ref = useRef<T | null>(null);
-  const [width, setWidth] = useState(fallbackWidth);
-
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) {
-      return;
-    }
-
-    const update = () => {
-      const next = Math.max(minWidth, Math.floor(node.getBoundingClientRect().width));
-      setWidth(next);
-    };
-
-    update();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", update);
-      return () => window.removeEventListener("resize", update);
-    }
-
-    const observer = new ResizeObserver(() => update());
-    observer.observe(node);
-
-    return () => observer.disconnect();
-  }, [fallbackWidth, minWidth]);
-
-  return { ref, width };
 }
 
 function normalizeConfidence(value: number) {
@@ -397,21 +289,6 @@ function getLiveIncidents(incidents: Incident[]): IncidentCard[] {
   }));
 }
 
-function SectionEmptyState({
-  title,
-  message,
-}: {
-  title: string;
-  message: string;
-}) {
-  return (
-    <div className="rounded-[20px] border border-dashed border-zinc-800/70 bg-black/15 px-4 py-8 text-center">
-      <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">{title}</div>
-      <p className="mt-2 text-sm leading-6 text-zinc-400">{message}</p>
-    </div>
-  );
-}
-
 function buildActivity(queue: QueueTicket[]): ActivityItem[] {
   return queue.slice(0, 6).map((ticket, index) => {
     let color = "#f59e0b";
@@ -440,529 +317,6 @@ function buildActivity(queue: QueueTicket[]): ActivityItem[] {
   });
 }
 
-function CompactStatusChart({ data }: { data: BreakdownItem[] }) {
-  const mounted = useMountedFlag();
-  if (!data.length) {
-    return (
-      <div className="ops-card rounded-[24px] p-5 sm:p-6">
-        <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-          Status Distribution
-        </div>
-        <div className="mt-4">
-          <SectionEmptyState
-            title="No ticket distribution"
-            message="Status segments will appear once live tickets are available."
-          />
-        </div>
-      </div>
-    );
-  }
-
-  const total = data.reduce((sum, slice) => sum + slice.value, 0) || 1;
-  const radius = 52;
-  const strokeWidth = 10;
-  const circumference = 2 * Math.PI * radius;
-  const gap = 10;
-  const available = circumference - gap * data.length;
-  let offset = 0;
-
-  const closedResolved = data
-    .filter((s) => ["Closed", "Resolved"].includes(s.label))
-    .reduce((sum, s) => sum + s.value, 0);
-  const resolutionRate = total > 0 ? ((closedResolved / total) * 100).toFixed(1) : "0";
-  const ariaLabel = data.length
-    ? `Status distribution chart with ${data
-        .map((slice) => `${slice.label} ${slice.value}`)
-        .join(", ")}. Resolution rate ${resolutionRate} percent.`
-    : "Status distribution chart with no data.";
-
-  return (
-    <div className="ops-card rounded-[24px] p-5 sm:p-6" role="img" aria-label={ariaLabel}>
-      <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-        Status Distribution
-      </div>
-      <div className="mt-4 flex flex-col gap-5 md:flex-row md:items-center md:gap-6">
-        <svg
-          viewBox="0 0 140 140"
-          className="mx-auto h-28 w-28 shrink-0 sm:h-32 sm:w-32 md:mx-0"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <circle cx="70" cy="70" r={radius} fill="none" stroke="rgba(63,63,70,0.35)" strokeWidth={strokeWidth} />
-          {data.map((slice) => {
-            const length = (slice.value / total) * available;
-            const displayLength = mounted ? length : 0;
-            const node = (
-              <circle
-                key={slice.label}
-                cx="70"
-                cy="70"
-                r={radius}
-                fill="none"
-                stroke={slice.color}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={`${displayLength} ${circumference}`}
-                strokeDashoffset={-offset}
-                transform="rotate(-90 70 70)"
-                style={{
-                  opacity: mounted ? 1 : 0.75,
-                  transition: "stroke-dasharray 1.2s cubic-bezier(0.22,1,0.36,1), opacity 0.5s ease",
-                }}
-              />
-            );
-            offset += length + gap;
-            return node;
-          })}
-          <text x="70" y="66" textAnchor="middle" className="fill-zinc-50 text-[20px] font-bold">
-            {total}
-          </text>
-          <text x="70" y="82" textAnchor="middle" className="fill-zinc-500 text-[7px]" style={{ fontFamily: "var(--font-mono), monospace", letterSpacing: "0.2em" }}>
-            TOTAL
-          </text>
-        </svg>
-        <div className="w-full space-y-3">
-          {data.map((slice) => (
-            <div key={slice.label} className="flex items-center gap-2.5">
-              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: slice.color }} />
-              <span className="w-[76px] shrink-0 text-[12px] text-zinc-300 sm:w-[84px]">{slice.label}</span>
-              <div className="h-1 flex-1 rounded-full bg-zinc-900/80 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-1000 ease-out"
-                  style={{
-                    width: mounted ? `${Math.max((slice.value / total) * 100, 2)}%` : "0%",
-                    backgroundColor: slice.color,
-                  }}
-                />
-              </div>
-              <span className="mono-data text-[12px] text-zinc-400 w-6 text-right shrink-0">
-                {slice.value}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="mt-4 flex items-center gap-2 border-t border-zinc-800/30 pt-3">
-        <span className="text-[9px] mono-data text-zinc-600 uppercase tracking-wider">Resolution Rate</span>
-        <span className="text-sm mono-data font-semibold text-emerald-400">{resolutionRate}%</span>
-      </div>
-    </div>
-  );
-}
-
-function PriorityStackChart({ data }: { data: BreakdownItem[] }) {
-  const mounted = useMountedFlag();
-  if (!data.length) {
-    return (
-      <div className="ops-card rounded-[24px] p-5 sm:p-6">
-        <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-          Priority Breakdown
-        </div>
-        <div className="mt-4">
-          <SectionEmptyState
-            title="No priority mix"
-            message="Priority distribution will populate after the live queue loads."
-          />
-        </div>
-      </div>
-    );
-  }
-
-  const total = data.reduce((sum, slice) => sum + slice.value, 0) || 1;
-  const lowPriority = data.find((s) => s.label === "Low")?.value || 0;
-  const lowPercent = total > 0 ? Math.round((lowPriority / total) * 100) : 0;
-  const ariaLabel = data.length
-    ? `Priority breakdown chart with ${data.map((slice) => `${slice.label} ${slice.value}`).join(", ")}. Low priority share ${lowPercent} percent.`
-    : "Priority breakdown chart with no data.";
-
-  return (
-    <div className="ops-card rounded-[24px] p-5 sm:p-6" role="img" aria-label={ariaLabel}>
-      <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-        Priority Breakdown
-      </div>
-      <div className="mt-5 flex h-3 rounded-md overflow-hidden">
-        {data.map((slice) => (
-          <div
-            key={slice.label}
-            className="transition-all duration-300 hover:brightness-125"
-            style={{
-              width: mounted ? `${(slice.value / total) * 100}%` : "0%",
-              backgroundColor: slice.color,
-            }}
-            title={`${slice.label}: ${slice.value}`}
-          />
-        ))}
-      </div>
-      <div className="mt-5 space-y-3">
-        {data.map((slice) => (
-          <div key={slice.label} className="flex items-center gap-2.5">
-            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: slice.color }} />
-            <span className="w-16 shrink-0 text-[12px] text-zinc-300">{slice.label}</span>
-            <div className="h-1 flex-1 rounded-full bg-zinc-900/80 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-1000"
-                style={{
-                  width: mounted ? `${Math.max((slice.value / total) * 100, 2)}%` : "0%",
-                  backgroundColor: slice.color,
-                }}
-              />
-            </div>
-            <span className="mono-data text-[12px] text-zinc-400 w-7 text-right shrink-0">
-              {slice.value}
-            </span>
-            <span className="mono-data text-[10px] text-zinc-600 w-8 text-right shrink-0">
-              {Math.round((slice.value / total) * 100)}%
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 pt-3 border-t border-zinc-800/30 flex items-center gap-2">
-        <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span className="text-[10px] text-zinc-500">{lowPercent}% low priority — healthy distribution</span>
-      </div>
-    </div>
-  );
-}
-
-type TrendData = {
-  labels: string[];
-  created: number[];
-  resolved: number[];
-};
-
-function computeTrendData(tickets: Ticket[]): TrendData {
-  const now = new Date();
-  const days = 14;
-  const labels: string[] = [];
-  const created: number[] = [];
-  const resolved: number[] = [];
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    labels.push(dateStr);
-
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
-
-    const dayCreated = tickets.filter((t) => {
-      if (!t.created_at) return false;
-      const createdDate = new Date(t.created_at);
-      return createdDate >= dayStart && createdDate <= dayEnd;
-    }).length;
-
-    const dayResolved = tickets.filter((t) => {
-      if (!t.resolved_at) return false;
-      const resolvedDate = new Date(t.resolved_at);
-      return resolvedDate >= dayStart && resolvedDate <= dayEnd;
-    }).length;
-
-    created.push(dayCreated);
-    resolved.push(dayResolved);
-  }
-
-  return { labels, created, resolved };
-}
-
-function TrendChart({ tickets }: { tickets: Ticket[] }) {
-  const mounted = useMountedFlag();
-  const { ref: chartWrapRef, width: chartWidth } = useElementWidth<HTMLDivElement>(400, 280);
-  const trend = useMemo(() => computeTrendData(tickets), [tickets]);
-  const total14dCreated = trend.created.reduce((a, b) => a + b, 0);
-  const total14dResolved = trend.resolved.reduce((a, b) => a + b, 0);
-  const netBacklog = total14dCreated - total14dResolved;
-  const isEmpty = total14dCreated === 0 && total14dResolved === 0;
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  const svgWidth = Math.max(chartWidth, 280);
-  const svgHeight = chartWidth < 360 ? 168 : 152;
-  const pad = { l: 8, r: 8, t: 12, b: 28 };
-  const cW = svgWidth - pad.l - pad.r;
-  const cH = svgHeight - pad.t - pad.b;
-  const xS = trend.labels.length > 1 ? cW / (trend.labels.length - 1) : cW;
-  const maxV = Math.max(...trend.created, ...trend.resolved, 1);
-
-  const yP = (v: number) => pad.t + cH - (v / maxV) * cH;
-  const xP = (i: number) => pad.l + i * xS;
-  const activeIndex = hoveredIndex ?? -1;
-
-  const activePoint =
-    activeIndex >= 0
-      ? {
-          index: activeIndex,
-          label: trend.labels[activeIndex],
-          created: trend.created[activeIndex],
-          resolved: trend.resolved[activeIndex],
-          x: xP(activeIndex),
-          createdY: yP(trend.created[activeIndex]),
-          resolvedY: yP(trend.resolved[activeIndex]),
-        }
-      : null;
-
-  function crPath(pts: [number, number][]) {
-    if (pts.length < 2) return "";
-    let d = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[Math.max(0, i - 1)];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = pts[Math.min(pts.length - 1, i + 2)];
-      d += ` C ${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
-    }
-    return d;
-  }
-
-  const cPts = trend.created.map((v, i) => [xP(i), yP(v)] as [number, number]);
-  const rPts = trend.resolved.map((v, i) => [xP(i), yP(v)] as [number, number]);
-  const cLine = crPath(cPts);
-  const rLine = crPath(rPts);
-  const cArea = `${cLine} L ${xP(trend.labels.length - 1).toFixed(1)},${(pad.t + cH).toFixed(1)} L ${xP(0).toFixed(1)},${(pad.t + cH).toFixed(1)} Z`;
-  const rArea = `${rLine} L ${xP(trend.labels.length - 1).toFixed(1)},${(pad.t + cH).toFixed(1)} L ${xP(0).toFixed(1)},${(pad.t + cH).toFixed(1)} Z`;
-  const hasMeaningfulData = !isEmpty;
-  const labelStep = chartWidth < 360 ? 3 : 2;
-  const tooltipLeft = activePoint ? Math.min(svgWidth - 24, Math.max(activePoint.x, 24)) : 0;
-  const tooltipTop = activePoint ? Math.max(Math.min(activePoint.createdY, activePoint.resolvedY) - 10, 8) : 0;
-  const daySegmentBounds = trend.labels.map((_, index) => {
-    const center = xP(index);
-    const left = index === 0 ? pad.l : (xP(index - 1) + center) / 2;
-    const right = index === trend.labels.length - 1 ? svgWidth - pad.r : (center + xP(index + 1)) / 2;
-    return { left, width: Math.max(right - left, 1) };
-  });
-
-  if (!hasMeaningfulData) {
-    return (
-      <div className="ops-card rounded-[24px] p-5 sm:p-6" role="img" aria-label="14-day trend chart. No ticket activity in the last 14 days.">
-        <div className="flex items-start justify-between gap-4">
-          <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">14-Day Trend</div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className="h-[2px] w-3 rounded-full bg-amber-500" />
-              <span className="mono-data text-[10px] text-zinc-500">Created</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-[2px] w-3 rounded-full bg-emerald-500" />
-              <span className="mono-data text-[10px] text-zinc-500">Resolved</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-3 flex h-[168px] items-center justify-center rounded-[20px] border border-dashed border-zinc-800/70 bg-black/15 px-4 text-center">
-          <div>
-            <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">No ticket activity</div>
-            <p className="mt-2 text-sm leading-6 text-zinc-400">
-              The last 14 days are empty, so there is no trend line to draw yet.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 pt-3 border-t border-zinc-800/30 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div>
-              <span className="text-[9px] mono-data text-zinc-600 uppercase tracking-wider">14d Created</span>
-              <div className="mono-data text-[13px] font-semibold text-zinc-300 mt-0.5">0</div>
-            </div>
-            <div>
-              <span className="text-[9px] mono-data text-zinc-600 uppercase tracking-wider">14d Resolved</span>
-              <div className="mono-data text-[13px] font-semibold text-zinc-300 mt-0.5">0</div>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-[9px] mono-data text-zinc-600 uppercase tracking-wider">Net</span>
-            <div className="mono-data mt-0.5 text-[13px] font-semibold text-emerald-400">
-              0 <span className="text-[10px] font-normal text-zinc-600">backlog</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="ops-card rounded-[24px] p-5 sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">14-Day Trend</div>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-[2px] rounded-full bg-amber-500" />
-            <span className="text-[10px] mono-data text-zinc-500">Created</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-[2px] rounded-full bg-emerald-500" />
-            <span className="text-[10px] mono-data text-zinc-500">Resolved</span>
-          </div>
-        </div>
-      </div>
-
-      <div ref={chartWrapRef} className="mt-3 relative" style={{ height: svgHeight }}>
-        <svg
-          width="100%"
-          height="100%"
-          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          preserveAspectRatio="xMidYMid meet"
-          role="img"
-          aria-label={`14-day created and resolved trend chart. ${trend.labels[0]} through ${trend.labels[trend.labels.length - 1]}.`}
-        >
-          <defs>
-            <linearGradient id="grad-c" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.01" />
-            </linearGradient>
-            <linearGradient id="grad-r" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#22c55e" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#22c55e" stopOpacity="0.01" />
-            </linearGradient>
-          </defs>
-
-          {[2, 4, 6, 8].map((v) => (
-            <line
-              key={v}
-              x1={pad.l}
-              y1={yP(v)}
-              x2={svgWidth - pad.r}
-              y2={yP(v)}
-              stroke="rgba(63,63,70,0.18)"
-              strokeWidth="1"
-              strokeDasharray="4 4"
-            />
-          ))}
-
-          <path
-            d={cArea}
-            fill="url(#grad-c)"
-            className="transition-opacity duration-700 ease-out"
-            style={{ opacity: mounted ? 0.6 : 0 }}
-          />
-          <path
-            d={rArea}
-            fill="url(#grad-r)"
-            className="transition-opacity duration-700 ease-out"
-            style={{ opacity: mounted ? 0.6 : 0 }}
-          />
-          <path
-            d={cLine}
-            fill="none"
-            stroke="#f59e0b"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            pathLength={100}
-            strokeDasharray="100 100"
-            strokeDashoffset={mounted ? 0 : 100}
-            className="transition-[stroke-dashoffset] duration-1000 ease-out"
-          />
-          <path
-            d={rLine}
-            fill="none"
-            stroke="#22c55e"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            pathLength={100}
-            strokeDasharray="100 100"
-            strokeDashoffset={mounted ? 0 : 100}
-            className="transition-[stroke-dashoffset] duration-1000 ease-out"
-          />
-
-          {activePoint && (
-            <>
-              <line
-                x1={activePoint.x}
-                y1={pad.t}
-                x2={activePoint.x}
-                y2={pad.t + cH}
-                stroke="rgba(245, 158, 11, 0.35)"
-                strokeWidth="1"
-                strokeDasharray="4 4"
-              />
-              <circle cx={activePoint.x} cy={activePoint.createdY} r="3.5" fill="#f59e0b" stroke="#09090b" strokeWidth="2" />
-              <circle cx={activePoint.x} cy={activePoint.resolvedY} r="3.5" fill="#22c55e" stroke="#09090b" strokeWidth="2" />
-            </>
-          )}
-
-          {daySegmentBounds.map((segment, index) => (
-            <rect
-              key={trend.labels[index]}
-              x={segment.left}
-              y={pad.t}
-              width={segment.width}
-              height={cH}
-              fill="transparent"
-              tabIndex={0}
-              role="button"
-              aria-label={`${trend.labels[index]}: created ${trend.created[index]}, resolved ${trend.resolved[index]}`}
-              onFocus={() => setHoveredIndex(index)}
-              onBlur={() => setHoveredIndex((current) => (current === index ? null : current))}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseMove={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex((current) => (current === index ? null : current))}
-              onClick={() => setHoveredIndex(index)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  setHoveredIndex(null);
-                }
-              }}
-            />
-          ))}
-        </svg>
-
-        {activePoint && (
-          <div
-            className="pointer-events-none absolute z-20 min-w-40 rounded-2xl border border-zinc-700/70 bg-[#0a0a0d]/95 px-3 py-2 shadow-2xl backdrop-blur-xl"
-            style={{
-              left: `${(tooltipLeft / svgWidth) * 100}%`,
-              top: `${(tooltipTop / svgHeight) * 100}%`,
-              transform: "translate(-50%, -100%)",
-            }}
-          >
-            <div className="mono-data text-[10px] uppercase tracking-[0.24em] text-zinc-500">{activePoint.label}</div>
-            <div className="mt-2 space-y-1.5 text-[11px] text-zinc-300">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-zinc-500">Created</span>
-                <span className="mono-data text-amber-300">{activePoint.created}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-zinc-500">Resolved</span>
-                <span className="mono-data text-emerald-300">{activePoint.resolved}</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-between mt-1.5 px-0.5">
-        {trend.labels.map((label, i) => (
-          <span key={label} className="mono-data text-[9px] text-zinc-600">
-            {i % labelStep !== 0 && i !== trend.labels.length - 1 ? "" : label.split(" ")[1]}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-4 pt-3 border-t border-zinc-800/30 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <span className="text-[9px] mono-data text-zinc-600 uppercase tracking-wider">14d Created</span>
-            <div className="mono-data text-[13px] text-zinc-300 font-semibold mt-0.5">{total14dCreated}</div>
-          </div>
-          <div>
-            <span className="text-[9px] mono-data text-zinc-600 uppercase tracking-wider">14d Resolved</span>
-            <div className="mono-data text-[13px] text-zinc-300 font-semibold mt-0.5">{total14dResolved}</div>
-          </div>
-        </div>
-        <div className="text-right">
-          <span className="text-[9px] mono-data text-zinc-600 uppercase tracking-wider">Net</span>
-          <div className={`mono-data text-[13px] font-semibold mt-0.5 ${netBacklog >= 0 ? "text-amber-400" : "text-emerald-400"}`}>
-            {netBacklog >= 0 ? "+" : ""}{netBacklog} <span className="text-[10px] text-zinc-600 font-normal">backlog</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function CommandCenterPage() {
   const router = useRouter();
@@ -1285,7 +639,7 @@ export default function CommandCenterPage() {
   ];
 
   return (
-    <div className="ops-grid relative min-h-screen bg-[var(--bg-deep)]">
+    <div className="ops-grid relative min-h-[100dvh] bg-[var(--bg-deep)]">
       <div className="scan-line" />
 
       <button
@@ -1299,8 +653,8 @@ export default function CommandCenterPage() {
         <Download className="h-4 w-4" />
       </button>
 
-      <div className="relative z-10 grid min-h-screen lg:grid-cols-[72px,minmax(0,1fr)]">
-        <aside className="ops-rail ops-shell z-20 hidden border-r border-zinc-800/50 px-2 py-4 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+      <div className="relative z-10 grid min-h-[100dvh] lg:grid-cols-[72px,minmax(0,1fr)]">
+        <aside className="ops-rail ops-shell z-20 hidden border-r border-zinc-800/50 px-2 py-4 lg:sticky lg:top-0 lg:flex lg:h-[100dvh] lg:flex-col">
           <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-500/10 text-amber-300">
             <Radar className="h-5 w-5" />
           </div>
@@ -1561,195 +915,18 @@ export default function CommandCenterPage() {
             </section>
 
             <section id="decision" className="mt-6 grid gap-6 2xl:grid-cols-[1.15fr,0.85fr]">
-              <div className="ops-card rounded-[26px] p-5 sm:p-6">
-                <div className="flex flex-col gap-3 border-b border-zinc-800/50 pb-4 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-zinc-50">Ranked Queue</h2>
-                    <p className="mt-1 text-sm text-zinc-400">
-                      Search, inspect, and route the highest-value live tickets first.
-                    </p>
-                  </div>
-                  <span className="mono-data text-[11px] uppercase tracking-[0.22em] text-amber-300">
-                    {filteredQueue.length} visible
-                  </span>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  {filteredQueue.length ? filteredQueue.map((ticket, index) => (
-                    <button
-                      key={ticket.ticketId}
-                      type="button"
-                      onClick={() => setSelectedTicketId(ticket.ticketId)}
-                      className={`block w-full rounded-[20px] border px-4 py-4 text-left transition ${
-                        selectedTicket?.ticketId === ticket.ticketId
-                          ? "border-amber-400/30 bg-amber-500/[0.06]"
-                          : "border-zinc-800/60 bg-black/20 hover:border-amber-400/20 hover:bg-amber-500/[0.03]"
-                      }`}
-                    >
-                      <div className="grid gap-4 xl:grid-cols-[48px,minmax(0,1fr),124px] xl:items-center">
-                        <div className="mono-data flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950 text-sm text-zinc-300">
-                          #{index + 1}
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="mono-data text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-                              {ticket.ticketId}
-                            </span>
-                            <span
-                              className="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                              style={{
-                                color: priorityPalette[ticket.priority] ?? "#d4d4d8",
-                                backgroundColor: `${priorityPalette[ticket.priority] ?? "#71717a"}18`,
-                              }}
-                            >
-                              {ticket.priority}
-                            </span>
-                            <span
-                              className="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                              style={{
-                                color: statusPalette[ticket.status] ?? "#d4d4d8",
-                                backgroundColor: `${statusPalette[ticket.status] ?? "#52525b"}18`,
-                              }}
-                            >
-                              {ticket.status}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-zinc-100">{ticket.title}</p>
-                          <div className="mt-3 flex flex-wrap gap-3 text-xs text-zinc-500">
-                            <span>{ticket.category}</span>
-                            <span>{ticket.assignee}</span>
-                            <span>{ticket.daysOpen}d open</span>
-                          </div>
-                        </div>
-
-                        <div className="text-left xl:text-right">
-                          <div className="mono-data text-3xl font-bold tracking-tight text-zinc-50">
-                            {ticket.score.toFixed(0)}
-                          </div>
-                          <div className="mt-1 inline-flex items-center gap-1 text-xs text-zinc-500">
-                            Decision score
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  )) : (
-                    <SectionEmptyState
-                      title="No queue matches"
-                      message={
-                        searchTerm
-                          ? "No open tickets matched the current search query."
-                          : "There are no active tickets in the live queue right now."
-                      }
-                    />
-                  )}
-                </div>
-              </div>
-
+              <QueueTable
+                tickets={filteredQueue}
+                selectedId={selectedTicket?.ticketId ?? null}
+                onSelect={setSelectedTicketId}
+                searchTerm={searchTerm}
+              />
               <div className="space-y-6">
-                <div className="ops-card rounded-[26px] p-5 sm:p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-amber-300">
-                        Case Inspector
-                      </div>
-                      <h2 className="mt-2 text-2xl font-semibold text-zinc-50">
-                        {selectedTicket?.ticketId || "No active ticket"}
-                      </h2>
-                      <p className="mt-2 text-sm leading-6 text-zinc-300">
-                        {selectedTicket?.title || "No ticket is currently selected."}
-                      </p>
-                    </div>
-                    {selectedTicket ? (
-                      <Link
-                        href={`/tickets/${selectedTicket.ticketId}`}
-                        className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-3 py-2 text-xs font-medium text-zinc-200 transition hover:border-amber-400/30"
-                      >
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                        Open ticket
-                      </Link>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
-                      <div className="mono-data text-[10px] uppercase tracking-[0.22em] text-zinc-500">Decision Score</div>
-                      <div className="mono-data mt-3 text-3xl font-bold text-zinc-50">
-                        {selectedTicket ? selectedTicket.score.toFixed(0) : "--"}
-                      </div>
-                    </div>
-                    <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
-                      <div className="mono-data text-[10px] uppercase tracking-[0.22em] text-zinc-500">Linked Incident</div>
-                      <div className="mt-3 text-sm font-medium text-zinc-100">
-                        {linkedIncident?.title || "Standalone case"}
-                      </div>
-<div className="mono-data mt-1 text-[11px] text-zinc-500">{linkedIncident?.id || "No cluster"}</div>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-3 text-sm text-zinc-300">
-                    <div className="flex items-center justify-between rounded-2xl border border-zinc-800/60 bg-black/20 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <Clock3 className="h-4 w-4 text-zinc-500" />
-                        <span>Opened</span>
-                      </div>
-                      <span className="mono-data text-zinc-400">{formatDate(selectedTicket?.createdAt)}</span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-zinc-800/60 bg-black/20 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <Users className="h-4 w-4 text-zinc-500" />
-                        <span>Owner</span>
-                      </div>
-                      <span className="mono-data text-zinc-400">{selectedTicket?.assignee || "Unassigned"}</span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-zinc-800/60 bg-black/20 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <AlertTriangle className="h-4 w-4 text-zinc-500" />
-                        <span>Request Type</span>
-                      </div>
-                      <span className="mono-data text-zinc-400">{selectedTicket?.category || "Unknown"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="ops-card rounded-[26px] p-5 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-                      Active Clusters
-                    </div>
-                    <span className="mono-data text-[11px] text-cyan-300">{incidentCards.length}</span>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {incidentCards.length ? incidentCards.map((incident) => (
-                      <Link
-                        key={incident.id}
-                        href={`/incidents/${incident.id}`}
-                        className="block rounded-2xl border border-zinc-800/60 bg-black/20 px-4 py-4 transition hover:border-cyan-400/30"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-semibold text-zinc-100">{incident.title}</div>
-                            <div className="mono-data mt-1 text-[11px] text-zinc-500">{incident.id}</div>
-                          </div>
-                          <div className="mono-data text-sm text-cyan-200">
-                            {Math.round(incident.confidence * 100)}%
-                          </div>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-3 text-xs text-zinc-500">
-                          <span>{incident.ticketCount} linked tickets</span>
-                          <span>{incident.rootCause}</span>
-                          <span>Impact {incident.impact}</span>
-                        </div>
-                      </Link>
-                    )) : (
-                      <SectionEmptyState
-                        title="No incident clusters"
-                        message="No live incident clusters are currently linked to the queue."
-                      />
-                    )}
-                  </div>
-                </div>
+                <DecisionDetailPanel
+                  selectedTicket={selectedTicket}
+                  linkedIncident={linkedIncident}
+                />
+                <IncidentList incidents={incidentCards} />
               </div>
             </section>
 

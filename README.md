@@ -30,7 +30,7 @@ Aether OpsCenter turns live service tickets into ranked, explainable actions acr
 - **Ticket Intelligence** — Per-ticket decision context, recommendation stacks, event history, and related-case lookup
 - **Replay & Audit** — Event-sourced replay timeline with decision history, operator feedback, and similar-case traceability
 - **Styled Reporting** — Backend-generated Excel workbook for executive summaries, queue review, incident review, and audit handoff
-- **Authenticated Operations UI** — Login flow, protected routes, logout, persisted notifications, and backend session validation
+- **Authenticated Operations UI** — Login flow, protected routes, logout, persisted notifications, and JWT-backed user validation
 
 ## Architecture
 
@@ -63,8 +63,8 @@ flowchart TB
 | Migrations | Alembic |
 | Reporting | openpyxl-based styled Excel workbook generation |
 | Data Processing | pandas, openpyxl |
-| Auth | JWT access tokens with backend session validation |
-| Tooling | ESLint, TypeScript, Playwright, Ruff, MyPy, Pytest |
+| Auth | JWT access tokens, bcrypt password hashing, legacy SHA-256 migration, local/demo JSON user store |
+| Tooling | ESLint, TypeScript, Playwright dependency, Ruff, MyPy, Pytest |
 | Infra & Delivery | Docker, Docker Compose, GitHub Actions |
 
 ## Quick Start
@@ -73,16 +73,44 @@ flowchart TB
 # From repo root
 cp .env.example .env
 
-# Backend
-pip install -e ".[dev]"
-alembic -c infrastructure/db/migrations/alembic.ini upgrade head
-uvicorn apps.api.main:app --reload --port 8000
+# Install backend and frontend dependencies
+make deps
 
-# Frontend
-cd apps/web
-npm install
-npm run dev
+# Apply migrations and start each service
+make migrate
+make api
+make web
 ```
+
+The API runs on port 8000. The web app runs on the port selected by Next.js, usually 3000.
+
+## Development Commands
+
+| Command | Purpose |
+|---|---|
+| `make deps` | Install Python dev package and web dependencies |
+| `make dev` / `make api` | Run the FastAPI app with reload on port 8000 |
+| `make web` | Run the Next.js dev server from `apps/web` |
+| `make test` | Run the Python test suite |
+| `make lint` | Run Python and web lint commands |
+| `make lint-py` | Run Ruff over backend, domain, infrastructure, pipelines, scripts, and tests |
+| `make lint-web` | Run `npm run lint` in `apps/web` |
+| `make typecheck` | Run MyPy over Python packages and tests |
+| `make migrate` | Apply Alembic migrations and initialize DB metadata |
+| `make rollback` | Downgrade one Alembic migration |
+| `make build-docker` | Build Docker images with `docker/docker-compose.yml` |
+| `make run-docker` | Start the Docker stack with `docker/docker-compose.yml` |
+| `cd apps/web && npm run typecheck` | Run TypeScript typecheck |
+| `cd apps/web && npm run build` | Build the production Next.js app |
+ 
+## Auth Notes
+
+- Passwords are hashed with bcrypt through Passlib. Existing 64-character SHA-256 hashes are treated as legacy values and migrated to bcrypt after a successful login.
+- JWT access tokens expire after 8 hours.
+- Logout clears the browser session. Tokens are not server-revoked unless a future server-side session denylist is added.
+- Login throttling is in-memory and keyed by username plus client IP. This is suitable for the current local/demo deployment shape; multi-process production deployments should move throttling state to Redis or another shared store.
+- User records currently live in `users.json` or the configured `USERS_FILE`. Moving users into PostgreSQL is a known follow-up.
+- Production startup rejects the default `SECRET_KEY` and rejects wildcard CORS origins when credentialed CORS is enabled.
 
 ## Legacy App Preserved
 

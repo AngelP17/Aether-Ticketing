@@ -63,7 +63,7 @@ function formatScore(value?: number | null) {
 
 function ReplayErrorState({ id, message }: { id: string; message: string }) {
   return (
-    <div className="min-h-screen bg-slate-950 p-8 text-slate-50">
+    <div className="min-h-[100dvh] bg-slate-950 p-8 text-slate-50">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center">
         <div className="w-full rounded-2xl border border-rose-500/20 bg-slate-900/80 p-8 shadow-xl">
           <div className="text-xs uppercase tracking-[0.3em] text-rose-300">Replay API error</div>
@@ -103,7 +103,7 @@ export default async function ReplayPage({ params }: { params: { id: string } })
   const payload = result.data;
 
   return (
-    <div className="min-h-screen bg-slate-950 p-8 text-slate-50">
+    <div className="min-h-[100dvh] bg-slate-950 p-8 text-slate-50">
       <div className="mx-auto max-w-5xl rounded-2xl border border-slate-800 bg-slate-900/80 p-8 shadow-xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>

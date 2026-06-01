@@ -1,13 +1,22 @@
-@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Font wiring
+ *
+ * Section 3.A: no Google Fonts <link> or @import in production.
+ * Fonts are loaded via next/font/google in app/layout.tsx and exposed as
+ * CSS variables --font-chakra and --font-jetbrains, then aliased to the
+ * design-system names used throughout the app: --font-display and
+ * --font-mono. The string fallbacks ("Chakra Petch", "JetBrains Mono")
+ * below match the next/font sources so a font-loading failure still
+ * resolves to a usable family on the user's machine.
+ */
 :root {
   color-scheme: dark;
-  --font-display: "Chakra Petch";
-  --font-mono: "JetBrains Mono";
+  --font-display: var(--font-chakra), "Chakra Petch", "Avenir Next", "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", "SFMono-Regular", "Menlo", "Monaco", ui-monospace, monospace;
   --bg-deep: #070809;
   --bg-base: #0d0d11;
   --bg-surface: rgba(20, 20, 23, 0.72);
@@ -26,6 +35,20 @@
   --violet: #8b5cf6;
 }
 
+/*
+ * Shape system (radius scale)
+ *
+ * App surface    : rounded-xl   (12px)  buttons, inputs, inline tags
+ * Card surface   : rounded-2xl  (16px)  standard ops cards
+ * Hero / shell   : rounded-[2rem] (32px) page shell, command-center frame
+ * Login input    : 10px          isolated surface, set in <style jsx> in
+ *                                apps/web/src/app/login/page.tsx. This is
+ *                                an intentional exception: the login page
+ *                                is the only place in the app that uses a
+ *                                one-off radius value. The exception is
+ *                                documented at the rule below to keep the
+ *                                rest of the system on the four-step scale.
+ */
 * {
   box-sizing: border-box;
 }

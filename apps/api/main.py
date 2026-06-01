@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from apps.api.config import settings
+from apps.api.config import settings, validate_production_settings
 from apps.api.deps import init_db
 from apps.api.routes.attachments import router as attachments_router
 from apps.api.routes.assets import router as assets_router
@@ -22,6 +22,7 @@ from apps.api.routes.tickets import router as tickets_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    validate_production_settings()
     if settings.AUTO_INIT_DB:
         init_db()
     yield

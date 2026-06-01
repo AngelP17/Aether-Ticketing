@@ -2,16 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from threading import Lock
+from typing import Any, cast
 
 from jose import JWTError, jwt
+from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 
 from apps.api.config import settings
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_MINUTES = 60 * 8
+LOGIN_RATE_LIMIT_ATTEMPTS = 5
+LOGIN_RATE_LIMIT_WINDOW_SECONDS = 15 * 60
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 VALID_ROLES = {"admin", "agent", "viewer"}
 USERS_FILE_LOCATIONS = [
@@ -21,6 +27,47 @@ USERS_FILE_LOCATIONS = [
     PROJECT_ROOT / "users.json",
     Path("users.json"),
 ]
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class LoginRateLimiter:
+    def __init__(self) -> None:
+        self._failures: defaultdict[tuple[str, str], deque[datetime]] = defaultdict(deque)
+        self._lock = Lock()
+
+    def is_limited(self, username: str, client_id: str) -> bool:
+        key = self._key(username, client_id)
+        now = datetime.now(timezone.utc)
+        with self._lock:
+            self._prune(key, now)
+            return len(self._failures[key]) >= LOGIN_RATE_LIMIT_ATTEMPTS
+
+    def record_failure(self, username: str, client_id: str) -> None:
+        key = self._key(username, client_id)
+        now = datetime.now(timezone.utc)
+        with self._lock:
+            self._prune(key, now)
+            self._failures[key].append(now)
+
+    def reset(self, username: str, client_id: str) -> None:
+        with self._lock:
+            self._failures.pop(self._key(username, client_id), None)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._failures.clear()
+
+    def _key(self, username: str, client_id: str) -> tuple[str, str]:
+        return (username.strip().lower(), client_id)
+
+    def _prune(self, key: tuple[str, str], now: datetime) -> None:
+        cutoff = now.timestamp() - LOGIN_RATE_LIMIT_WINDOW_SECONDS
+        failures = self._failures[key]
+        while failures and failures[0].timestamp() < cutoff:
+            failures.popleft()
+
+
+login_rate_limiter = LoginRateLimiter()
 
 
 class AuthService:
@@ -28,8 +75,11 @@ class AuthService:
         user = self._get_user(username)
         if user is None:
             return None
-        if not self._verify_password(password, user["password_hash"]):
+        verified, needs_migration = self._verify_password(password, user["password_hash"])
+        if not verified:
             return None
+        if needs_migration:
+            self.update_user(username=user["username"], password=password)
 
         public_user = {
             "username": user["username"],
@@ -125,7 +175,8 @@ class AuthService:
         for user in users:
             if user["username"] != username:
                 continue
-            if not self._verify_password(current_password, user["password_hash"]):
+            verified, _ = self._verify_password(current_password, user["password_hash"])
+            if not verified:
                 raise PermissionError("Current password incorrect")
             user["password_hash"] = self._hash_password(new_password)
             self._save_users(users)
@@ -140,7 +191,7 @@ class AuthService:
             "display_name": user["display_name"],
             "exp": expires_at,
         }
-        return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
+        return cast(str, jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM))
 
     def _get_user(self, username: str) -> dict[str, Any] | None:
         for user in self._load_users():
@@ -161,7 +212,7 @@ class AuthService:
                 continue
             with path.open("r", encoding="utf-8") as file:
                 data = json.load(file)
-            return data.get("users", [])
+            return cast(list[dict[str, Any]], data.get("users", []))
         return []
 
     def _save_users(self, users: list[dict[str, Any]]) -> None:
@@ -179,7 +230,15 @@ class AuthService:
         return PROJECT_ROOT / "users.json"
 
     def _hash_password(self, password: str) -> str:
-        return hashlib.sha256(password.encode()).hexdigest()
+        return cast(str, pwd_context.hash(password))
 
-    def _verify_password(self, password: str, password_hash: str) -> bool:
-        return self._hash_password(password) == password_hash
+    def _verify_password(self, password: str, password_hash: str) -> tuple[bool, bool]:
+        if self._is_legacy_sha256_hash(password_hash):
+            return hashlib.sha256(password.encode()).hexdigest() == password_hash, True
+        try:
+            return pwd_context.verify(password, password_hash), False
+        except UnknownHashError:
+            return False, False
+
+    def _is_legacy_sha256_hash(self, password_hash: str) -> bool:
+        return len(password_hash) == 64 and all(char in "0123456789abcdef" for char in password_hash)

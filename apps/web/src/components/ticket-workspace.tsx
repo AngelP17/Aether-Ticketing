@@ -444,7 +444,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
 
   if (isLoading) {
     return (
-      <div className="ops-shell min-h-screen px-4 py-5 text-white sm:px-6 lg:px-8">
+      <div className="ops-shell min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl rounded-[2rem] border border-zinc-800 bg-black/20 p-8">
           <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-amber-300">Loading workspace</div>
           <div className="mt-4 text-sm text-zinc-400">Pulling ticket state, operators, categories, labels, and comments.</div>
@@ -455,7 +455,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
 
   if (error || !options) {
     return (
-      <div className="ops-shell min-h-screen px-4 py-5 text-white sm:px-6 lg:px-8">
+      <div className="ops-shell min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl rounded-[2rem] border border-rose-500/20 bg-black/20 p-8">
           <div className="flex items-center gap-3 text-rose-300">
             <AlertTriangle className="h-5 w-5" />
@@ -471,7 +471,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
   const attachments = detail?.attachments ?? [];
 
   return (
-    <div className="ops-shell min-h-screen px-4 py-5 text-white sm:px-6 lg:px-8">
+    <div className="ops-shell min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="ops-glass rounded-[2rem] px-5 py-5 sm:px-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">

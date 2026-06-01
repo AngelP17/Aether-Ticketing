@@ -260,7 +260,7 @@ export default function AdminPage() {
 
   if (!adminAccess) {
     return (
-      <div className="ops-shell min-h-screen px-4 py-5 text-white sm:px-6 lg:px-8">
+      <div className="ops-shell min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl rounded-[2rem] border border-rose-500/20 bg-black/20 p-8">
           <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-rose-300">Admin access required</div>
           <h1 className="mt-3 text-3xl font-semibold text-white">This console is restricted to administrators</h1>
@@ -281,7 +281,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="ops-shell min-h-screen px-4 py-5 text-white sm:px-6 lg:px-8">
+    <div className="ops-shell min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="ops-glass rounded-[2rem] px-5 py-5 sm:px-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">

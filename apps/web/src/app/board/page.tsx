@@ -111,10 +111,10 @@ export default async function BoardPage() {
 
   if (feed.status === "error") {
     return (
-      <div className="ops-shell relative min-h-screen overflow-hidden text-white">
+      <div className="ops-shell relative min-h-[100dvh] overflow-hidden text-white">
         <div className="ops-grid absolute inset-0 opacity-70" />
         <div className="absolute right-[-6rem] top-[-6rem] h-[24rem] w-[24rem] rounded-full bg-amber-500/10 blur-[120px]" />
-        <div className="relative z-10 mx-auto flex min-h-screen max-w-[1680px] items-center px-4 py-5 sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-[1680px] items-center px-4 py-5 sm:px-6 lg:px-8">
           <div className="ops-card w-full rounded-[2rem] border border-rose-500/20 bg-black/40 p-8 text-center">
             <div className="mono-data text-[11px] uppercase tracking-[0.32em] text-rose-300">Board unavailable</div>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">The live board could not load</h1>
@@ -154,7 +154,7 @@ export default async function BoardPage() {
   const throughputCount = grouped["DONE"].length;
 
   return (
-    <div className="ops-shell relative min-h-screen overflow-hidden text-white">
+    <div className="ops-shell relative min-h-[100dvh] overflow-hidden text-white">
       <div className="ops-grid absolute inset-0 opacity-70" />
       <div className="absolute right-[-6rem] top-[-6rem] h-[24rem] w-[24rem] rounded-full bg-amber-500/10 blur-[120px]" />
       <div className="absolute bottom-[-8rem] left-[8%] h-[20rem] w-[20rem] rounded-full bg-cyan-500/10 blur-[120px]" />

@@ -9,6 +9,7 @@ import {
   EyeOff,
   AlertCircle,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/components/notifications";
 import { ACCESS_TOKEN_KEY, USER_STORAGE_KEY } from "@/lib/auth";
@@ -119,7 +120,7 @@ export default function LoginPage() {
           padding: 0;
         }
         body {
-          font-family: "Chakra Petch", sans-serif;
+          font-family: var(--font-display), sans-serif;
           background: var(--bg-deep);
           color: var(--text-primary);
         }
@@ -254,14 +255,22 @@ export default function LoginPage() {
           }
         }
         .fade-up {
-          opacity: 0;
-          transform: translateY(16px);
-          animation: fadeUp 0.6s ease forwards;
+          opacity: 1;
+          transform: translateY(0);
         }
-        @keyframes fadeUp {
-          to {
-            opacity: 1;
-            transform: translateY(0);
+        @media (prefers-reduced-motion: no-preference) {
+          .fade-up {
+            animation: fadeUp 0.6s ease both;
+          }
+          @keyframes fadeUp {
+            from {
+              opacity: 0;
+              transform: translateY(16px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
           }
         }
         .delay-1 {
@@ -309,7 +318,7 @@ export default function LoginPage() {
           border-radius: 10px;
           color: var(--text-primary);
           font-size: 14px;
-          font-family: "Chakra Petch", sans-serif;
+          font-family: var(--font-display), sans-serif;
           transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
         }
         .form-input::placeholder {
@@ -337,7 +346,7 @@ export default function LoginPage() {
           background: var(--accent);
           color: #000;
           font-size: 15px;
-          font-family: "Chakra Petch", sans-serif;
+          font-family: var(--font-display), sans-serif;
           font-weight: 600;
           cursor: pointer;
           position: relative;
@@ -478,12 +487,12 @@ export default function LoginPage() {
           <div className="relative z-10 fade-up">
             <div className="mb-3 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                <i className="fa-solid fa-bolt text-amber-500 text-sm" />
+                <Zap className="h-4 w-4 text-amber-500" />
               </div>
               <span className="text-lg font-semibold tracking-tight">Aether</span>
             </div>
             <p className="text-[10px] font-mono text-zinc-600 tracking-widest uppercase">
-              OpsCenter v2.4.1
+              © 2026 Aether OpsCenter. Internal use only.
             </p>
           </div>
 
@@ -541,7 +550,7 @@ export default function LoginPage() {
         <div className="right-panel">
           <div className="mobile-brand fade-up">
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-              <i className="fa-solid fa-bolt text-amber-500 text-xs" />
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
             </div>
             <span className="text-sm font-semibold">Aether</span>
           </div>
@@ -691,10 +700,10 @@ export default function LoginPage() {
 
             <div className="mt-10 text-center fade-up delay-6">
               <p className="text-[11px] text-zinc-700">
-                Secured with TLS 1.3 — Session tokens rotated every 60 min
+                Secured with TLS 1.3. JWT access tokens expire after 8 hours.
               </p>
               <p className="text-[10px] text-zinc-800 mt-2">
-                © 2026 Wallner Expac, Inc. — Internal Use Only
+                © 2026 Wallner Expac, Inc. - Internal Use Only
               </p>
             </div>
           </div>

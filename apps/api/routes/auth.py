@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
+from typing import Any
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 
 from apps.api.schemas.management import (
@@ -7,7 +9,7 @@ from apps.api.schemas.management import (
     UserUpdateRequest,
 )
 from apps.api.security import get_current_user, require_admin
-from apps.api.services.auth_service import AuthService
+from apps.api.services.auth_service import AuthService, login_rate_limiter
 
 router = APIRouter()
 
@@ -20,24 +22,30 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    user: dict
+    user: dict[str, Any]
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(body: LoginRequest):
+def login(body: LoginRequest, request: Request) -> dict[str, Any]:
+    client_id = request.client.host if request.client else "unknown"
+    if login_rate_limiter.is_limited(body.username, client_id):
+        raise HTTPException(status_code=429, detail="Too many failed login attempts")
+
     payload = AuthService().login(body.username, body.password)
     if payload is None:
+        login_rate_limiter.record_failure(body.username, client_id)
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    login_rate_limiter.reset(body.username, client_id)
     return payload
 
 
 @router.post("/logout")
-def logout():
-    return {"status": "success"}
+def logout() -> dict[str, str]:
+    return {"status": "success", "message": "Client session cleared; token remains valid until expiry"}
 
 
 @router.get("/me")
-def get_me(authorization: str | None = Header(default=None)):
+def get_me(authorization: str | None = Header(default=None)) -> dict[str, str]:
     if authorization is None or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = authorization.replace("Bearer ", "", 1)
@@ -48,12 +56,15 @@ def get_me(authorization: str | None = Header(default=None)):
 
 
 @router.get("/users")
-def list_users(_: dict = Depends(require_admin)):
+def list_users(_: dict[str, str] = Depends(require_admin)) -> list[dict[str, str]]:
     return AuthService().list_users()
 
 
 @router.post("/users", status_code=201)
-def create_user(body: UserCreateRequest, _: dict = Depends(require_admin)):
+def create_user(
+    body: UserCreateRequest,
+    _: dict[str, str] = Depends(require_admin),
+) -> dict[str, str]:
     try:
         return AuthService().create_user(
             username=body.username,
@@ -66,7 +77,11 @@ def create_user(body: UserCreateRequest, _: dict = Depends(require_admin)):
 
 
 @router.put("/users/{username}")
-def update_user(username: str, body: UserUpdateRequest, _: dict = Depends(require_admin)):
+def update_user(
+    username: str,
+    body: UserUpdateRequest,
+    _: dict[str, str] = Depends(require_admin),
+) -> dict[str, str]:
     user = AuthService().update_user(
         username=username,
         password=body.password,
@@ -79,7 +94,7 @@ def update_user(username: str, body: UserUpdateRequest, _: dict = Depends(requir
 
 
 @router.delete("/users/{username}")
-def delete_user(username: str, _: dict = Depends(require_admin)):
+def delete_user(username: str, _: dict[str, str] = Depends(require_admin)) -> dict[str, str]:
     try:
         deleted = AuthService().delete_user(username)
     except ValueError as error:
@@ -92,8 +107,8 @@ def delete_user(username: str, _: dict = Depends(require_admin)):
 @router.post("/change-password")
 def change_password(
     body: ChangePasswordRequest,
-    current_user: dict = Depends(get_current_user),
-):
+    current_user: dict[str, str] = Depends(get_current_user),
+) -> dict[str, str]:
     try:
         AuthService().change_password(
             username=current_user["username"],
