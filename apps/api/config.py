@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
     AUTO_INIT_DB: bool = False
     USERS_FILE: str | None = None
+    RATE_LIMIT_BACKEND: str = "memory"
+    REDIS_URL: str | None = None
 
     @property
     def is_production(self) -> bool:

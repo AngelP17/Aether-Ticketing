@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
+import redis
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from passlib.exc import UnknownHashError
+from redis import Redis
 
 from apps.api.config import settings
 
@@ -18,6 +21,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_MINUTES = 60 * 8
 LOGIN_RATE_LIMIT_ATTEMPTS = 5
 LOGIN_RATE_LIMIT_WINDOW_SECONDS = 15 * 60
+LOGIN_RATE_LIMIT_KEY_PREFIX = "login_failures:"
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 VALID_ROLES = {"admin", "agent", "viewer"}
 USERS_FILE_LOCATIONS = [
@@ -28,9 +32,20 @@ USERS_FILE_LOCATIONS = [
     Path("users.json"),
 ]
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+logger = logging.getLogger(__name__)
 
 
-class LoginRateLimiter:
+class LoginRateLimiter(Protocol):
+    def is_limited(self, username: str, client_id: str) -> bool: ...
+
+    def record_failure(self, username: str, client_id: str) -> None: ...
+
+    def reset(self, username: str, client_id: str) -> None: ...
+
+    def clear(self) -> None: ...
+
+
+class InMemoryLoginRateLimiter:
     def __init__(self) -> None:
         self._failures: defaultdict[tuple[str, str], deque[datetime]] = defaultdict(deque)
         self._lock = Lock()
@@ -67,7 +82,64 @@ class LoginRateLimiter:
             failures.popleft()
 
 
-login_rate_limiter = LoginRateLimiter()
+class RedisLoginRateLimiter:
+    def __init__(self, client: Redis) -> None:
+        self._client = client
+
+    def is_limited(self, username: str, client_id: str) -> bool:
+        value = self._client.get(self._key(username, client_id))
+        if value is None:
+            return False
+        try:
+            return int(value) >= LOGIN_RATE_LIMIT_ATTEMPTS
+        except (TypeError, ValueError):
+            return False
+
+    def record_failure(self, username: str, client_id: str) -> None:
+        key = self._key(username, client_id)
+        pipe = self._client.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, LOGIN_RATE_LIMIT_WINDOW_SECONDS)
+        pipe.execute()
+
+    def reset(self, username: str, client_id: str) -> None:
+        self._client.delete(self._key(username, client_id))
+
+    def clear(self) -> None:
+        cursor = 0
+        pattern = f"{LOGIN_RATE_LIMIT_KEY_PREFIX}*"
+        while True:
+            cursor, keys = self._client.scan(cursor=cursor, match=pattern, count=200)
+            if keys:
+                self._client.delete(*keys)
+            if cursor == 0:
+                return
+
+    def _key(self, username: str, client_id: str) -> str:
+        return f"{LOGIN_RATE_LIMIT_KEY_PREFIX}{username.strip().lower()}:{client_id}"
+
+
+def build_login_rate_limiter() -> LoginRateLimiter:
+    backend = settings.RATE_LIMIT_BACKEND.lower()
+    if backend == "redis":
+        if not settings.REDIS_URL:
+            logger.warning(
+                "RATE_LIMIT_BACKEND=redis but REDIS_URL is unset; falling back to in-memory limiter"
+            )
+            return InMemoryLoginRateLimiter()
+        try:
+            client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
+            client.ping()
+        except redis.RedisError as exc:
+            logger.warning(
+                "Redis rate limiter unavailable (%s); falling back to in-memory limiter", exc
+            )
+            return InMemoryLoginRateLimiter()
+        return RedisLoginRateLimiter(client)
+    return InMemoryLoginRateLimiter()
+
+
+login_rate_limiter: LoginRateLimiter = build_login_rate_limiter()
 
 
 class AuthService:
@@ -109,7 +181,7 @@ class AuthService:
             "display_name": user["display_name"],
         }
 
-    def list_users(self) -> list[dict[str, str]]:
+    def list_users(self) -> list[dict[str, Any]]:
         return [self._public_user(user) for user in self._load_users()]
 
     def create_user(
@@ -118,7 +190,7 @@ class AuthService:
         password: str,
         role: str,
         display_name: str | None,
-    ) -> dict[str, str]:
+    ) -> dict[str, Any]:
         normalized_username = username.strip()
         normalized_role = role if role in VALID_ROLES else "viewer"
         if not normalized_username or not password:
@@ -143,7 +215,7 @@ class AuthService:
         password: str | None = None,
         role: str | None = None,
         display_name: str | None = None,
-    ) -> dict[str, str] | None:
+    ) -> dict[str, Any] | None:
         users = self._load_users()
         for user in users:
             if user["username"] != username:
@@ -191,7 +263,7 @@ class AuthService:
             "display_name": user["display_name"],
             "exp": expires_at,
         }
-        return cast(str, jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM))
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
     def _get_user(self, username: str) -> dict[str, Any] | None:
         for user in self._load_users():
@@ -199,7 +271,7 @@ class AuthService:
                 return user
         return None
 
-    def _public_user(self, user: dict[str, Any]) -> dict[str, str]:
+    def _public_user(self, user: dict[str, Any]) -> dict[str, Any]:
         return {
             "username": user["username"],
             "role": user.get("role", "viewer"),
@@ -230,7 +302,7 @@ class AuthService:
         return PROJECT_ROOT / "users.json"
 
     def _hash_password(self, password: str) -> str:
-        return cast(str, pwd_context.hash(password))
+        return pwd_context.hash(password)
 
     def _verify_password(self, password: str, password_hash: str) -> tuple[bool, bool]:
         if self._is_legacy_sha256_hash(password_hash):
