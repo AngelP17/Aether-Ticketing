@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -15,7 +16,7 @@ router = APIRouter()
 
 
 @router.get("/categories")
-def list_categories(db: Session = Depends(get_db), _: dict = Depends(get_current_user)):
+def list_categories(db: Session = Depends(get_db), _: dict[str, Any] = Depends(get_current_user)) -> Any:
     return CatalogService(db).list_categories(active_only=True)
 
 
@@ -23,8 +24,8 @@ def list_categories(db: Session = Depends(get_db), _: dict = Depends(get_current
 def create_category(
     body: CategoryCreateRequest,
     db: Session = Depends(get_db),
-    _: dict = Depends(require_admin),
-):
+    _: dict[str, Any] = Depends(require_admin),
+) -> Any:
     try:
         return CatalogService(db).create_category(body.name, body.color, body.icon)
     except Exception as error:  # noqa: BLE001
@@ -36,8 +37,8 @@ def update_category(
     category_id: int,
     body: CategoryUpdateRequest,
     db: Session = Depends(get_db),
-    _: dict = Depends(require_admin),
-):
+    _: dict[str, Any] = Depends(require_admin),
+) -> Any:
     category = CatalogService(db).update_category(category_id, body.model_dump(exclude_unset=True))
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -48,8 +49,8 @@ def update_category(
 def delete_category(
     category_id: int,
     db: Session = Depends(get_db),
-    _: dict = Depends(require_admin),
-):
+    _: dict[str, Any] = Depends(require_admin),
+) -> Any:
     deleted = CatalogService(db).delete_category(category_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -57,7 +58,7 @@ def delete_category(
 
 
 @router.get("/labels")
-def list_labels(db: Session = Depends(get_db), _: dict = Depends(get_current_user)):
+def list_labels(db: Session = Depends(get_db), _: dict[str, Any] = Depends(get_current_user)) -> Any:
     return CatalogService(db).list_labels()
 
 
@@ -65,8 +66,8 @@ def list_labels(db: Session = Depends(get_db), _: dict = Depends(get_current_use
 def create_label(
     body: LabelCreateRequest,
     db: Session = Depends(get_db),
-    _: dict = Depends(require_admin),
-):
+    _: dict[str, Any] = Depends(require_admin),
+) -> Any:
     try:
         return CatalogService(db).create_label(body.name, body.color)
     except Exception as error:  # noqa: BLE001
@@ -77,14 +78,14 @@ def create_label(
 def delete_label(
     label_id: int,
     db: Session = Depends(get_db),
-    _: dict = Depends(require_admin),
-):
+    _: dict[str, Any] = Depends(require_admin),
+) -> Any:
     CatalogService(db).delete_label(label_id)
     return {"status": "success"}
 
 
 @router.get("/assignees")
-def list_assignees(db: Session = Depends(get_db), _: dict = Depends(get_current_user)):
+def list_assignees(db: Session = Depends(get_db), _: dict[str, Any] = Depends(get_current_user)) -> Any:
     return CatalogService(db).get_options()["assignees"]
 
 
@@ -92,8 +93,8 @@ def list_assignees(db: Session = Depends(get_db), _: dict = Depends(get_current_
 def create_assignee(
     body: AssigneeCreateRequest,
     db: Session = Depends(get_db),
-    _: dict = Depends(require_admin),
-):
+    _: dict[str, Any] = Depends(require_admin),
+) -> Any:
     try:
         return CatalogService(db).create_assignee(body.display_name)
     except ValueError as error:
@@ -104,8 +105,8 @@ def create_assignee(
 def delete_assignee(
     display_name: str = Query(...),
     db: Session = Depends(get_db),
-    _: dict = Depends(require_admin),
-):
+    _: dict[str, Any] = Depends(require_admin),
+) -> Any:
     try:
         CatalogService(db).delete_assignee(display_name)
     except ValueError as error:
@@ -114,5 +115,5 @@ def delete_assignee(
 
 
 @router.get("/options")
-def get_options(db: Session = Depends(get_db), _: dict = Depends(get_current_user)):
+def get_options(db: Session = Depends(get_db), _: dict[str, Any] = Depends(get_current_user)) -> Any:
     return CatalogService(db).get_options()

@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -15,8 +16,8 @@ async def upload_attachment(
     file: UploadFile,
     comment_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     try:
         attachment = await AttachmentService(db).upload_attachment(
             ticket_id=ticket_id,
@@ -37,8 +38,8 @@ async def upload_attachment(
 def list_ticket_attachments(
     ticket_id: str,
     db: Session = Depends(get_db),
-    _: dict = Depends(get_current_user),
-):
+    _: dict[str, Any] = Depends(get_current_user),
+) -> Any:
     return AttachmentService(db).list_attachments(ticket_id)
 
 
@@ -46,8 +47,8 @@ def list_ticket_attachments(
 def serve_attachment(
     attachment_id: int,
     db: Session = Depends(get_db),
-    _: dict = Depends(get_current_user),
-):
+    _: dict[str, Any] = Depends(get_current_user),
+) -> Any:
     attachment = AttachmentService(db).get_attachment(attachment_id)
     if attachment is None:
         raise HTTPException(status_code=404, detail="Attachment not found")
@@ -62,8 +63,8 @@ def serve_attachment(
 def delete_attachment(
     attachment_id: int,
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     try:
         deleted = AttachmentService(db).delete_attachment(attachment_id, actor)
     except PermissionError as error:

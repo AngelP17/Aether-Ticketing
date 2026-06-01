@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -5,10 +6,10 @@ from apps.api.services.auth_service import AuthService
 
 
 class CatalogService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list_categories(self, active_only: bool = True):
+    def list_categories(self, active_only: bool = True) -> Any:
         where_clause = "WHERE is_active = TRUE" if active_only else ""
         rows = self.db.execute(
             text(
@@ -22,7 +23,7 @@ class CatalogService:
         ).mappings()
         return [dict(row) for row in rows]
 
-    def create_category(self, name: str, color: str, icon: str):
+    def create_category(self, name: str, color: str, icon: str) -> Any:
         row = self.db.execute(
             text(
                 """
@@ -36,9 +37,9 @@ class CatalogService:
         self.db.commit()
         return dict(row)
 
-    def update_category(self, category_id: int, payload: dict[str, object]):
+    def update_category(self, category_id: int, payload: dict[str, Any]) -> Any:
         updates: list[str] = []
-        params: dict[str, object] = {"category_id": category_id}
+        params: dict[str, Any] = {"category_id": category_id}
         for field in ["name", "color", "icon", "is_active"]:
             if field not in payload:
                 continue
@@ -62,7 +63,7 @@ class CatalogService:
         self.db.commit()
         return dict(row) if row else None
 
-    def delete_category(self, category_id: int):
+    def delete_category(self, category_id: int) -> Any:
         category = self.get_category(category_id)
         if category is None:
             return False
@@ -87,7 +88,7 @@ class CatalogService:
         self.db.commit()
         return True
 
-    def get_category(self, category_id: int):
+    def get_category(self, category_id: int) -> Any:
         row = self.db.execute(
             text(
                 """
@@ -100,13 +101,13 @@ class CatalogService:
         ).mappings().first()
         return dict(row) if row else None
 
-    def list_labels(self):
+    def list_labels(self) -> Any:
         rows = self.db.execute(
             text("SELECT id, name, color FROM labels ORDER BY name ASC")
         ).mappings()
         return [dict(row) for row in rows]
 
-    def create_label(self, name: str, color: str):
+    def create_label(self, name: str, color: str) -> Any:
         row = self.db.execute(
             text(
                 """
@@ -120,11 +121,11 @@ class CatalogService:
         self.db.commit()
         return dict(row)
 
-    def delete_label(self, label_id: int):
+    def delete_label(self, label_id: int) -> Any:
         self.db.execute(text("DELETE FROM labels WHERE id = :label_id"), {"label_id": label_id})
         self.db.commit()
 
-    def create_assignee(self, display_name: str):
+    def create_assignee(self, display_name: str) -> Any:
         normalized_name = display_name.strip()
         if not normalized_name:
             raise ValueError("Display name is required")
@@ -167,7 +168,7 @@ class CatalogService:
         self.db.commit()
         return dict(row)
 
-    def delete_assignee(self, display_name: str):
+    def delete_assignee(self, display_name: str) -> Any:
         normalized_name = display_name.strip()
         if not normalized_name:
             raise ValueError("Display name is required")
@@ -202,7 +203,7 @@ class CatalogService:
         self.db.commit()
         return True
 
-    def _active_assignee_names(self):
+    def _active_assignee_names(self) -> Any:
         rows = self.db.execute(
             text(
                 """
@@ -215,7 +216,7 @@ class CatalogService:
         )
         return [row[0] for row in rows]
 
-    def _inactive_assignee_names(self):
+    def _inactive_assignee_names(self) -> Any:
         rows = self.db.execute(
             text(
                 """
@@ -227,7 +228,7 @@ class CatalogService:
         )
         return {row[0].casefold() for row in rows if row[0]}
 
-    def get_options(self):
+    def get_options(self) -> Any:
         staff_rows = self.db.execute(
             text(
                 """

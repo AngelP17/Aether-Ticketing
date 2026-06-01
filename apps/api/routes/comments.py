@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -13,8 +14,8 @@ router = APIRouter()
 def list_comments(
     ticket_id: str,
     db: Session = Depends(get_db),
-    _: dict = Depends(get_current_user),
-):
+    _: dict[str, Any] = Depends(get_current_user),
+) -> Any:
     return CommentService(db).list_comments(ticket_id)
 
 
@@ -23,8 +24,8 @@ def create_comment(
     ticket_id: str,
     body: CommentCreateRequest,
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     if not body.body.strip():
         raise HTTPException(status_code=400, detail="Comment body is required")
     comment = CommentService(db).create_comment(ticket_id, body.body, actor)
@@ -39,8 +40,8 @@ def update_comment(
     comment_id: int,
     body: CommentUpdateRequest,
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     try:
         comment = CommentService(db).update_comment(ticket_id, comment_id, body.body, actor)
     except PermissionError as error:
@@ -55,8 +56,8 @@ def delete_comment(
     ticket_id: str,
     comment_id: int,
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     try:
         deleted = CommentService(db).delete_comment(ticket_id, comment_id, actor)
     except PermissionError as error:

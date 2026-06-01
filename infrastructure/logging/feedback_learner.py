@@ -11,19 +11,19 @@ _DECAY_FACTOR = 0.85
 
 
 class FeedbackLearner:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
-        self._pattern_cache: dict[str, float] | None = None
+        self._pattern_cache: dict[str, Any] | None = None
 
     def get_adjusted_confidence(self, root_cause: str, confidence: float) -> float:
         if self._pattern_cache is None:
             self._pattern_cache = self._load_adjustments()
         key = root_cause.lower()
-        adjustment = self._pattern_cache.get(key, 0.0)
+        adjustment = float(self._pattern_cache.get(key, 0.0) or 0.0)
         adjusted = confidence + adjustment
         return max(0.0, min(99.0, adjusted))
 
-    def recompute_pattern_adjustments(self) -> dict[str, float]:
+    def recompute_pattern_adjustments(self) -> dict[str, Any]:
         rows = list(
             self.db.execute(
                 text(
@@ -46,7 +46,7 @@ class FeedbackLearner:
             fb_type = row["feedback_type"]
             pattern_totals[root_cause][fb_type] += row["cnt"]
 
-        adjustments: dict[str, float] = {}
+        adjustments: dict[str, Any] = {}
         for pattern, counts in pattern_totals.items():
             total = sum(counts.values())
             accepted = counts.get("accepted", 0)
@@ -74,7 +74,7 @@ class FeedbackLearner:
             for pattern, adj in sorted(adjustments.items(), key=lambda x: x[1], reverse=True)
         ]
 
-    def _load_adjustments(self) -> dict[str, float]:
+    def _load_adjustments(self) -> dict[str, Any]:
         rows = list(
             self.db.execute(
                 text(
@@ -97,7 +97,7 @@ class FeedbackLearner:
             fb_type = row["feedback_type"]
             pattern_totals[pattern][fb_type] += row["cnt"]
 
-        adjustments: dict[str, float] = {}
+        adjustments: dict[str, Any] = {}
         for pattern, counts in pattern_totals.items():
             total = sum(counts.values())
             accepted = counts.get("accepted", 0)

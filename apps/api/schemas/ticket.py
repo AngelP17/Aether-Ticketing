@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from apps.api.schemas.management import AttachmentResponse, CommentResponse
 
@@ -27,12 +27,12 @@ class TicketResponse(BaseModel):
 
 
 class TicketDetailResponse(BaseModel):
-    ticket: dict
-    decision: Optional[dict] = None
-    recommendations: list[dict] = Field(default_factory=list)
-    similar_cases: list[dict] = Field(default_factory=list)
-    events: list[dict] = Field(default_factory=list)
-    linked_incident: Optional[dict] = None
+    ticket: dict[str, Any]
+    decision: Optional[dict[str, Any]] = None
+    recommendations: list[dict[str, Any]] = Field(default_factory=list)
+    similar_cases: list[dict[str, Any]] = Field(default_factory=list)
+    events: list[dict[str, Any]] = Field(default_factory=list)
+    linked_incident: Optional[dict[str, Any]] = None
     comments: list[CommentResponse] = Field(default_factory=list)
     attachments: list[AttachmentResponse] = Field(default_factory=list)
 

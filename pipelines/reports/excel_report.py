@@ -5,6 +5,7 @@ Tab 4: Decision Intelligence | Tab 5: Audit Extract
 """
 
 from datetime import UTC, datetime
+from typing import Any
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -39,8 +40,8 @@ STATUS_FILLS = {
 def generate_workbook(
     report_type: str = "operational",
     *,
-    tickets: list[dict] | None = None,
-    incidents: list[dict] | None = None,
+    tickets: list[dict[str, Any]] | None = None,
+    incidents: list[dict[str, Any]] | None = None,
 ) -> Workbook:
     tickets = tickets or []
     incidents = incidents or []
@@ -56,8 +57,9 @@ def generate_workbook(
     return wb
 
 
-def _build_executive_summary(wb: Workbook, *, tickets: list[dict], incidents: list[dict]) -> None:
+def _build_executive_summary(wb: Workbook, *, tickets: list[dict[str, Any]], incidents: list[dict[str, Any]]) -> None:
     ws = wb.active
+    assert ws is not None
     ws.title = "Executive Summary"
 
     ws.cell(1, 1, "Aether — Executive Summary").font = Font(bold=True, size=14)
@@ -81,7 +83,7 @@ def _build_executive_summary(wb: Workbook, *, tickets: list[dict], incidents: li
     ws.column_dimensions["B"].width = 18
 
 
-def _build_operational_queue(wb: Workbook, *, tickets: list[dict]) -> None:
+def _build_operational_queue(wb: Workbook, *, tickets: list[dict[str, Any]]) -> None:
     ws = wb.create_sheet("Operational Queue")
 
     headers = [
@@ -127,7 +129,7 @@ def _build_operational_queue(wb: Workbook, *, tickets: list[dict]) -> None:
     _autosize(ws, len(headers))
 
 
-def _build_incident_clusters(wb: Workbook, *, incidents: list[dict]) -> None:
+def _build_incident_clusters(wb: Workbook, *, incidents: list[dict[str, Any]]) -> None:
     ws = wb.create_sheet("Incident Clusters")
 
     headers = [
@@ -157,7 +159,7 @@ def _build_incident_clusters(wb: Workbook, *, incidents: list[dict]) -> None:
     _autosize(ws, len(headers))
 
 
-def _build_decision_intelligence(wb: Workbook, *, tickets: list[dict]) -> None:
+def _build_decision_intelligence(wb: Workbook, *, tickets: list[dict[str, Any]]) -> None:
     ws = wb.create_sheet("Decision Intelligence")
 
     headers = [
@@ -197,7 +199,7 @@ def _build_decision_intelligence(wb: Workbook, *, tickets: list[dict]) -> None:
     _autosize(ws, len(headers))
 
 
-def _build_audit_extract(wb: Workbook, *, tickets: list[dict]) -> None:
+def _build_audit_extract(wb: Workbook, *, tickets: list[dict[str, Any]]) -> None:
     ws = wb.create_sheet("Audit Extract")
 
     headers = ["Ticket ID", "Event Type", "Actor", "Timestamp", "Details", "Feedback Status"]
@@ -218,7 +220,7 @@ def _build_audit_extract(wb: Workbook, *, tickets: list[dict]) -> None:
     _autosize(ws, len(headers))
 
 
-def _apply_header_style(ws, row: int, headers: list[str]) -> None:
+def _apply_header_style(ws: Any, row: int, headers: list[str]) -> None:
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=row, column=col, value=header)
         cell.fill = HEADER_FILL
@@ -227,14 +229,14 @@ def _apply_header_style(ws, row: int, headers: list[str]) -> None:
         cell.border = THIN_BORDER
 
 
-def _append_row(ws, row_index: int, values: list[object]) -> None:
+def _append_row(ws: Any, row_index: int, values: list[object]) -> None:
     for column, value in enumerate(values, start=1):
         cell = ws.cell(row=row_index, column=column, value=value)
         cell.border = THIN_BORDER
         cell.alignment = Alignment(vertical="top", wrap_text=True)
 
 
-def _autosize(ws, column_count: int) -> None:
+def _autosize(ws: Any, column_count: int) -> None:
     for column in range(1, column_count + 1):
         letter = get_column_letter(column)
         width = max(

@@ -1,12 +1,13 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 
 class AssetService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list_assets(self):
+    def list_assets(self) -> Any:
         rows = self.db.execute(
             text(
                 """
@@ -18,7 +19,7 @@ class AssetService:
         ).mappings()
         return [dict(row) for row in rows]
 
-    def get_asset(self, asset_id: int):
+    def get_asset(self, asset_id: int) -> Any:
         row = self.db.execute(
             text(
                 """

@@ -3,9 +3,10 @@ Similar Cases: Find prior tickets with similar text for operational memory.
 """
 
 from collections import Counter
+from typing import Any
 
 
-def find_similar_cases(ticket_id: str, top_k: int = 5) -> list[dict]:
+def find_similar_cases(ticket_id: str, top_k: int = 5) -> list[dict[str, Any]]:
     """
     Placeholder retrieval hook for external callers.
     The live API uses DB-backed retrieval in apps/api/services/operational_intelligence.py.

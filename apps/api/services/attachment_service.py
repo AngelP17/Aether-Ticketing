@@ -1,3 +1,4 @@
+from typing import Any
 from email.utils import quote
 
 from fastapi import UploadFile
@@ -20,11 +21,11 @@ MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
 
 
 class AttachmentService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
         self.events = EventService(db)
 
-    def list_attachments(self, ticket_id: str):
+    def list_attachments(self, ticket_id: str) -> Any:
         rows = self.db.execute(
             text(
                 """
@@ -61,9 +62,9 @@ class AttachmentService:
         self,
         ticket_id: str,
         file: UploadFile,
-        actor: dict[str, str],
+        actor: dict[str, Any],
         comment_id: int | None = None,
-    ):
+    ) -> Any:
         if file.content_type not in ALLOWED_ATTACHMENT_TYPES:
             raise ValueError("File type not allowed. Accepted: images, PDF, text")
 
@@ -160,7 +161,7 @@ class AttachmentService:
             "url": f"/api/attachments/{inserted['id']}",
         }
 
-    def get_attachment(self, attachment_id: int):
+    def get_attachment(self, attachment_id: int) -> Any:
         row = self.db.execute(
             text(
                 """
@@ -181,7 +182,7 @@ class AttachmentService:
             "content_disposition": f'inline; filename="{quote(row["original_name"])}"',
         }
 
-    def delete_attachment(self, attachment_id: int, actor: dict[str, str]):
+    def delete_attachment(self, attachment_id: int, actor: dict[str, Any]) -> Any:
         row = self.db.execute(
             text(
                 """

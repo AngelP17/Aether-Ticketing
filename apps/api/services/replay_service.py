@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -9,10 +10,10 @@ from apps.api.services.operational_intelligence import fetch_similar_cases, fetc
 
 
 class ReplayService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
-    def get_replay(self, ticket_id: str) -> dict | None:
+    def get_replay(self, ticket_id: str) -> dict[str, Any] | None:
         ticket = fetch_ticket_row(self.db, ticket_id)
         if ticket is None:
             return None

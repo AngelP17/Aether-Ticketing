@@ -1,3 +1,4 @@
+from typing import Any
 from datetime import UTC, datetime
 
 from sqlalchemy import text
@@ -17,18 +18,20 @@ from apps.api.services.event_service import EventService
 
 
 class TicketService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
         self.events = EventService(db)
         self.comments = CommentService(db)
         self.attachments = AttachmentService(db)
 
-    def list_tickets(self, **kwargs):
+    def list_tickets(self, **kwargs: object) -> Any:
         filters = []
-        params: dict[str, object] = {}
-        ranking = kwargs.get("ranking", False)
-        offset = kwargs.get("offset", 0)
-        limit = kwargs.get("limit", 50)
+        params: dict[str, Any] = {}
+        ranking = bool(kwargs.get("ranking", False))
+        offset_raw = kwargs.get("offset", 0)
+        offset = offset_raw if isinstance(offset_raw, int) else 0
+        limit_raw = kwargs.get("limit", 50)
+        limit = limit_raw if isinstance(limit_raw, int) else 50
 
         if kwargs.get("status"):
             filters.append("t.status = :status")
@@ -108,7 +111,7 @@ class TicketService:
 
         return snapshots[offset : offset + limit]
 
-    def get_ticket_detail(self, ticket_id: str):
+    def get_ticket_detail(self, ticket_id: str) -> Any:
         ticket = fetch_ticket_row(self.db, ticket_id)
         if ticket is None:
             return None
@@ -194,10 +197,10 @@ class TicketService:
             ],
         }
 
-    def get_ticket_events(self, ticket_id: str):
+    def get_ticket_events(self, ticket_id: str) -> Any:
         return EventService(self.db).get_ticket_event_stream(ticket_id)
 
-    def create_ticket(self, payload: dict[str, object], actor: dict[str, str]):
+    def create_ticket(self, payload: dict[str, Any], actor: dict[str, Any]) -> Any:
         title = str(payload.get("title") or "").strip()
         if not title:
             raise ValueError("Title is required")
@@ -276,14 +279,14 @@ class TicketService:
         self.db.commit()
         return self.get_ticket_detail(ticket_id)
 
-    def update_ticket(self, ticket_id: str, payload: dict[str, object], actor: dict[str, str]):
+    def update_ticket(self, ticket_id: str, payload: dict[str, Any], actor: dict[str, Any]) -> Any:
         existing = fetch_ticket_row(self.db, ticket_id)
         if existing is None:
             return None
 
         updates: list[str] = []
-        params: dict[str, object] = {"ticket_id": ticket_id}
-        change_set: dict[str, object] = {}
+        params: dict[str, Any] = {"ticket_id": ticket_id}
+        change_set: dict[str, Any] = {}
 
         field_map = {
             "title": "title",
@@ -346,7 +349,7 @@ class TicketService:
         self.db.commit()
         return self.get_ticket_detail(ticket_id)
 
-    def delete_ticket(self, ticket_id: str, actor: dict[str, str]):
+    def delete_ticket(self, ticket_id: str, actor: dict[str, Any]) -> Any:
         existing = fetch_ticket_row(self.db, ticket_id)
         if existing is None:
             return False
@@ -355,13 +358,13 @@ class TicketService:
         self.db.commit()
         return True
 
-    def move_ticket(self, ticket_id: str, column: str | None, status: str | None, actor: dict[str, str]):
+    def move_ticket(self, ticket_id: str, column: str | None, status: str | None, actor: dict[str, Any]) -> Any:
         next_status = status or self._column_to_status(column)
         if not next_status:
             raise ValueError("A valid target status or column is required")
         return self.update_ticket(ticket_id, {"status": next_status}, actor)
 
-    def set_ticket_labels(self, ticket_id: str, label_ids: list[int], actor: dict[str, str]):
+    def set_ticket_labels(self, ticket_id: str, label_ids: list[int], actor: dict[str, Any]) -> Any:
         existing = fetch_ticket_row(self.db, ticket_id)
         if existing is None:
             return False
@@ -375,7 +378,7 @@ class TicketService:
         self.db.commit()
         return True
 
-    def get_ticket_labels(self, ticket_id: str):
+    def get_ticket_labels(self, ticket_id: str) -> Any:
         rows = self.db.execute(
             text(
                 """
@@ -390,8 +393,8 @@ class TicketService:
         ).mappings()
         return [dict(row) for row in rows]
 
-    def _replace_ticket_labels(self, ticket_id: str, label_ids: list[int] | object):
-        normalized_ids = [int(label_id) for label_id in label_ids if str(label_id).strip()]
+    def _replace_ticket_labels(self, ticket_id: str, label_ids: list[int] | object) -> Any:
+        normalized_ids = [int(label_id) for label_id in label_ids if str(label_id).strip()]  # type: ignore[union-attr]
         self.db.execute(text("DELETE FROM ticket_labels WHERE ticket_id = :ticket_id"), {"ticket_id": ticket_id})
         for label_id in normalized_ids:
             self.db.execute(
@@ -405,7 +408,7 @@ class TicketService:
                 {"ticket_id": ticket_id, "label_id": label_id},
             )
 
-    def _resolve_request_type(self, category_id: object | None, request_type: object | None):
+    def _resolve_request_type(self, category_id: object | None, request_type: object | None) -> Any:
         if category_id:
             row = self.db.execute(
                 text("SELECT name FROM categories WHERE id = :category_id"),
@@ -415,7 +418,7 @@ class TicketService:
                 return row["name"]
         return str(request_type or "").strip() or None
 
-    def _get_next_ticket_id(self):
+    def _get_next_ticket_id(self) -> Any:
         row = self.db.execute(
             text(
                 """
@@ -426,15 +429,15 @@ class TicketService:
             )
         ).mappings().first()
         current_year_seed = int(f"{datetime.now(UTC).year}0000")
-        next_number = max(int(row["max_ticket_number"] or 0) + 1, current_year_seed + 1)
+        next_number = max(int(row["max_ticket_number"] or 0) + 1, current_year_seed + 1)  # type: ignore[index]
         return f"IT-{next_number}"
 
-    def _resolved_at_for_status(self, status: str):
+    def _resolved_at_for_status(self, status: str) -> Any:
         if status in {"Resolved", "Closed"}:
             return datetime.now(UTC)
         return None
 
-    def _column_to_status(self, column: str | None):
+    def _column_to_status(self, column: str | None) -> Any:
         mapping = {
             "TO DO": "Open",
             "IN PROGRESS": "In Progress",

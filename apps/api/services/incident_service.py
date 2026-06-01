@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy.orm import Session
 
 from apps.api.services.operational_intelligence import (
@@ -9,10 +10,10 @@ from sqlalchemy import text
 
 
 class IncidentService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list_incidents(self):
+    def list_incidents(self) -> Any:
         rows = list(
             self.db.execute(
                 text(
@@ -65,7 +66,7 @@ class IncidentService:
             for incident in incidents
         ]
 
-    def get_incident_detail(self, incident_id: str):
+    def get_incident_detail(self, incident_id: str) -> Any:
         rows = list(
             self.db.execute(
                 text(

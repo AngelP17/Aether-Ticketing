@@ -1,12 +1,13 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 
 class RecommendationService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
-    def accept_recommendation(self, recommendation_id: int, note: str | None):
+    def accept_recommendation(self, recommendation_id: int, note: str | None) -> Any:
         return self._update_recommendation(
             recommendation_id=recommendation_id,
             status="accepted",
@@ -14,7 +15,7 @@ class RecommendationService:
             feedback_note=note,
         )
 
-    def reject_recommendation(self, recommendation_id: int, reason: str | None):
+    def reject_recommendation(self, recommendation_id: int, reason: str | None) -> Any:
         return self._update_recommendation(
             recommendation_id=recommendation_id,
             status="rejected",
@@ -24,7 +25,7 @@ class RecommendationService:
 
     def override_recommendation(
         self, recommendation_id: int, note: str, override_priority: float | None
-    ):
+    ) -> Any:
         result = self._update_recommendation(
             recommendation_id=recommendation_id,
             status="accepted",
@@ -59,7 +60,7 @@ class RecommendationService:
         status: str,
         feedback_type: str,
         feedback_note: str | None,
-    ):
+    ) -> Any:
         row = self.db.execute(
             text(
                 """

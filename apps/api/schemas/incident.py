@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -15,8 +17,8 @@ class IncidentResponse(BaseModel):
 
 
 class IncidentDetailResponse(BaseModel):
-    incident: dict
-    tickets: list[dict]
+    incident: dict[str, Any]
+    tickets: list[dict[str, Any]]
     common_cause: str
     recommended_action: str
 

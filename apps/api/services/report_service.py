@@ -1,3 +1,4 @@
+from typing import Any  # noqa: F401
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from openpyxl import Workbook
@@ -11,7 +12,7 @@ from apps.api.services.operational_intelligence import (
 
 
 class ReportService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
     def generate_workbook(

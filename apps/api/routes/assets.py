@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -8,13 +9,13 @@ router = APIRouter()
 
 
 @router.get("/")
-def list_assets(db: Session = Depends(get_db)):
+def list_assets(db: Session = Depends(get_db)) -> Any:
     service = AssetService(db)
     return service.list_assets()
 
 
 @router.get("/{asset_id}")
-def get_asset(asset_id: int, db: Session = Depends(get_db)):
+def get_asset(asset_id: int, db: Session = Depends(get_db)) -> Any:
     service = AssetService(db)
     asset = service.get_asset(asset_id)
     if not asset:

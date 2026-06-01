@@ -6,7 +6,7 @@ Compatible with the existing IT Service Tickets sheet format.
 from openpyxl import load_workbook
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Iterator
+from typing import Any, Iterator, cast
 import hashlib
 
 
@@ -29,7 +29,7 @@ class NormalizedTicket:
     source_hash: str
 
 
-def compute_row_hash(row_data: dict) -> str:
+def compute_row_hash(row_data: dict[str, Any]) -> str:
     content = f"{row_data.get('title', '')}|{row_data.get('status', '')}|{row_data.get('description', '')}"
     return hashlib.sha256(content.encode()).hexdigest()[:16]
 
@@ -88,13 +88,13 @@ def load_excel_rows(
     wb.close()
 
 
-def _parse_date(value) -> datetime:
+def _parse_date(value: object) -> datetime:
     if value is None:
         return datetime.now()
     if hasattr(value, "date"):
         return datetime.combine(value.date(), datetime.min.time())
     if hasattr(value, "strftime"):
-        return value
+        return cast(datetime, value)
     try:
         return datetime.strptime(str(value), "%Y-%m-%d")
     except Exception:

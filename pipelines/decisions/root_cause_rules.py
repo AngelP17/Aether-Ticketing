@@ -28,7 +28,7 @@ def classify_root_cause(
     if not scores:
         return RootCauseClass.UNKNOWN, 0.0
 
-    best_class = max(scores, key=scores.get)
+    best_class = max(scores, key=lambda k: scores[k])
     return best_class, scores[best_class]
 
 

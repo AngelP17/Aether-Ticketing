@@ -1,3 +1,4 @@
+from typing import Any
 import json
 
 from sqlalchemy import text
@@ -7,10 +8,10 @@ from apps.api.services.operational_intelligence import fetch_ticket_row
 
 
 class EventService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
-    def get_ticket_event_stream(self, ticket_id: str):
+    def get_ticket_event_stream(self, ticket_id: str) -> Any:
         ticket = fetch_ticket_row(self.db, ticket_id)
         if ticket is None:
             return []
@@ -47,7 +48,7 @@ class EventService:
         return [
             {
                 "event_type": "ticket_created",
-                "event_ts": created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at),
+                "event_ts": created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at),  # type: ignore[union-attr]
                 "actor_type": "legacy",
                 "actor_id": "flask-app",
                 "payload": {
@@ -62,7 +63,7 @@ class EventService:
         ticket_pk: int,
         event_type: str,
         actor_id: str,
-        payload: dict[str, object] | None = None,
+        payload: dict[str, Any] | None = None,
         actor_type: str = "operator",
     ) -> None:
         self.db.execute(

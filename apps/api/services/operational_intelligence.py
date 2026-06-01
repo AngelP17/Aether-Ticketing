@@ -69,14 +69,14 @@ def fetch_ticket_row(db: Session, ticket_id: str) -> dict[str, Any] | None:
     return dict(row) if row else None
 
 
-def build_live_decision_map(tickets: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def build_live_decision_map(tickets: list[dict[str, Any]]) -> dict[str, Any]:
     request_counts = Counter(
         (ticket.get("request_type") or ticket.get("category_name") or "").strip()
         for ticket in tickets
     )
     priority_counts = Counter((ticket.get("priority") or "").strip() for ticket in tickets)
 
-    decision_map: dict[str, dict[str, Any]] = {}
+    decision_map: dict[str, Any] = {}
     for ticket in tickets:
         request_type = (ticket.get("request_type") or ticket.get("category_name") or "").strip()
         priority = (ticket.get("priority") or "").strip()

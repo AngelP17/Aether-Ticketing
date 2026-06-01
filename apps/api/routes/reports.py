@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -17,7 +18,7 @@ def get_excel_report(
     date_to: str | None = Query(None),
     incident_id: str | None = Query(None),
     db: Session = Depends(get_db),
-):
+) -> Any:
     try:
         service = ReportService(db)
         wb = service.generate_workbook(report_type, date_from, date_to, incident_id)

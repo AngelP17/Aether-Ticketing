@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -5,11 +6,11 @@ from apps.api.services.event_service import EventService
 
 
 class CommentService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
         self.events = EventService(db)
 
-    def list_comments(self, ticket_id: str):
+    def list_comments(self, ticket_id: str) -> Any:
         comment_rows = self.db.execute(
             text(
                 """
@@ -51,7 +52,7 @@ class CommentService:
             {"ticket_id": ticket_id},
         ).mappings()
 
-        attachments_by_comment: dict[int, list[dict[str, object]]] = {}
+        attachments_by_comment: dict[int, list[dict[str, Any]]] = {}
         for row in attachments:
             comment_id = int(row["comment_id"])
             attachments_by_comment.setdefault(comment_id, []).append(
@@ -75,7 +76,7 @@ class CommentService:
             for comment in comments
         ]
 
-    def create_comment(self, ticket_id: str, body: str, actor: dict[str, str]):
+    def create_comment(self, ticket_id: str, body: str, actor: dict[str, Any]) -> Any:
         ticket_row = self.db.execute(
             text("SELECT id FROM tickets WHERE ticket_id = :ticket_id"),
             {"ticket_id": ticket_id},
@@ -124,7 +125,7 @@ class CommentService:
             "attachments": [],
         }
 
-    def update_comment(self, ticket_id: str, comment_id: int, body: str, actor: dict[str, str]):
+    def update_comment(self, ticket_id: str, comment_id: int, body: str, actor: dict[str, Any]) -> Any:
         existing = self.db.execute(
             text(
                 """
@@ -161,7 +162,7 @@ class CommentService:
         self.db.commit()
         return dict(updated) if updated else None
 
-    def delete_comment(self, ticket_id: str, comment_id: int, actor: dict[str, str]):
+    def delete_comment(self, ticket_id: str, comment_id: int, actor: dict[str, Any]) -> Any:
         existing = self.db.execute(
             text(
                 """

@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -26,7 +27,7 @@ def accept_recommendation(
     recommendation_id: int,
     body: AcceptRequest,
     db: Session = Depends(get_db),
-):
+) -> Any:
     service = RecommendationService(db)
     result = service.accept_recommendation(recommendation_id, body.note)
     if not result:
@@ -39,7 +40,7 @@ def reject_recommendation(
     recommendation_id: int,
     body: RejectRequest,
     db: Session = Depends(get_db),
-):
+) -> Any:
     service = RecommendationService(db)
     result = service.reject_recommendation(recommendation_id, body.reason)
     if not result:
@@ -52,7 +53,7 @@ def override_recommendation(
     recommendation_id: int,
     body: OverrideRequest,
     db: Session = Depends(get_db),
-):
+) -> Any:
     service = RecommendationService(db)
     result = service.override_recommendation(
         recommendation_id, body.override_note, body.override_priority

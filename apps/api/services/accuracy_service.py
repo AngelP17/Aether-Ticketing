@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 import math
 
@@ -7,10 +8,10 @@ from sqlalchemy.orm import Session
 
 
 class AccuracyService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
-    def compute_classification_accuracy(self, days: int = 7) -> dict:
+    def compute_classification_accuracy(self, days: int = 7) -> dict[str, Any]:
         row = (
             self.db.execute(
                 text(
@@ -89,7 +90,7 @@ class AccuracyService:
                 actual.append(float(row["automated_priority"]))
         return _pearson_correlation(automated, actual)
 
-    def compute_incident_accuracy(self, days: int = 7) -> dict:
+    def compute_incident_accuracy(self, days: int = 7) -> dict[str, Any]:
         row = (
             self.db.execute(
                 text(
@@ -199,7 +200,7 @@ class AccuracyService:
         within_sla = row["within_sla"] or 0
         return round(within_sla / total * 100, 1) if total > 0 else None
 
-    def get_all_accuracy_metrics(self, days: int = 7) -> dict:
+    def get_all_accuracy_metrics(self, days: int = 7) -> dict[str, Any]:
         return {
             "classification_accuracy": self.compute_classification_accuracy(days),
             "priority_correlation": self.compute_priority_correlation(days * 4),

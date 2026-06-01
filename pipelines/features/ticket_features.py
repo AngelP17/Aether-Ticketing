@@ -3,6 +3,7 @@ Ticket Features: Derives structured features from raw ticket data.
 """
 
 from dataclasses import dataclass
+from typing import Any
 
 from apps.api.services.operational_intelligence import compute_live_decision
 
@@ -19,7 +20,7 @@ class TicketFeatures:
     root_cause: str
 
 
-def derive_ticket_features(ticket: dict) -> TicketFeatures:
+def derive_ticket_features(ticket: dict[str, Any]) -> TicketFeatures:
     """
     Derive all feature signals from a ticket dict.
     """

@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -9,10 +10,10 @@ from apps.api.services.operational_intelligence import (
 
 
 class DecisionService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
-    def get_latest_decision(self, ticket_id: str, persist_if_missing: bool = True):
+    def get_latest_decision(self, ticket_id: str, persist_if_missing: bool = True) -> Any:
         existing = self.db.execute(
             text(
                 """
@@ -51,7 +52,7 @@ class DecisionService:
             return compute_live_decision(ticket, count_similar_cases(self.db, ticket))
         return self.recompute_decision(ticket_id)
 
-    def recompute_decision(self, ticket_id: str):
+    def recompute_decision(self, ticket_id: str) -> Any:
         ticket = fetch_ticket_row(self.db, ticket_id)
         if ticket is None:
             return None
@@ -113,8 +114,8 @@ class DecisionService:
             },
         ).mappings().first()
 
-        decision_id = int(inserted["id"])
-        decision_ts = inserted["decision_ts"].isoformat()
+        decision_id = int(inserted["id"])  # type: ignore[index]
+        decision_ts = inserted["decision_ts"].isoformat()  # type: ignore[index]
         self.db.execute(
             text(
                 """
@@ -233,7 +234,7 @@ class DecisionService:
             "recommendations": self._load_recommendations(decision_id),
         }
 
-    def _load_recommendations(self, decision_id: int) -> list[dict]:
+    def _load_recommendations(self, decision_id: int) -> list[dict[str, Any]]:
         rows = self.db.execute(
             text(
                 """

@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -9,7 +10,7 @@ router = APIRouter()
 
 
 @router.get("/{ticket_id}", response_model=DecisionResponse)
-def get_decision(ticket_id: str, db: Session = Depends(get_db)):
+def get_decision(ticket_id: str, db: Session = Depends(get_db)) -> Any:
     service = DecisionService(db)
     decision = service.get_latest_decision(ticket_id)
     if not decision:
@@ -18,6 +19,6 @@ def get_decision(ticket_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/recompute/{ticket_id}", response_model=DecisionResponse)
-def recompute_decision(ticket_id: str, db: Session = Depends(get_db)):
+def recompute_decision(ticket_id: str, db: Session = Depends(get_db)) -> Any:
     service = DecisionService(db)
     return service.recompute_decision(ticket_id)

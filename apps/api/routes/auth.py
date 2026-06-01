@@ -40,12 +40,12 @@ def login(body: LoginRequest, request: Request) -> dict[str, Any]:
 
 
 @router.post("/logout")
-def logout() -> dict[str, str]:
+def logout() -> dict[str, Any]:
     return {"status": "success", "message": "Client session cleared; token remains valid until expiry"}
 
 
 @router.get("/me")
-def get_me(authorization: str | None = Header(default=None)) -> dict[str, str]:
+def get_me(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     if authorization is None or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = authorization.replace("Bearer ", "", 1)
@@ -56,15 +56,15 @@ def get_me(authorization: str | None = Header(default=None)) -> dict[str, str]:
 
 
 @router.get("/users")
-def list_users(_: dict[str, str] = Depends(require_admin)) -> list[dict[str, str]]:
+def list_users(_: dict[str, Any] = Depends(require_admin)) -> list[dict[str, Any]]:
     return AuthService().list_users()
 
 
 @router.post("/users", status_code=201)
 def create_user(
     body: UserCreateRequest,
-    _: dict[str, str] = Depends(require_admin),
-) -> dict[str, str]:
+    _: dict[str, Any] = Depends(require_admin),
+) -> dict[str, Any]:
     try:
         return AuthService().create_user(
             username=body.username,
@@ -80,8 +80,8 @@ def create_user(
 def update_user(
     username: str,
     body: UserUpdateRequest,
-    _: dict[str, str] = Depends(require_admin),
-) -> dict[str, str]:
+    _: dict[str, Any] = Depends(require_admin),
+) -> dict[str, Any]:
     user = AuthService().update_user(
         username=username,
         password=body.password,
@@ -94,7 +94,7 @@ def update_user(
 
 
 @router.delete("/users/{username}")
-def delete_user(username: str, _: dict[str, str] = Depends(require_admin)) -> dict[str, str]:
+def delete_user(username: str, _: dict[str, Any] = Depends(require_admin)) -> dict[str, Any]:
     try:
         deleted = AuthService().delete_user(username)
     except ValueError as error:
@@ -107,8 +107,8 @@ def delete_user(username: str, _: dict[str, str] = Depends(require_admin)) -> di
 @router.post("/change-password")
 def change_password(
     body: ChangePasswordRequest,
-    current_user: dict[str, str] = Depends(get_current_user),
-) -> dict[str, str]:
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     try:
         AuthService().change_password(
             username=current_user["username"],

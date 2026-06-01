@@ -1,3 +1,4 @@
+from typing import Any
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -28,7 +29,7 @@ def list_tickets(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-):
+) -> Any:
     service = TicketService(db)
     return service.list_tickets(
         status=status,
@@ -42,7 +43,7 @@ def list_tickets(
 
 
 @router.get("/{ticket_id}", response_model=TicketDetailResponse)
-def get_ticket(ticket_id: str, db: Session = Depends(get_db)):
+def get_ticket(ticket_id: str, db: Session = Depends(get_db)) -> Any:
     service = TicketService(db)
     ticket = service.get_ticket_detail(ticket_id)
     if not ticket:
@@ -51,7 +52,7 @@ def get_ticket(ticket_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{ticket_id}/events")
-def get_ticket_events(ticket_id: str, db: Session = Depends(get_db)):
+def get_ticket_events(ticket_id: str, db: Session = Depends(get_db)) -> Any:
     service = TicketService(db)
     return service.get_ticket_events(ticket_id)
 
@@ -61,8 +62,8 @@ def get_ticket_events(ticket_id: str, db: Session = Depends(get_db)):
 def create_ticket(
     body: TicketCreateRequest,
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     try:
         return TicketService(db).create_ticket(body.model_dump(), actor)
     except ValueError as error:
@@ -74,8 +75,8 @@ def update_ticket(
     ticket_id: str,
     body: TicketUpdateRequest,
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     ticket = TicketService(db).update_ticket(ticket_id, body.model_dump(exclude_unset=True), actor)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -86,8 +87,8 @@ def update_ticket(
 def delete_ticket(
     ticket_id: str,
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     deleted = TicketService(db).delete_ticket(ticket_id, actor)
     if not deleted:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -99,8 +100,8 @@ def set_ticket_labels(
     ticket_id: str,
     body: TicketLabelsRequest,
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     updated = TicketService(db).set_ticket_labels(ticket_id, body.label_ids, actor)
     if not updated:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -112,8 +113,8 @@ def move_ticket(
     ticket_id: str,
     body: TicketMoveRequest,
     db: Session = Depends(get_db),
-    actor: dict = Depends(require_ticket_write),
-):
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
     try:
         ticket = TicketService(db).move_ticket(ticket_id, body.column, body.status, actor)
     except ValueError as error:

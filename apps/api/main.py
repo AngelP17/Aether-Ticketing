@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,7 +22,7 @@ from apps.api.routes.tickets import router as tickets_router
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> Any:
     validate_production_settings()
     if settings.AUTO_INIT_DB:
         init_db()
@@ -63,12 +64,12 @@ app.include_router(attachments_router, prefix="/api", tags=["attachments"])
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> Any:
     return {"status": "healthy", "service": "aether-api"}
 
 
 @app.get("/")
-async def root():
+async def root() -> Any:
     return {
         "service": "Aether API",
         "version": "0.1.0",

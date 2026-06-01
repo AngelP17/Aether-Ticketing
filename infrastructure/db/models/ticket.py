@@ -56,32 +56,32 @@ class Ticket(Base):
 
     @property
     def external_ticket_id(self) -> str:
-        return self.ticket_id
+        return str(self.ticket_id)
 
     @external_ticket_id.setter
     def external_ticket_id(self, value: str) -> None:
-        self.ticket_id = value
+        self.ticket_id = value  # type: ignore[assignment]
 
     @property
     def priority_raw(self) -> str:
-        return self.priority
+        return str(self.priority)
 
     @priority_raw.setter
     def priority_raw(self, value: str) -> None:
-        self.priority = value
+        self.priority = value  # type: ignore[assignment]
 
     @property
     def assignee(self) -> str | None:
-        return self.staff_assigned
+        return self.staff_assigned  # type: ignore[return-value]
 
     @assignee.setter
     def assignee(self, value: str | None) -> None:
-        self.staff_assigned = value
+        self.staff_assigned = value  # type: ignore[assignment]
 
     @property
     def raw_description(self) -> str | None:
-        return self.description
+        return self.description  # type: ignore[return-value]
 
     @raw_description.setter
     def raw_description(self, value: str | None) -> None:
-        self.description = value
+        self.description = value  # type: ignore[assignment]

@@ -1,3 +1,4 @@
+from typing import Any
 from datetime import date, datetime
 
 from sqlalchemy import text
@@ -12,10 +13,10 @@ from domain.policies import SLATargetHours
 
 
 class MetricsService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
 
-    def get_queue_metrics(self) -> dict:
+    def get_queue_metrics(self) -> dict[str, Any]:
         rows = list(
             self.db.execute(
                 text(
@@ -58,7 +59,7 @@ class MetricsService:
         }
 
 
-def _is_sla_risk(ticket: dict) -> bool:
+def _is_sla_risk(ticket: dict[str, Any]) -> bool:
     opened_at = ticket.get("date_opened")
     if opened_at is None:
         return False
