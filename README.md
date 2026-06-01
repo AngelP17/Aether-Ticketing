@@ -108,7 +108,7 @@ The API runs on port 8000. The web app runs on the port selected by Next.js, usu
 - Passwords are hashed with bcrypt through Passlib. Existing 64-character SHA-256 hashes are treated as legacy values and migrated to bcrypt after a successful login.
 - JWT access tokens expire after 8 hours.
 - Logout clears the browser session. Tokens are not server-revoked unless a future server-side session denylist is added.
-- Login throttling is in-memory and keyed by username plus client IP. This is suitable for the current local/demo deployment shape; multi-process production deployments should move throttling state to Redis or another shared store.
+- Login throttling supports two backends: in-memory (default, suitable for single-process demo) and Redis (set `RATE_LIMIT_BACKEND=redis` and `REDIS_URL`). The rate limiter falls back to in-memory if Redis is unreachable.
 - User records currently live in `users.json` or the configured `USERS_FILE`. Moving users into PostgreSQL is a known follow-up.
 - Production startup rejects the default `SECRET_KEY` and rejects wildcard CORS origins when credentialed CORS is enabled.
 
