@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Columns3, Plus, Radar, Shield, Ticket, Zap } from "lucide-react";
+import { ArrowRight, Columns3, Plus, Radar, Ticket } from "lucide-react";
 
 import { getServerApiUrl } from "@/lib/server-api";
 import type { Ticket as TicketType } from "@/types";
@@ -163,46 +163,29 @@ export default async function BoardPage() {
         <div className="ops-glass rounded-[2rem] overflow-hidden">
           <div className="border-b border-zinc-800/70 bg-black/20 px-5 py-5 sm:px-8">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-              <div className="max-w-4xl">
-                <div className="mono-data text-[11px] uppercase tracking-[0.32em] text-amber-300">Workflow Tracking</div>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                  Board view for actual operational flow
+              <div className="max-w-2xl">
+                <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  Incident Board
                 </h1>
-                <p className="mt-3 text-sm leading-7 text-zinc-400">
-                  This restores the board-style visibility from the original system, but inside the same amber-accented
-                  ops-center language as the new Aether cockpit. It should feel like one product now, not a polished
-                  command center next to a leftover page.
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  Kanban view of the live ticket stream. Drag and drop is not yet wired; use the queue in Command Center for ranked triage.
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href="/tickets/new"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 active:scale-[0.98]"
                 >
                   <Plus size={16} />
-                  New Ticket
+                  New ticket
                 </Link>
                 <Link
                   href="/command-center"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10 active:scale-[0.98]"
                 >
                   <Radar size={16} />
                   Command Center
-                </Link>
-                <Link
-                  href="/reports"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
-                >
-                  <Zap size={16} />
-                  Reports
-                </Link>
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
-                >
-                  <Shield size={16} />
-                  Admin
                 </Link>
               </div>
             </div>
@@ -264,7 +247,7 @@ export default async function BoardPage() {
           ) : null}
 
           <div className="px-5 py-5 sm:px-8">
-            <div className="grid gap-5 xl:grid-cols-4">
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
               {columns.map((column) => (
                 <section
                   key={column.key}

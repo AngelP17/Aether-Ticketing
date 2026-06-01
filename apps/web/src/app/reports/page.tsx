@@ -114,14 +114,12 @@ export default function ReportsPage() {
         <div className="ops-glass rounded-[2rem] overflow-hidden">
           <div className="border-b border-zinc-800/70 bg-black/20 px-5 py-5 sm:px-8">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-              <div className="max-w-4xl">
-                <div className="mono-data text-[11px] uppercase tracking-[0.32em] text-amber-300">Reports & Export</div>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                  Reporting that feels like part of the ops platform
+              <div className="max-w-2xl">
+                <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  Reports &amp; Export
                 </h1>
-                <p className="mt-3 text-sm leading-7 text-zinc-400">
-                  The export surface should feel like a deliberate intelligence handoff, not a forgotten utility page.
-                  This is where queue review, incident review, and audit delivery come together.
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  Download the styled Excel workbook for queue review, incident analysis, and audit delivery.
                 </p>
               </div>
 
@@ -159,9 +157,6 @@ export default function ReportsPage() {
                     </div>
                   </div>
                   <div className="mt-4 text-lg font-semibold text-white">{item.note}</div>
-                  <div className="mt-3 h-1.5 rounded-full bg-zinc-900">
-                    <div className="h-1.5 rounded-full" style={{ width: "72%", backgroundColor: item.color }} />
-                  </div>
                 </div>
               );
             })}

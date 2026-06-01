@@ -728,7 +728,8 @@ export default function CommandCenterPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                {/* Desktop action row */}
+                <div className="hidden xl:flex flex-wrap gap-3">
                   <Link
                     href="/tickets/new"
                     className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
@@ -743,14 +744,14 @@ export default function CommandCenterPage() {
                     className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-100 transition hover:bg-amber-500/20"
                   >
                     <FileSpreadsheet className="h-4 w-4" />
-                    {isExporting ? "Preparing export..." : "Export workbook"}
+                    {isExporting ? "Exporting..." : "Export"}
                   </button>
                   <Link
                     href="/board"
                     className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
                   >
                     <Columns3 className="h-4 w-4" />
-                    Workflow board
+                    Board
                   </Link>
                   <Link
                     href="/reports"
@@ -774,6 +775,27 @@ export default function CommandCenterPage() {
                   >
                     <LogOut className="h-4 w-4" />
                     {isSigningOut ? "Signing out..." : "Logout"}
+                  </button>
+                  <NotificationBell />
+                </div>
+
+                {/* Mobile/tablet condensed action row */}
+                <div className="flex xl:hidden items-center gap-2">
+                  <Link
+                    href="/tickets/new"
+                    className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">New ticket</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleWorkbookDownload}
+                    disabled={isExporting}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-400/20 bg-amber-500/10 text-amber-100 transition hover:bg-amber-500/20"
+                    aria-label={isExporting ? "Preparing export" : "Export workbook"}
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
                   </button>
                   <NotificationBell />
                 </div>
@@ -936,26 +958,16 @@ export default function CommandCenterPage() {
                   Top Request Types
                 </div>
                 <div className="mt-5 space-y-4">
-                  {requestTypeSlices.length ? requestTypeSlices.map((slice) => {
-                    const width = `${Math.max((slice.value / (requestTypeSlices[0]?.value || 1)) * 100, 9)}%`;
-                    return (
-                      <div key={slice.label}>
-                        <div className="mb-2 flex items-center justify-between text-sm">
-                          <span className="text-zinc-300">{slice.label}</span>
-                          <span className="mono-data text-zinc-500">{slice.value}</span>
-                        </div>
-                        <div className="h-2.5 rounded-full bg-zinc-900/80">
-                          <div
-                            className="h-2.5 rounded-full"
-                            style={{
-                              width,
-                              background: `linear-gradient(90deg, ${slice.color}, rgba(255,255,255,0.16))`,
-                            }}
-                          />
-                        </div>
+                  {requestTypeSlices.length ? requestTypeSlices.map((slice) => (
+                      <div key={slice.label} className="flex items-center justify-between gap-3 text-sm">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: slice.color }}
+                        />
+                        <span className="flex-1 truncate text-zinc-300">{slice.label}</span>
+                        <span className="mono-data text-zinc-500">{slice.value}</span>
                       </div>
-                    );
-                  }) : (
+                  )) : (
                     <SectionEmptyState
                       title="No request mix"
                       message="Request-type distribution will appear when live tickets are available."
@@ -969,23 +981,17 @@ export default function CommandCenterPage() {
                   Team Workload
                 </div>
                 <div className="mt-5 space-y-4">
-                  {assigneeSlices.length ? assigneeSlices.map((slice) => {
-                    const width = `${Math.max((slice.value / (assigneeSlices[0]?.value || 1)) * 100, 10)}%`;
-                    return (
-                      <div key={slice.label}>
-                        <div className="mb-2 flex items-center justify-between text-sm">
-                          <span className="text-zinc-300">{slice.label}</span>
-                          <span className="mono-data text-zinc-500">{slice.value}</span>
+                  {assigneeSlices.length ? assigneeSlices.map((slice) => (
+                      <div key={slice.label} className="flex items-center justify-between gap-3 text-sm">
+                        <div className="mono-data flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-cyan-400 text-[10px] font-bold text-black">
+                          {slice.label.slice(0, 2).toUpperCase()}
                         </div>
-                        <div className="h-2.5 rounded-full bg-zinc-900/80">
-                          <div
-                            className="h-2.5 rounded-full bg-gradient-to-r from-cyan-400 to-amber-400"
-                            style={{ width }}
-                          />
-                        </div>
+                        <span className="flex-1 truncate text-zinc-300">{slice.label}</span>
+                        <span className="mono-data rounded-full border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-[11px] text-zinc-400">
+                          {slice.value}
+                        </span>
                       </div>
-                    );
-                  }) : (
+                  )) : (
                     <SectionEmptyState
                       title="No workload yet"
                       message="Assignee workload will populate once the live queue returns ownership data."
