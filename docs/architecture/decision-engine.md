@@ -133,3 +133,30 @@ Each decision yields 3–5 ranked recommendations:
   ]
 }
 ```
+
+## Apply → Feedback Loop
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Operator
+    participant UI as Command Center
+    participant API as API
+    participant AS as ActionService
+    participant DB as Postgres
+    participant FL as FeedbackLearner
+
+    U->>UI: Click "Apply" on top recommendation
+    UI->>API: POST /api/actions/recommendations/{id}/apply
+    API->>AS: apply_recommendation(recommendation_id, action_type, operator)
+    AS->>DB: INSERT action_runs (status=pending_human)
+    AS->>DB: UPDATE tickets (safe mutation)
+    AS->>DB: INSERT ticket_events
+    AS->>DB: INSERT operator_feedback (feedback_type=accepted)
+    AS-->>API: result (action_run, ticket_state, rollback_available)
+    API-->>UI: 200 + serialized result
+    UI-->>U: Show "Action queued for review" toast
+    FL->>DB: Scan operator_feedback (later)
+    FL->>FL: Recalibrate weights
+    FL-->>AS: Updated confidence baseline (in-memory)
+```

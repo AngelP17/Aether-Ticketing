@@ -14,19 +14,17 @@
 
 ```mermaid
 flowchart TD
-    A[Request /api/reports/excel] --> B[pipelines/reports/excel_report.py]
-    B --> C[Fetch tickets + decisions + incidents]
-    C --> D[Build Executive Summary tab]
-    C --> E[Build Operational Queue tab]
-    C --> F[Build Incident Clusters tab]
-    C --> G[Build Decision Intelligence tab]
-    C --> H[Build Audit Extract tab]
-    D --> I[Apply visual formatting]
-    E --> I
-    F --> I
-    G --> I
-    H --> I
-    I --> J[Return .xlsx download]
+    A[Request /api/reports/excel] --> B[ReportService]
+    A2[Request /api/reports/csv] --> B
+    B --> C[_load_report_payload]
+    C --> D[Fetch tickets + decisions + incidents + feedback]
+    D --> E[5-section payload]
+    E --> F[excel_report.py\nstyled workbook]
+    E --> G[csv_report.py\n# Section: markers]
+    F --> H[StreamingResponse .xlsx]
+    G --> I[Response text/csv]
+    F --> J[Download Workbook button]
+    G --> K[Download CSV button]
 ```
 
 ## Formatting Standards

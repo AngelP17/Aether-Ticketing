@@ -79,3 +79,26 @@
 28. realtime: add WebSocket updates
 29. tests: add decision coverage
 30. ci: split pipelines
+
+## Phase Timeline
+
+```mermaid
+gantt
+    title Aether Phased Rollout
+    dateFormat YYYY-MM-DD
+    axisFormat %b
+    section Foundation
+    Phase 0 Identity & Docs      :done, p0, 2025-01-01, 7d
+    Phase 1 Backend Foundation   :done, p1, after p0, 14d
+    Phase 2 Feature Derivation   :done, p2, after p1, 10d
+    section Intelligence
+    Phase 3 Decision Engine      :done, p3, after p2, 14d
+    Phase 4 Retrieval & Clustering:done, p4, after p3, 10d
+    section Operator UX
+    Phase 5 Frontend Command Ctr :done, p5, after p4, 21d
+    section Reporting
+    Phase 6 Excel + CSV Reports  :done, p6, after p5, 10d
+    section Hardening
+    Phase 7 Graph + Governance   :active, p7, after p6, 14d
+    Phase 8 Endpoint Test Suite  :p8, after p7, 5d
+```

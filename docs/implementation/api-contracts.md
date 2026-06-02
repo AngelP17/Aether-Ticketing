@@ -1,6 +1,51 @@
 # API Contracts
 
-## GET /api/tickets
+## Endpoint Map
+
+```mermaid
+flowchart LR
+    subgraph Public
+        Login[POST /api/auth/login]
+        Logout[POST /api/auth/logout]
+        Reports[GET /api/reports/excel|csv]
+    end
+    subgraph Read
+        Tickets[GET /api/tickets]
+        Ticket[GET /api/tickets/{id}]
+        Events[GET /api/tickets/{id}/events]
+        Incidents[GET /api/incidents]
+        Incident[GET /api/incidents/{id}]
+        Decisions[GET /api/decisions/{id}]
+        Recs[GET /api/recommendations]
+        Metrics[GET /api/metrics/*]
+        Replay[GET /api/replay/{id}]
+        Assets[GET /api/assets/*]
+        Intelligence[GET /api/intelligence/health]
+    end
+    subgraph Authenticated
+        Me[GET /api/auth/me]
+        Change[POST /api/auth/change-password]
+        Comments[GET /api/tickets/{id}/comments]
+        CatalogR[GET /api/categories|labels|assignees|options]
+        Gov[GET /api/governance/summary|card]
+    end
+    subgraph WriteAgent[Write - admin+agent]
+        TicketW[POST/PUT/DELETE /api/tickets/*]
+        CommentW[POST/PUT/DELETE comments]
+        AttachW[POST/DELETE attachments]
+        Apply[POST /api/actions/recommendations/{id}/apply]
+        Accept[POST /api/recommendations/{id}/accept|reject|override]
+        ChangeStatus[PUT /api/tickets/{id}/move]
+    end
+    subgraph WriteAdmin[Write - admin only]
+        Users[POST/PUT/DELETE /api/auth/users]
+        Cat[POST/PUT/DELETE /api/categories|labels|assignees]
+    end
+    Public --> Read
+    Read --> Authenticated
+    Authenticated --> WriteAgent
+    WriteAgent --> WriteAdmin
+```
 
 **Query params**: status, priority, category, assignee, ranking, limit, offset
 

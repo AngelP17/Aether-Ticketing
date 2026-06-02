@@ -46,3 +46,18 @@ After validation period, migrate categories/labels to new asset model. Drop lega
 - Week 6–7: Phase 5 (frontend)
 - Week 8: Phase 6 (reporting)
 - Week 9–10: Phase 7 (hardening + cutover)
+
+## Cutover State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> DualWrite: Phase 1
+    DualWrite --> ReadMigration: Phase 2\nread traffic → FastAPI
+    ReadMigration --> FullCutover: Phase 3\nall traffic → FastAPI
+    FullCutover --> Cleanup: Phase 4\ndrop legacy cols
+    Cleanup --> [*]
+    DualWrite: Flask writes\nFastAPI writes\nshared Neon DB
+    ReadMigration: Reads → FastAPI\nWrites → Flask\nA/B validate
+    FullCutover: FastAPI = source of truth\nFlask archived
+    Cleanup: Categories/labels migrated\nLegacy columns dropped
+```

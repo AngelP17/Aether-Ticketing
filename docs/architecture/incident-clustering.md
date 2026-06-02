@@ -67,3 +67,48 @@ cluster_confidence = base_similarity
 3. **Root cause identified** — hypothesis set by operator or rules
 4. **Resolved** — coordinated resolution applied
 5. **Closed** — incident archived with lessons learned
+
+## Incident + Graph Data Model
+
+```mermaid
+erDiagram
+    incidents {
+        string incident_id PK
+        string title
+        string status
+        string root_cause_hypothesis
+        float confidence
+        int business_impact_score
+        datetime opened_at
+        datetime closed_at
+    }
+    incident_ticket_links {
+        int incident_id FK
+        string ticket_id FK
+        string link_type
+        float contribution_score
+    }
+    tickets {
+        string ticket_id PK
+        string status
+        string site
+    }
+    graph_nodes {
+        int id PK
+        string node_type
+        string ref_id
+    }
+    graph_edges {
+        int id PK
+        int source_node_id FK
+        int target_node_id FK
+        string edge_type
+        float weight
+    }
+    incidents ||--o{ incident_ticket_links : contains
+    tickets ||--o{ incident_ticket_links : linked_from
+    incidents ||--o{ graph_nodes : "cluster_anchor"
+    tickets ||--o{ graph_nodes : "ticket_anchor"
+    graph_nodes ||--o{ graph_edges : "from"
+    graph_nodes ||--o{ graph_edges : "to"
+```

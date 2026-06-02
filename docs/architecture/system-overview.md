@@ -41,14 +41,17 @@ flowchart TD
     G --> H{scoring.py}
     H --> I[decision_record + recommendations]
     H --> J[root_cause_rules.py]
-    G --> K[incident_clustering.py]
-    K --> L[incidents + incident_ticket_links]
-    I --> M[similar_cases.py]
-    M --> N[similar_case_links]
-    I --> O[excel_report.py]
-    J --> O
-    K --> O
-    N --> O
+    G --> K[graph_intelligence_service]
+    K --> L[(graph_nodes / graph_edges)]
+    L --> M[incident_clustering.py]
+    M --> N[incidents + incident_ticket_links]
+    I --> O[similar_cases.py]
+    O --> P[similar_case_links]
+    I --> Q[excel_report.py]
+    J --> Q
+    M --> Q
+    O --> Q
+    Q --> R[reports/excel + reports/csv]
 ```
 
 ## Database Architecture
@@ -64,6 +67,31 @@ erDiagram
     recommendations ||--o| operator_feedback : receives
     recommendations ||--o| action_runs : triggers
     tickets ||--o| audit_records : snapshotted_as
+    tickets ||--o{ graph_nodes : "anchors"
+    tickets ||--o{ graph_edges : "anchors"
+    graph_nodes ||--o{ graph_edges : "participates"
+    tickets ||--o{ attachments : has
+    tickets ||--o{ comments : has
+    users ||--o{ operator_feedback : authors
+    users ||--o{ action_runs : operators
+    categories ||--o{ tickets : classifies
+    labels ||--o{ tickets : tags
+    assignees ||--o{ tickets : owns
+```
+
+## Governance & Feedback Loops
+
+```mermaid
+flowchart LR
+    DE[Decision Engine] --> Card[Decision Card]
+    DE --> Drift[Drift Detector]
+    Graph[Graph Service] --> Card
+    Graph --> Drift
+    Card -->|GET /api/governance/card| UI[Admin / Reports]
+    Drift -->|GET /api/governance/summary| UI
+    FB[Operator Feedback] --> DE
+    FB --> Risk[Risk Recalibration]
+    Risk --> DE
 ```
 
 ## Key Design Decisions

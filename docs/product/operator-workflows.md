@@ -24,3 +24,27 @@
 3. Point-in-time selector reconstructs exact state at any moment
 4. Reviews: what was the score at time T? What recommendation was made?
 5. Operator can export audit extract as Excel
+
+## End-to-End Flow (Triage)
+
+```mermaid
+flowchart TD
+    Start([Open Command Center]) --> CC[Ranked Queue Loaded]
+    CC --> Pick{Click ticket}
+    Pick -->|yes| Detail[Ticket Case View]
+    Detail --> Review{Review score + recommendations}
+    Review -->|accept| Accept[POST /api/recommendations/{id}/accept]
+    Review -->|reject| Reject[POST /api/recommendations/{id}/reject]
+    Review -->|override| Override[POST /api/recommendations/{id}/override]
+    Review -->|apply| Apply[POST /api/actions/recommendations/{id}/apply]
+    Accept --> Feedback[(operator_feedback)]
+    Reject --> Feedback
+    Override --> Feedback
+    Apply --> Feedback
+    Feedback --> Card[Decision Card refreshes]
+    Card --> CC
+    Pick -->|no| Inc{Open incident}
+    Inc -->|yes| IncDetail[Incident Detail]
+    IncDetail --> Coord[Apply coordinated action]
+    Coord --> CC
+```

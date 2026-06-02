@@ -71,3 +71,22 @@ Sections:
 - Preview pane
 - Export as Excel button
 - Scheduled report configuration (future)
+
+## Screen Navigation Graph
+
+```mermaid
+flowchart LR
+    Login[/Login/] --> CC[Command Center]
+    CC --> Board[Workflow Board]
+    CC --> Detail[Ticket Case View]
+    CC --> Inc[Incident Detail]
+    CC --> Replay[Replay / Audit]
+    CC --> Reports[Reports / Export]
+    CC --> Settings[Settings\nadmin only]
+    Board --> Detail
+    Detail --> Replay
+    Detail --> Inc
+    Reports --> CC
+    Settings --> Users[User Management\nadmin only]
+    Settings --> Catalog[Catalog\nadmin only]
+```

@@ -39,3 +39,21 @@ Aether provides:
 **Before Aether**: 400 open tickets, no clear ranking, same incidents reoccurring, no accountability for recommendations.
 
 **After Aether**: Tickets ranked by operational impact, incidents automatically grouped, similar-case resolution path suggested, every recommendation logged and tracked.
+
+## Positioning Quadrant
+
+```mermaid
+quadrantChart
+    title "Aether vs the field"
+    x-axis "Manual priority" --> "Explainable AI priority"
+    y-axis "Single-tool stack" --> "Integrated intelligence"
+    quadrant-1 "Aether"
+    quadrant-2 "Generic ticketing"
+    quadrant-3 "Legacy ITSM"
+    quadrant-4 "Opaque AI assistants"
+    "Jira Service Management": [0.55, 0.4]
+    "ServiceNow": [0.45, 0.7]
+    "Zendesk": [0.35, 0.3]
+    "Freshservice": [0.4, 0.35]
+    "Aether OpsCenter": [0.85, 0.9]
+```

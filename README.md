@@ -36,19 +36,33 @@ Aether OpsCenter turns live service tickets into ranked, explainable actions acr
 
 ```mermaid
 flowchart TB
-    A[Ticket Sources] --> B[Ingest Pipeline]
-    B --> C[Normalize & Deduplicate]
-    C --> D[Event Store]
-    D --> E[Feature Derivation]
-    E --> F[Decision Engine]
-    F --> G[Recommendations]
-    F --> H[Incident Clustering]
-    F --> I[Audit Records]
-    G --> J[Operator Command Center]
-    H --> J
-    I --> J
-    J --> K[Feedback Loop]
-    K --> D
+    subgraph Sources
+        XLSX[tickets.xlsx]
+        APIW[API writes]
+    end
+    XLSX --> Ingest[Ingest Pipeline]
+    APIW --> Ingest
+    Ingest --> Events[(ticket_events\nappend-only)]
+    Events --> Current[(tickets\ncurrent state)]
+    Current --> Features[Feature Derivation]
+    Features --> DE[Decision Engine\ngraph + rules]
+    DE --> Decisions[(decision_records)]
+    DE --> Recs[(recommendations)]
+    DE --> Graph[(graph_edges + nodes)]
+    Graph --> Incidents[(incidents + links)]
+    Decisions --> Web[Web Command Center]
+    Recs --> Web
+    Incidents --> Web
+    Decisions --> Reports[Excel + CSV Reports]
+    Graph --> Gov[Governance\ndrift + card]
+    Decisions --> Gov
+    Web --> Feedback[Operator Feedback]
+    Feedback --> FeedbackLog[(operator_feedback)]
+    FeedbackLog --> Apply[ActionService.apply_runbook]
+    Apply --> TicketMutation[Safe ticket mutation]
+    TicketMutation --> Current
+    TicketMutation --> Events
+    FeedbackLog --> DE
 ```
 
 ## Tech Stack
