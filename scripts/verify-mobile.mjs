@@ -17,6 +17,7 @@ const PROTECTED_ROUTES = [
   { path: "/incidents", name: "incidents", waitFor: "text=Incident Intelligence" },
   { path: "/reports", name: "reports", waitFor: "text=Reports & Export" },
   { path: "/admin", name: "admin", waitFor: "text=User management" },
+  { path: "/tickets/IT-20260070", name: "ticket-detail", waitFor: "text=Windstream Planned Maintenance" },
   { path: "/tickets/new", name: "ticket-new", waitFor: "text=New Ticket" },
 ];
 
