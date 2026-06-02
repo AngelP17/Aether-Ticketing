@@ -224,6 +224,74 @@ body {
   opacity: 0.5;
 }
 
+.ops-command-strip {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  border-radius: 24px;
+  background:
+    linear-gradient(90deg, rgba(245, 158, 11, 0.11), rgba(18, 19, 23, 0.94) 32%, rgba(8, 9, 12, 0.97)),
+    var(--surface-solid);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 18px 56px rgba(0, 0, 0, 0.34);
+  padding: 18px;
+}
+
+.ops-command-strip::before {
+  content: "";
+  position: absolute;
+  inset-inline: 18px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.75), transparent 72%);
+  opacity: 0.65;
+}
+
+.ops-command-strip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(245, 158, 11, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 158, 11, 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(90deg, black, transparent 76%);
+  opacity: 0.5;
+}
+
+.ops-command-strip > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ops-command-meter {
+  min-height: 68px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.26);
+  padding: 12px 14px;
+}
+
+.ops-command-meter span {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.ops-command-meter strong {
+  display: block;
+  margin-top: 7px;
+  font-family: var(--font-mono);
+  font-size: 30px;
+  line-height: 1;
+  color: #fde68a;
+}
+
 .ops-stat-tile {
   position: relative;
   overflow: hidden;
@@ -516,6 +584,26 @@ body {
 
   .ops-hero-panel {
     border-radius: 1.6rem;
+  }
+
+  .ops-command-strip {
+    border-radius: 1.35rem;
+    padding: 14px;
+  }
+
+  .ops-command-meter {
+    min-height: 58px;
+    border-radius: 14px;
+    padding: 10px;
+  }
+
+  .ops-command-meter span {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+  }
+
+  .ops-command-meter strong {
+    font-size: 24px;
   }
 
   .ops-mobile-nav {

@@ -36,7 +36,7 @@ class TicketService:
         offset = offset_raw if isinstance(offset_raw, int) else 0
         limit_raw = kwargs.get("limit", 50)
         limit = limit_raw if isinstance(limit_raw, int) else 50
-        _, category_join = category_join_sql(self.db)
+        category_join = ""
 
         if kwargs.get("status"):
             filters.append("t.status = :status")
@@ -45,10 +45,7 @@ class TicketService:
             filters.append("t.priority = :priority")
             params["priority"] = kwargs["priority"]
         if kwargs.get("category"):
-            if category_join:
-                filters.append("COALESCE(c.name, t.request_type) = :category")
-            else:
-                filters.append("t.request_type = :category")
+            filters.append("t.request_type = :category")
             params["category"] = kwargs["category"]
         if kwargs.get("assignee"):
             filters.append("t.staff_assigned = :assignee")
@@ -60,12 +57,24 @@ class TicketService:
         params["sql_limit"] = max(limit * 6, 80) if ranking else limit
         params["sql_offset"] = 0 if ranking else offset
         try:
+            _, category_join = category_join_sql(self.db)
+            effective_where_clause = where_clause
+            if kwargs.get("category") and category_join:
+                category_filters = [
+                    "COALESCE(c.name, t.request_type) = :category"
+                    if item == "t.request_type = :category"
+                    else item
+                    for item in filters
+                ]
+                effective_where_clause = (
+                    f"WHERE {' AND '.join(category_filters)}" if category_filters else ""
+                )
             rows = list(
                 self.db.execute(
                     text(
                         _ticket_list_sql(
                             self.db,
-                            where_clause=where_clause,
+                            where_clause=effective_where_clause,
                             limit_clause="LIMIT :sql_limit OFFSET :sql_offset",
                         )
                     ),

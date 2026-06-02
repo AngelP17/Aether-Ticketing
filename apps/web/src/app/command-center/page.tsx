@@ -758,40 +758,40 @@ export default function CommandCenterPage() {
         </>
       }
     >
-      <section className="ops-hero-panel rise rounded-[32px] px-5 py-6 sm:px-7 lg:px-8">
-        <div className="relative z-[1] grid gap-6 xl:grid-cols-[minmax(0,1.35fr),minmax(360px,0.65fr)] xl:items-end">
-          <div>
+      <section className="ops-command-strip rise">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="mono-data rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.24em] text-amber-200">
-                Live operations plane
+              <span className="aether-eyebrow text-amber-300">Live Ops</span>
+              <span className="aether-chip border-amber-400/25 bg-amber-500/10 text-amber-100">
+                {feed.status === "ready" ? `${totalTickets} tickets indexed` : "sync pending"}
               </span>
-              <span className="mono-data rounded-full border border-zinc-800/80 bg-black/30 px-3 py-1.5 text-[10px] uppercase tracking-[0.24em] text-zinc-400">
-                {feed.status === "ready" ? `${totalTickets} tickets indexed` : "Awaiting sync"}
+              <span className="aether-chip">
+                {feed.status === "ready" ? `${lastSyncSeconds}s since sync` : feed.status}
               </span>
             </div>
-            <h2 className="mt-5 max-w-4xl text-3xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Command the queue before it becomes an incident.
-            </h2>
-            <p className="mt-5 max-w-2xl text-sm leading-6 text-zinc-300 sm:text-base">
-              Aether turns the live ticket stream into ranked work, correlated incidents, and export-ready operating context.
-            </p>
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <h2 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
+                Operations cockpit
+              </h2>
+              <p className="text-sm text-zinc-400">
+                Ranked queue, SLA pressure, incident clusters, and export state from the live API.
+              </p>
+            </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <div className="rounded-[20px] border border-white/10 bg-black/28 p-4">
-              <div className="mono-data text-[10px] uppercase tracking-[0.24em] text-zinc-500">Active load</div>
-              <div className="mono-data mt-2 text-3xl font-bold text-amber-200">{openTickets}</div>
-              <div className="mt-1 text-xs text-zinc-500">Open work items</div>
+          <div className="grid grid-cols-3 gap-2 lg:min-w-[420px]">
+            <div className="ops-command-meter">
+              <span>Open</span>
+              <strong>{openTickets}</strong>
             </div>
-            <div className="rounded-[20px] border border-white/10 bg-black/28 p-4">
-              <div className="mono-data text-[10px] uppercase tracking-[0.24em] text-zinc-500">SLA pressure</div>
-              <div className="mono-data mt-2 text-3xl font-bold text-orange-200">{slaRisk}</div>
-              <div className="mt-1 text-xs text-zinc-500">Cases needing focus</div>
+            <div className="ops-command-meter">
+              <span>SLA</span>
+              <strong className="text-orange-200">{slaRisk}</strong>
             </div>
-            <div className="rounded-[20px] border border-white/10 bg-black/28 p-4">
-              <div className="mono-data text-[10px] uppercase tracking-[0.24em] text-zinc-500">Clusters</div>
-              <div className="mono-data mt-2 text-3xl font-bold text-rose-200">{incidentCards.length}</div>
-              <div className="mt-1 text-xs text-zinc-500">Incident patterns</div>
+            <div className="ops-command-meter">
+              <span>Clusters</span>
+              <strong className="text-rose-200">{incidentCards.length}</strong>
             </div>
           </div>
         </div>
