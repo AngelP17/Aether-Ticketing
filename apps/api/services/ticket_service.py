@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 from datetime import UTC, datetime
 
@@ -16,6 +17,8 @@ from apps.api.services.operational_intelligence import (
 from apps.api.services.schema_compat import category_join_sql, column_expr
 from apps.api.services.decision_service import DecisionService
 from apps.api.services.event_service import EventService
+
+logger = logging.getLogger(__name__)
 
 
 class TicketService:
@@ -56,28 +59,50 @@ class TicketService:
         where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
         params["sql_limit"] = max(limit * 6, 80) if ranking else limit
         params["sql_offset"] = 0 if ranking else offset
-        rows = list(
-            self.db.execute(
-                text(
-                    _ticket_list_sql(
-                        self.db,
-                        where_clause=where_clause,
-                        limit_clause="LIMIT :sql_limit OFFSET :sql_offset",
-                    )
-                ),
-                params,
-            ).mappings()
-        )
+        try:
+            rows = list(
+                self.db.execute(
+                    text(
+                        _ticket_list_sql(
+                            self.db,
+                            where_clause=where_clause,
+                            limit_clause="LIMIT :sql_limit OFFSET :sql_offset",
+                        )
+                    ),
+                    params,
+                ).mappings()
+            )
+        except Exception:
+            logger.exception("ticket list compatibility query failed; using base ticket query")
+            rows = list(
+                self.db.execute(
+                    text(
+                        _base_ticket_list_sql(
+                            where_clause=where_clause,
+                            limit_clause="LIMIT :sql_limit OFFSET :sql_offset",
+                        )
+                    ),
+                    params,
+                ).mappings()
+            )
 
         tickets = [dict(row) for row in rows]
-        decision_map = build_live_decision_map(tickets)
+        try:
+            decision_map = build_live_decision_map(tickets)
+        except Exception:
+            logger.exception("ticket decision enrichment failed; returning base ticket snapshots")
+            decision_map = {}
         snapshots = []
         for ticket in tickets:
             snapshots.append(
                 build_ticket_snapshot(ticket, decision=decision_map.get(ticket["ticket_id"]))
             )
 
-        incidents = synthesize_incidents(snapshots)
+        try:
+            incidents = synthesize_incidents(snapshots)
+        except Exception:
+            logger.exception("ticket incident enrichment failed; returning tickets without incident links")
+            incidents = []
         incident_lookup = {
             ticket["ticket_id"]: incident["id"]
             for incident in incidents
@@ -431,6 +456,35 @@ def _ticket_list_sql(db: Session, *, where_clause: str = "", limit_clause: str =
             {category_select}
         FROM tickets t
         {category_join}
+        {where_clause}
+        ORDER BY t.date_opened DESC NULLS LAST, t.id DESC
+        {limit_clause}
+    """
+
+
+def _base_ticket_list_sql(*, where_clause: str = "", limit_clause: str = "") -> str:
+    return f"""
+        SELECT
+            t.id,
+            t.ticket_id,
+            t.title,
+            COALESCE(t.status, 'Open') AS status,
+            COALESCE(t.priority, 'Low') AS priority,
+            t.request_type,
+            t.staff_assigned,
+            t.requester,
+            t.date_opened,
+            t.description,
+            t.resolution_notes,
+            t.created_at,
+            t.updated_at,
+            NULL AS resolved_at,
+            NULL AS clean_summary,
+            NULL AS site_id,
+            NULL AS asset_id,
+            NULL AS category_id,
+            NULL AS category_name
+        FROM tickets t
         {where_clause}
         ORDER BY t.date_opened DESC NULLS LAST, t.id DESC
         {limit_clause}
