@@ -38,13 +38,19 @@ from pipelines.ingest.thread_cleaner import (
     normalize_priority,
     normalize_status,
 )
+from apps.api.services.schema_compat import category_join_sql, column_expr
 
 
 def fetch_ticket_row(db: Session, ticket_id: str) -> dict[str, Any] | None:
+    category_select, category_join = category_join_sql(db)
+    clean_summary_expr = column_expr(db, "tickets", "clean_summary")
+    site_id_expr = column_expr(db, "tickets", "site_id")
+    asset_id_expr = column_expr(db, "tickets", "asset_id")
+    category_id_expr = column_expr(db, "tickets", "category_id")
     row = (
         db.execute(
             text(
-                """
+                f"""
             SELECT
                 t.id,
                 t.ticket_id,
@@ -59,12 +65,13 @@ def fetch_ticket_row(db: Session, ticket_id: str) -> dict[str, Any] | None:
                 t.resolution_notes,
                 t.created_at,
                 t.updated_at,
-                t.clean_summary,
-                t.site_id,
-                t.asset_id,
-                c.name AS category_name
+                {clean_summary_expr} AS clean_summary,
+                {site_id_expr} AS site_id,
+                {asset_id_expr} AS asset_id,
+                {category_id_expr} AS category_id,
+                {category_select}
             FROM tickets t
-            LEFT JOIN categories c ON c.id = t.category_id
+            {category_join}
             WHERE t.ticket_id = :ticket_id
             """
             ),

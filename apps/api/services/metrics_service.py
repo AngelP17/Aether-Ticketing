@@ -9,6 +9,7 @@ from apps.api.services.operational_intelligence import (
     build_ticket_snapshot,
     synthesize_incidents,
 )
+from apps.api.services.schema_compat import category_join_sql, column_expr
 from domain.policies import SLATargetHours
 
 
@@ -17,10 +18,13 @@ class MetricsService:
         self.db = db
 
     def get_queue_metrics(self) -> dict[str, Any]:
+        category_select, category_join = category_join_sql(self.db)
+        site_id_expr = column_expr(self.db, "tickets", "site_id")
+        asset_id_expr = column_expr(self.db, "tickets", "asset_id")
         rows = list(
             self.db.execute(
                 text(
-                    """
+                    f"""
                     SELECT
                         t.ticket_id,
                         t.title,
@@ -31,11 +35,11 @@ class MetricsService:
                         t.date_opened,
                         t.description,
                         t.created_at,
-                        t.site_id,
-                        t.asset_id,
-                        c.name AS category_name
+                        {site_id_expr} AS site_id,
+                        {asset_id_expr} AS asset_id,
+                        {category_select}
                     FROM tickets t
-                    LEFT JOIN categories c ON c.id = t.category_id
+                    {category_join}
                     WHERE status NOT IN ('Resolved', 'Closed')
                     """
                 )

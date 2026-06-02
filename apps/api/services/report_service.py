@@ -10,6 +10,7 @@ from apps.api.services.operational_intelligence import (
     count_similar_cases,
     synthesize_incidents,
 )
+from apps.api.services.schema_compat import category_join_sql, column_expr
 
 
 class ReportService:
@@ -23,9 +24,14 @@ class ReportService:
         date_to: str | None,
         incident_id: str | None,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        category_select, category_join = category_join_sql(self.db)
+        clean_summary_expr = column_expr(self.db, "tickets", "clean_summary")
+        site_id_expr = column_expr(self.db, "tickets", "site_id")
+        asset_id_expr = column_expr(self.db, "tickets", "asset_id")
+        resolved_at_expr = column_expr(self.db, "tickets", "resolved_at")
         rows = self.db.execute(
             text(
-                """
+                f"""
                 SELECT
                     t.id,
                     t.ticket_id,
@@ -40,13 +46,13 @@ class ReportService:
                     t.resolution_notes,
                     t.created_at,
                     t.updated_at,
-                    t.resolved_at,
-                    t.clean_summary,
-                    t.site_id,
-                    t.asset_id,
-                    c.name AS category_name
+                    {resolved_at_expr} AS resolved_at,
+                    {clean_summary_expr} AS clean_summary,
+                    {site_id_expr} AS site_id,
+                    {asset_id_expr} AS asset_id,
+                    {category_select}
                 FROM tickets t
-                LEFT JOIN categories c ON c.id = t.category_id
+                {category_join}
                 ORDER BY COALESCE(t.updated_at, t.created_at) DESC NULLS LAST, t.id DESC
                 """
             )

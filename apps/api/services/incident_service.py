@@ -15,6 +15,7 @@ from apps.api.services.operational_intelligence import (
     build_ticket_snapshot,
     synthesize_incidents,
 )
+from apps.api.services.schema_compat import category_join_sql, column_expr
 
 
 class IncidentService:
@@ -34,10 +35,14 @@ class IncidentService:
         return get_persisted_incident_detail(self.db, incident_id)
 
     def _build_clusters(self) -> list[dict[str, Any]]:
+        category_select, category_join = category_join_sql(self.db)
+        clean_summary_expr = column_expr(self.db, "tickets", "clean_summary")
+        site_id_expr = column_expr(self.db, "tickets", "site_id")
+        asset_id_expr = column_expr(self.db, "tickets", "asset_id")
         rows = list(
             self.db.execute(
                 text(
-                    """
+                    f"""
                     SELECT
                         t.id,
                         t.ticket_id,
@@ -52,12 +57,12 @@ class IncidentService:
                         t.resolution_notes,
                         t.created_at,
                         t.updated_at,
-                        t.clean_summary,
-                        t.site_id,
-                        t.asset_id,
-                        c.name AS category_name
+                        {clean_summary_expr} AS clean_summary,
+                        {site_id_expr} AS site_id,
+                        {asset_id_expr} AS asset_id,
+                        {category_select}
                     FROM tickets t
-                    LEFT JOIN categories c ON c.id = t.category_id
+                    {category_join}
                     WHERE t.status NOT IN ('Resolved', 'Closed')
                     ORDER BY t.date_opened DESC NULLS LAST, t.id DESC
                     LIMIT 120

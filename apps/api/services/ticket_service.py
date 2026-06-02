@@ -13,6 +13,7 @@ from apps.api.services.operational_intelligence import (
     fetch_ticket_row,
     synthesize_incidents,
 )
+from apps.api.services.schema_compat import category_join_sql, column_expr
 from apps.api.services.decision_service import DecisionService
 from apps.api.services.event_service import EventService
 
@@ -32,6 +33,7 @@ class TicketService:
         offset = offset_raw if isinstance(offset_raw, int) else 0
         limit_raw = kwargs.get("limit", 50)
         limit = limit_raw if isinstance(limit_raw, int) else 50
+        _, category_join = category_join_sql(self.db)
 
         if kwargs.get("status"):
             filters.append("t.status = :status")
@@ -40,7 +42,10 @@ class TicketService:
             filters.append("t.priority = :priority")
             params["priority"] = kwargs["priority"]
         if kwargs.get("category"):
-            filters.append("COALESCE(c.name, t.request_type) = :category")
+            if category_join:
+                filters.append("COALESCE(c.name, t.request_type) = :category")
+            else:
+                filters.append("t.request_type = :category")
             params["category"] = kwargs["category"]
         if kwargs.get("assignee"):
             filters.append("t.staff_assigned = :assignee")
@@ -53,36 +58,14 @@ class TicketService:
         params["sql_offset"] = 0 if ranking else offset
         rows = list(
             self.db.execute(
-            text(
-                f"""
-                SELECT
-                    t.id,
-                    t.ticket_id,
-                    t.title,
-                    t.status,
-                    t.priority,
-                    t.request_type,
-                    t.staff_assigned,
-                    t.requester,
-                    t.date_opened,
-                    t.description,
-                    t.resolution_notes,
-                    t.created_at,
-                    t.updated_at,
-                    t.resolved_at,
-                    t.clean_summary,
-                    t.site_id,
-                    t.asset_id,
-                    c.name AS category_name
-                FROM tickets t
-                LEFT JOIN categories c ON c.id = t.category_id
-                {where_clause}
-                ORDER BY t.date_opened DESC NULLS LAST, t.id DESC
-                LIMIT :sql_limit
-                OFFSET :sql_offset
-                """
-            ),
-            params,
+                text(
+                    _ticket_list_sql(
+                        self.db,
+                        where_clause=where_clause,
+                        limit_clause="LIMIT :sql_limit OFFSET :sql_offset",
+                    )
+                ),
+                params,
             ).mappings()
         )
 
@@ -121,36 +104,7 @@ class TicketService:
         similar_cases = fetch_similar_cases(self.db, ticket)
         events = EventService(self.db).get_ticket_event_stream(ticket_id)
 
-        all_rows = list(
-            self.db.execute(
-                text(
-                    """
-                    SELECT
-                        t.id,
-                        t.ticket_id,
-                        t.title,
-                        t.status,
-                        t.priority,
-                        t.request_type,
-                        t.staff_assigned,
-                        t.requester,
-                        t.date_opened,
-                        t.description,
-                        t.resolution_notes,
-                        t.created_at,
-                        t.updated_at,
-                        t.resolved_at,
-                        t.clean_summary,
-                        t.site_id,
-                        t.asset_id,
-                        c.name AS category_name
-                    FROM tickets t
-                    LEFT JOIN categories c ON c.id = t.category_id
-                    ORDER BY t.date_opened DESC NULLS LAST, t.id DESC
-                    """
-                )
-            ).mappings()
-        )
+        all_rows = list(self.db.execute(text(_ticket_list_sql(self.db))).mappings())
         incident_rows = [dict(row) for row in all_rows]
         incident_decision_map = build_live_decision_map(incident_rows)
         incident = next(
@@ -445,3 +399,39 @@ class TicketService:
             "DONE": "Resolved",
         }
         return mapping.get((column or "").upper())
+
+
+def _ticket_list_sql(db: Session, *, where_clause: str = "", limit_clause: str = "") -> str:
+    category_select, category_join = category_join_sql(db)
+    clean_summary_expr = column_expr(db, "tickets", "clean_summary")
+    site_id_expr = column_expr(db, "tickets", "site_id")
+    asset_id_expr = column_expr(db, "tickets", "asset_id")
+    resolved_at_expr = column_expr(db, "tickets", "resolved_at")
+    category_id_expr = column_expr(db, "tickets", "category_id")
+    return f"""
+        SELECT
+            t.id,
+            t.ticket_id,
+            t.title,
+            t.status,
+            t.priority,
+            t.request_type,
+            t.staff_assigned,
+            t.requester,
+            t.date_opened,
+            t.description,
+            t.resolution_notes,
+            t.created_at,
+            t.updated_at,
+            {resolved_at_expr} AS resolved_at,
+            {clean_summary_expr} AS clean_summary,
+            {site_id_expr} AS site_id,
+            {asset_id_expr} AS asset_id,
+            {category_id_expr} AS category_id,
+            {category_select}
+        FROM tickets t
+        {category_join}
+        {where_clause}
+        ORDER BY t.date_opened DESC NULLS LAST, t.id DESC
+        {limit_clause}
+    """
