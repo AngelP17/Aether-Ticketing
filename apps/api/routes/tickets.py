@@ -11,15 +11,15 @@ from apps.api.schemas.management import (
     TicketMoveRequest,
     TicketUpdateRequest,
 )
-from apps.api.schemas.ticket import TicketResponse, TicketDetailResponse
+from apps.api.schemas.ticket import TicketDetailResponse
 from apps.api.security import require_ticket_write
 from apps.api.services.ticket_service import TicketService as TicketService
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[TicketResponse], include_in_schema=False)
-@router.get("", response_model=list[TicketResponse])
+@router.get("/", include_in_schema=False)
+@router.get("")
 def list_tickets(
     status: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),

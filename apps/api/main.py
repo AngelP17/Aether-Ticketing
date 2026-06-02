@@ -13,6 +13,7 @@ from apps.api.routes.auth import router as auth_router
 from apps.api.routes.catalog import router as catalog_router
 from apps.api.routes.comments import router as comments_router
 from apps.api.routes.decisions import router as decisions_router
+from apps.api.routes.diagnostics import router as diagnostics_router
 from apps.api.routes.events import router as events_router
 from apps.api.routes.governance import router as governance_router
 from apps.api.routes.incidents import router as incidents_router
@@ -67,6 +68,7 @@ app.include_router(attachments_router, prefix="/api", tags=["attachments"])
 app.include_router(actions_router, prefix="/api/actions", tags=["actions"])
 app.include_router(intelligence_router, prefix="/api/intelligence", tags=["intelligence"])
 app.include_router(governance_router, prefix="/api/governance", tags=["governance"])
+app.include_router(diagnostics_router, prefix="/api/diagnostics", tags=["diagnostics"])
 
 
 @app.get("/health")
