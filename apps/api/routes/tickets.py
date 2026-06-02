@@ -11,7 +11,6 @@ from apps.api.schemas.management import (
     TicketMoveRequest,
     TicketUpdateRequest,
 )
-from apps.api.schemas.ticket import TicketDetailResponse
 from apps.api.security import require_ticket_write
 from apps.api.services.ticket_service import TicketService as TicketService
 
@@ -42,7 +41,7 @@ def list_tickets(
     )
 
 
-@router.get("/{ticket_id}", response_model=TicketDetailResponse)
+@router.get("/{ticket_id}")
 def get_ticket(ticket_id: str, db: Session = Depends(get_db)) -> Any:
     service = TicketService(db)
     ticket = service.get_ticket_detail(ticket_id)
