@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
+from apps.api.services.ticket_service import TicketService
 
 router = APIRouter()
 
@@ -25,6 +26,7 @@ def live_diagnostics(db: Session = Depends(get_db)) -> dict[str, Any]:
         "queries": {
             "ticket_count": _scalar_check(db, "SELECT COUNT(*) AS value FROM tickets"),
             "ticket_probe": _ticket_probe(db),
+            "ticket_feed_limits": _ticket_feed_limits(db),
         },
     }
 
@@ -94,6 +96,26 @@ def _ticket_probe(db: Session) -> dict[str, Any]:
         "row_present": True,
         "fields_present": sorted([key for key, value in dict(row).items() if value is not None]),
     }
+
+
+def _ticket_feed_limits(db: Session) -> list[dict[str, Any]]:
+    service = TicketService(db)
+    results: list[dict[str, Any]] = []
+    for limit in [1, 3, 5, 10, 20, 40, 80, 160, 200]:
+        try:
+            tickets = service.list_tickets(limit=limit)
+        except Exception as exc:  # noqa: BLE001
+            results.append({"limit": limit, "ok": False, "error": _public_error(exc)})
+            continue
+        results.append(
+            {
+                "limit": limit,
+                "ok": True,
+                "count": len(tickets),
+                "first_ticket_id": tickets[0]["ticket_id"] if tickets else None,
+            }
+        )
+    return results
 
 
 def _public_error(exc: Exception) -> dict[str, str]:
