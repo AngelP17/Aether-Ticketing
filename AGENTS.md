@@ -66,6 +66,22 @@ The mobile-screenshot / verification scripts in `scripts/` also accept
 `API_BASE_URL` and `BASE_URL` so they can be re-pointed at a non-default
 port without code changes.
 
+### Direct Postgres Inspection
+
+`127.0.0.1:5432` on a developer machine may point at a different local
+Postgres (not the Docker DB), which can mislead anyone trying to verify
+data the app is using. The Docker app talks to Postgres on the internal
+`db:5432` network alias. For source-of-truth inspection, run psql
+inside the container:
+
+```bash
+docker compose -f docker/docker-compose.yml exec -T db psql -U aether -d aether
+```
+
+The shipped `tickets.xlsx` and `schema.sql` are the byte-identical
+source of truth the API reads on boot; they live at the repo root and
+must not drift from `origin/main`.
+
 ## Conventions And Constraints
 
 - Backend auth uses JWT access tokens. Logout clears the client session only; without a server-side denylist, issued tokens remain valid until expiry.
