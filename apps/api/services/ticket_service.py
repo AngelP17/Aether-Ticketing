@@ -121,9 +121,10 @@ class TicketService:
             logger.exception("ticket incident enrichment failed; returning tickets without incident links")
             incidents = []
         incident_lookup = {
-            ticket["ticket_id"]: incident["id"]
+            ticket["ticket_id"]: incident.get("id") or incident.get("incident_key")
             for incident in incidents
-            for ticket in incident["tickets"]
+            for ticket in incident.get("tickets", [])
+            if ticket.get("ticket_id")
         }
         for snapshot in snapshots:
             snapshot["incident_id"] = incident_lookup.get(snapshot["ticket_id"])

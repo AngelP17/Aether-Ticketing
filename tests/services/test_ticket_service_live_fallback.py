@@ -118,3 +118,19 @@ def test_list_tickets_sanitizes_non_json_safe_scores(
 
     assert tickets[0]["priority_score"] is None
     assert tickets[0]["confidence_score"] is None
+
+
+def test_list_tickets_tolerates_unpersisted_incident_clusters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _LegacySchemaSession()
+
+    def _cluster_without_id(_snapshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [{"tickets": [{"ticket_id": "IT-LEGACY"}]}]
+
+    monkeypatch.setattr(ticket_service_module, "synthesize_incidents", _cluster_without_id)
+
+    tickets = TicketService(session).list_tickets(limit=10)  # type: ignore[arg-type]
+
+    assert tickets[0]["ticket_id"] == "IT-LEGACY"
+    assert tickets[0]["incident_id"] is None
