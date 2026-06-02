@@ -724,9 +724,9 @@ export default function AdminPage() {
                   avg degree {formatNumber(governance.graph.average_degree, 2)} · isolated{" "}
                   {governance.graph.isolated_count}
                 </div>
-                {Object.keys(governance.graph.edges_by_type).length ? (
+                {Object.keys(governance.graph.edges_by_type ?? {}).length ? (
                   <div className="mt-3 space-y-1 text-xs text-zinc-300">
-                    {Object.entries(governance.graph.edges_by_type).map(([edgeType, count]) => (
+                    {Object.entries(governance.graph.edges_by_type ?? {}).map(([edgeType, count]) => (
                       <div key={edgeType} className="flex items-center justify-between">
                         <span className="text-zinc-400">{edgeType}</span>
                         <span className="font-mono">{count}</span>
