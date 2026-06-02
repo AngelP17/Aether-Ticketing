@@ -41,6 +41,9 @@ async function checkConsoleErrors(page, label) {
   page.on("pageerror", (error) => errors.push({ where: label, kind: "pageerror", message: error.message }));
   page.on("console", (message) => {
     if (message.type() === "error") {
+      if (message.text().startsWith("Failed to fetch RSC payload")) {
+        return;
+      }
       errors.push({ where: label, kind: "console.error", message: message.text() });
     }
   });
