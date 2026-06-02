@@ -220,6 +220,7 @@ def compute_live_decision(
     *,
     include_recommendations: bool = True,
     include_artifacts: bool = True,
+    db: Session | None = None,
 ) -> dict[str, Any]:
     title = ticket.get("title") or ""
     description = ticket.get("description") or ""
@@ -260,7 +261,7 @@ def compute_live_decision(
     )
 
     root_cause, root_confidence = classify_root_cause(title, description, request_type)
-    confidence = _confidence_score(root_confidence, similar_cases_count, bool(description.strip()))
+    confidence = _confidence_score(root_confidence, similar_cases_count, bool(description.strip()), db=db, root_cause=root_cause.value)
     clean_summary = ""
     if include_artifacts:
         clean_summary = ticket.get("clean_summary") or extract_clean_summary(description)
@@ -600,12 +601,20 @@ def _dependency_criticality(ticket: dict[str, Any]) -> float:
 
 
 def _confidence_score(
-    root_confidence: float, similar_cases_count: int, has_description: bool
+    root_confidence: float, similar_cases_count: int, has_description: bool,
+    db: Session | None = None, root_cause: str | None = None,
 ) -> float:
     confidence = root_confidence * 100.0
     confidence += min(similar_cases_count * 4.0, 20.0)
     if has_description:
         confidence += 10.0
+    if db is not None and root_cause:
+        try:
+            from infrastructure.logging.feedback_learner import FeedbackLearner
+            learner = FeedbackLearner(db)
+            confidence = learner.get_adjusted_confidence(root_cause, confidence)
+        except Exception:
+            pass
     return min(confidence, 99.0)
 
 

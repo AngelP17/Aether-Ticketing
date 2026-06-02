@@ -40,6 +40,7 @@ import { priorityPalette, statusPalette, chartPalette } from "@/components/comma
 import type { BreakdownItem, IncidentCard, QueueTicket } from "@/components/command-center/types";
 import { NotificationBell, useToast } from "@/components/notifications";
 import { clearStoredSession } from "@/lib/auth";
+import { parseFilename, readExportError } from "@/lib/export-utils";
 import type { Incident, Ticket } from "@/types";
 
 type QueueMetrics = {
@@ -177,52 +178,6 @@ async function fetchJsonWithTimeout<T>(path: string, timeoutMs = 3500): Promise<
   } finally {
     window.clearTimeout(timer);
   }
-}
-
-function parseFilename(contentDisposition: string | null) {
-  if (!contentDisposition) {
-    return "aether_report.xlsx";
-  }
-
-  const encodedMatch = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
-  if (encodedMatch?.[1]) {
-    try {
-      return decodeURIComponent(encodedMatch[1]);
-    } catch {
-      return encodedMatch[1].replace(/["']/g, "");
-    }
-  }
-
-  const filenameMatch = contentDisposition.match(/filename\s*=\s*("?)([^";]+)\1/i);
-  if (filenameMatch?.[2]) {
-    return filenameMatch[2];
-  }
-
-  return "aether_report.xlsx";
-}
-
-async function readExportError(response: Response) {
-  const contentType = response.headers.get("content-type") || "";
-  const body = await response.text().catch(() => "");
-
-  if (contentType.includes("application/json")) {
-    try {
-      const data = JSON.parse(body) as unknown;
-      if (data && typeof data === "object") {
-        const record = data as Record<string, unknown>;
-        if (typeof record.detail === "string") {
-          return record.detail;
-        }
-        if (typeof record.message === "string") {
-          return record.message;
-        }
-      }
-    } catch {
-      // Fall through to the raw body or generic status message below.
-    }
-  }
-
-  return body || `Request failed with status ${response.status}.`;
 }
 
 function toQueueTicketFromLive(ticket: Ticket): QueueTicket {

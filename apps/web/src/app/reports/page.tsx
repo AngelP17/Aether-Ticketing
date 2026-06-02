@@ -16,6 +16,7 @@ import {
 
 import { OpsShell } from "@/components/ops-shell";
 import { useToast } from "@/components/notifications";
+import { parseFilename, readExportError } from "@/lib/export-utils";
 
 const workbookTabs = [
   {
@@ -97,7 +98,7 @@ export default function ReportsPage() {
 
         const filename = parseFilename(
           response.headers.get("content-disposition"),
-          format,
+          format === "csv" ? "aether_report.csv" : "aether_report.xlsx",
         );
         const url = URL.createObjectURL(blob);
 
@@ -323,50 +324,4 @@ export default function ReportsPage() {
   );
 }
 
-function parseFilename(contentDisposition: string | null, format: ExportFormat) {
-  const fallback = format === "csv" ? "aether_report.csv" : "aether_report.xlsx";
 
-  if (!contentDisposition) {
-    return fallback;
-  }
-
-  const encodedMatch = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
-  if (encodedMatch?.[1]) {
-    try {
-      return decodeURIComponent(encodedMatch[1]);
-    } catch {
-      return encodedMatch[1].replace(/["']/g, "");
-    }
-  }
-
-  const filenameMatch = contentDisposition.match(/filename\s*=\s*("?)([^";]+)\1/i);
-  if (filenameMatch?.[2]) {
-    return filenameMatch[2];
-  }
-
-  return fallback;
-}
-
-async function readExportError(response: Response) {
-  const contentType = response.headers.get("content-type") || "";
-  const body = await response.text().catch(() => "");
-
-  if (contentType.includes("application/json")) {
-    try {
-      const data = JSON.parse(body) as unknown;
-      if (data && typeof data === "object") {
-        const record = data as Record<string, unknown>;
-        if (typeof record.detail === "string") {
-          return record.detail;
-        }
-        if (typeof record.message === "string") {
-          return record.message;
-        }
-      }
-    } catch {
-      // Fall through to the raw body or generic status message below.
-    }
-  }
-
-  return body || `Request failed with status ${response.status}.`;
-}

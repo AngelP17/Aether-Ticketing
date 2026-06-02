@@ -18,7 +18,7 @@ import {
 import { FileDropzone } from "@/components/file-dropzone";
 import { useToast } from "@/components/notifications";
 import { RecommendationsPanel } from "@/components/recommendations-panel";
-import { authApi, catalogApi, ticketsApi } from "@/lib/api";
+import { catalogApi, ticketsApi } from "@/lib/api";
 import { canWriteTickets, isAdmin, readStoredUser, type AuthUser } from "@/lib/auth";
 import type {
   CatalogOptions,
@@ -200,7 +200,11 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
   };
 
   const refreshOptions = async () => {
-    await loadOptions();
+    try {
+      await loadOptions();
+    } catch (refreshError) {
+      toast.error("Failed to refresh options", refreshError instanceof Error ? refreshError.message : "Unknown error");
+    }
   };
 
   const uploadFiles = async (targetTicketId: string, files: File[], commentId?: number) => {
@@ -1001,6 +1005,15 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
                 ) : null}
 
                 <div className="mt-6 space-y-4">
+                  {ticketId && detail.events.length > 0 && (
+                    <Link
+                      href={`/replay/${ticketId}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition hover:border-cyan-200/40"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      View audit replay
+                    </Link>
+                  )}
                   {detail.events.map((event) => (
                     <div key={`${event.event_type}-${event.event_ts}-${event.actor_id || ""}`} className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
                       <div className="text-sm font-semibold text-white">{event.event_type.replaceAll("_", " ")}</div>

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
 from apps.api.schemas.decision import DecisionResponse
+from apps.api.security import require_ticket_write
 from apps.api.services.decision_service import DecisionService as DecisionService
 
 router = APIRouter()
@@ -19,7 +20,11 @@ def get_decision(ticket_id: str, db: Session = Depends(get_db)) -> Any:
 
 
 @router.post("/recompute/{ticket_id}", response_model=DecisionResponse)
-def recompute_decision(ticket_id: str, db: Session = Depends(get_db)) -> Any:
+def recompute_decision(
+    ticket_id: str,
+    db: Session = Depends(get_db),
+    _user: dict[str, str] = Depends(require_ticket_write),
+) -> Any:
     service = DecisionService(db)
     decision = service.recompute_decision(ticket_id)
     if decision is None:

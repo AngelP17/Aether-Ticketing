@@ -18,7 +18,7 @@ import {
 
 import { useToast } from "@/components/notifications";
 import { actionsApi, decisionsApi, recommendationsApi } from "@/lib/api";
-import { canWriteTickets } from "@/lib/auth";
+
 import type {
   ActionRun,
   ApplyRecommendationResponse,
@@ -483,7 +483,12 @@ function RecommendationStatus({
           </div>
           {summary.actionRun.operatorNote ? (
             <div className="mt-1 text-xs text-zinc-300">
-              “{summary.actionRun.operatorNote}”
+              &ldquo;{summary.actionRun.operatorNote}&rdquo;
+            </div>
+          ) : null}
+          {summary.actionRun.rollbackAvailable ? (
+            <div className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-2 py-1 text-[10px] text-amber-200">
+              Rollback payload recorded. Contact admin to reverse this action.
             </div>
           ) : null}
         </div>
@@ -589,6 +594,4 @@ function extractErrorMessage(error: unknown): string {
   return "Unknown error";
 }
 
-export function canMutateRecommendations(user?: { role?: string | null } | null) {
-  return canWriteTickets({ username: "", display_name: "", role: user?.role ?? "viewer" });
-}
+

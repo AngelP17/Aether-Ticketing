@@ -6,12 +6,13 @@ import { KeyRound, Plus, Settings2, Shield, Tag, Users } from "lucide-react";
 
 import { OpsShell } from "@/components/ops-shell";
 import { useToast } from "@/components/notifications";
-import { authApi, catalogApi, governanceApi } from "@/lib/api";
+import { authApi, catalogApi, governanceApi, intelligenceApi } from "@/lib/api";
 import { isAdmin, readStoredUser, type AuthUser } from "@/lib/auth";
 import type {
   CatalogCategory,
   CatalogOptions,
   GovernanceSummaryResponse,
+  IntelligenceHealthResponse,
   TicketLabel,
 } from "@/types";
 
@@ -51,6 +52,7 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [governance, setGovernance] = useState<GovernanceSummaryResponse | null>(null);
   const [governanceError, setGovernanceError] = useState<string | null>(null);
+  const [intelligenceHealth, setIntelligenceHealth] = useState<IntelligenceHealthResponse | null>(null);
 
   const categories = useMemo<CatalogCategory[]>(() => options?.categories ?? [], [options]);
   const labels = useMemo<TicketLabel[]>(() => options?.labels ?? [], [options]);
@@ -95,6 +97,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!adminAccess) {
       setGovernance(null);
+      setIntelligenceHealth(null);
       return;
     }
     let cancelled = false;
@@ -114,6 +117,14 @@ export default function AdminPage() {
         const message = error instanceof Error ? error.message : "Governance summary unavailable";
         setGovernanceError(message);
       });
+    intelligenceApi
+      .health()
+      .then((response) => {
+        if (!cancelled) {
+          setIntelligenceHealth(response.data as IntelligenceHealthResponse);
+        }
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -750,10 +761,59 @@ export default function AdminPage() {
                     <li key={line}>• {line}</li>
                   ))}
                 </ul>
+                {governance.card.guardrails?.length ? (
+                  <div className="mt-3 space-y-1 text-xs text-zinc-400">
+                    {governance.card.guardrails.slice(0, 3).map((guard) => (
+                      <div key={guard}>• {guard}</div>
+                    ))}
+                  </div>
+                ) : null}
+                {governance.card.ownership ? (
+                  <div className="mt-3 text-xs text-zinc-400">
+                    {governance.card.ownership.team} · review {governance.card.ownership.review_cadence}
+                  </div>
+                ) : null}
               </div>
             </div>
-          ) : null}
-        </section>
+           ) : null}
+           {intelligenceHealth ? (
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Engine health
+                </div>
+                <div className="mt-3 text-2xl font-semibold text-emerald-200">
+                  {intelligenceHealth.status.toUpperCase()}
+                </div>
+                <div className="mt-2 text-xs text-zinc-400">
+                  {intelligenceHealth.engine.name} · {intelligenceHealth.engine.version}
+                </div>
+                <div className="mt-1 text-xs text-zinc-400">
+                  Decision records: {intelligenceHealth.subsystems?.decision_records?.count ?? 0}
+                  {" · "}Recommendations: {intelligenceHealth.subsystems?.recommendations?.count ?? 0}
+                  {" · "}Feedback: {intelligenceHealth.subsystems?.operator_feedback?.count ?? 0}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Feedback loop
+                </div>
+                <div className="mt-3 text-sm text-zinc-200">
+                  {intelligenceHealth.feedback_loop.enabled ? "Active" : "Disabled"}
+                  {" · "}cap {intelligenceHealth.feedback_loop.adjustment_cap}
+                  {" · "}decay {intelligenceHealth.feedback_loop.decay_factor}
+                </div>
+                {intelligenceHealth.truthful_disclosure ? (
+                  <ul className="mt-3 space-y-1 text-xs text-zinc-400">
+                    {intelligenceHealth.truthful_disclosure.no_external_llm ? <li>No external LLM</li> : null}
+                    {intelligenceHealth.truthful_disclosure.no_trained_ml_model ? <li>No trained ML model</li> : null}
+                    {intelligenceHealth.truthful_disclosure.actions_are_real_workflow_mutations ? <li>Actions are real mutations</li> : null}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+           ) : null}
+         </section>
       </div>
     </OpsShell>
   );

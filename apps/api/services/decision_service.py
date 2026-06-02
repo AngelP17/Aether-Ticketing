@@ -79,7 +79,7 @@ class DecisionService:
         graph_features = features_for_ticket(self.db, ticket_id)
         graph_degree = int(graph_features.get("graph_degree", 0) or 0)
         similar_cases_count = max(count_similar_cases(self.db, ticket), graph_degree)
-        decision = compute_live_decision(ticket, similar_cases_count)
+        decision = compute_live_decision(ticket, similar_cases_count, db=self.db)
 
         feature_snapshot_json = dict(decision["feature_snapshot_json"])
         feature_snapshot_json["graph_features"] = graph_features
@@ -279,6 +279,7 @@ class DecisionService:
                 """
                 UPDATE tickets
                 SET clean_summary = :clean_summary,
+                    confidence_score_cache = :confidence_score_cache,
                     source_hash = COALESCE(source_hash, :source_hash),
                     updated_at = NOW()
                 WHERE id = :ticket_pk
@@ -287,6 +288,7 @@ class DecisionService:
             {
                 "ticket_pk": ticket["id"],
                 "clean_summary": decision["clean_summary"],
+                "confidence_score_cache": int(round(decision["confidence_score"])),
                 "source_hash": ticket.get("source_hash"),
             },
         )

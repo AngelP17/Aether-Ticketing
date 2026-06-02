@@ -7,13 +7,17 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
+from apps.api.security import require_admin
 from apps.api.services.ticket_service import TicketService
 
 router = APIRouter()
 
 
 @router.get("/live")
-def live_diagnostics(db: Session = Depends(get_db)) -> dict[str, Any]:
+def live_diagnostics(
+    db: Session = Depends(get_db),
+    _user: dict[str, str] = Depends(require_admin),
+) -> dict[str, Any]:
     """Expose non-secret live DB compatibility checks for production triage."""
     return {
         "status": "ok",

@@ -11,7 +11,7 @@ class ScoringWeights:
     DEPENDENCY_CRITICALITY: float = 0.08
     ACTIONABILITY: float = 0.08
     UNCERTAINTY_PENALTY: float = 0.10
-    version_tag: str = "rules-2024-Q1"
+    version_tag: str = "rules-2026-graph"
 
 
 SCORING_WEIGHTS = ScoringWeights()
