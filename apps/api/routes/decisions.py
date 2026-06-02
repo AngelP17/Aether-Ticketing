@@ -21,4 +21,7 @@ def get_decision(ticket_id: str, db: Session = Depends(get_db)) -> Any:
 @router.post("/recompute/{ticket_id}", response_model=DecisionResponse)
 def recompute_decision(ticket_id: str, db: Session = Depends(get_db)) -> Any:
     service = DecisionService(db)
-    return service.recompute_decision(ticket_id)
+    decision = service.recompute_decision(ticket_id)
+    if decision is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return decision

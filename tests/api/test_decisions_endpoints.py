@@ -66,20 +66,12 @@ def test_recompute_decision_returns_fresh_payload(admin_client: Any) -> None:
     assert calls["recompute_decision"]["args"] == ("IT-2",)
 
 
-def test_recompute_decision_raises_validation_error_when_ticket_missing(
-    admin_client: Any,
-) -> None:
-    # The recompute route has response_model=DecisionResponse and does not
-    # handle the None case, so the framework raises ResponseValidationError
-    # in development mode (TestClient) and returns 500 in production. The
-    # route should be fixed to raise HTTPException(404) — until then this
-    # test pins the existing behavior so we notice if it changes.
-    from fastapi.exceptions import ResponseValidationError
-
+def test_recompute_decision_returns_404_when_ticket_missing(admin_client: Any) -> None:
     with pytest.MonkeyPatch.context() as monkeypatch:
         _patch_decision_service(monkeypatch, recompute_decision=None)
-        with pytest.raises(ResponseValidationError):
-            admin_client.post("/api/decisions/recompute/IT-MISSING")
+        response = admin_client.post("/api/decisions/recompute/IT-MISSING")
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
 
 
 def test_decisions_does_not_require_authentication(anon_client: Any) -> None:
