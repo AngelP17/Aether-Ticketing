@@ -85,3 +85,36 @@ def test_list_tickets_keeps_feed_alive_when_one_snapshot_fails(
     assert tickets[0]["ticket_id"] == "IT-LEGACY"
     assert tickets[0]["title"] == "Printer queue blocked"
     assert tickets[0]["priority_score"] is None
+
+
+def test_list_tickets_sanitizes_non_json_safe_scores(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _LegacySchemaSession()
+
+    def _nan_snapshot(ticket: dict[str, Any], **_kwargs: Any) -> dict[str, Any]:
+        return {
+            "ticket_id": ticket["ticket_id"],
+            "title": ticket["title"],
+            "status": "Open",
+            "priority_raw": "High",
+            "priority_score": float("nan"),
+            "root_cause_hypothesis": None,
+            "confidence_score": float("inf"),
+            "site": None,
+            "assignee": None,
+            "category": "Printer",
+            "created_at": "2026-06-02T00:00:00",
+            "days_open": 0,
+            "incident_id": None,
+            "description": None,
+            "resolution_notes": None,
+            "requester": None,
+        }
+
+    monkeypatch.setattr(ticket_service_module, "build_ticket_snapshot", _nan_snapshot)
+
+    tickets = TicketService(session).list_tickets(limit=10)  # type: ignore[arg-type]
+
+    assert tickets[0]["priority_score"] is None
+    assert tickets[0]["confidence_score"] is None

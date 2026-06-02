@@ -1,4 +1,5 @@
 import logging
+import math
 from typing import Any
 from datetime import UTC, datetime
 
@@ -126,14 +127,16 @@ class TicketService:
         }
         for snapshot in snapshots:
             snapshot["incident_id"] = incident_lookup.get(snapshot["ticket_id"])
+        snapshots = [_json_safe_snapshot(snapshot) for snapshot in snapshots]
 
         if ranking:
             snapshots.sort(
                 key=lambda ticket: ticket.get("priority_score") or 0,
                 reverse=True,
             )
+            return snapshots[offset : offset + limit]
 
-        return snapshots[offset : offset + limit]
+        return snapshots
 
     def get_ticket_detail(self, ticket_id: str) -> Any:
         ticket = fetch_ticket_row(self.db, ticket_id)
@@ -528,6 +531,22 @@ def _fallback_ticket_snapshot(ticket: dict[str, Any]) -> dict[str, Any]:
         "resolution_notes": _safe_text(ticket.get("resolution_notes")) or None,
         "requester": _safe_text(ticket.get("requester")) or None,
     }
+
+
+def _json_safe_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
+    return {key: _json_safe_value(value) for key, value in snapshot.items()}
+
+
+def _json_safe_value(value: object) -> object:
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(item) for item in value]
+    return value
 
 
 def _safe_text(value: object, *, default: str = "") -> str:
