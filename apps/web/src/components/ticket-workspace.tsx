@@ -731,7 +731,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
                         }
                         className={`rounded-full border px-3 py-2 text-xs font-medium transition ${
                           active
-                            ? "border-amber-400/30 bg-amber-500/12 text-amber-100"
+                            ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
                             : "border-zinc-700 bg-zinc-950/60 text-zinc-300 hover:border-zinc-500"
                         }`}
                         style={!active ? undefined : { boxShadow: `inset 0 0 0 1px ${label.color}55` }}

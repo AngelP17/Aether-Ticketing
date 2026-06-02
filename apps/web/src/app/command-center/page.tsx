@@ -123,7 +123,10 @@ function aggregateCounts(values: string[], maxItems = 6): BreakdownItem[] {
     }));
 }
 
-function describeAction(ticket: QueueTicket | undefined) {
+const GENERIC_RECOMMENDATION =
+  "Validate ownership, root cause, and next concrete action.";
+
+function describeAction(ticket: Omit<QueueTicket, "recommendation"> | undefined) {
   if (!ticket) {
     return "Select a case to inspect the recommended next move.";
   }
@@ -143,7 +146,7 @@ function describeAction(ticket: QueueTicket | undefined) {
   if (cause.includes("access") || cause.includes("permission")) {
     return "Collect the approval trail now and close the access change cleanly instead of leaving it stranded in waiting status.";
   }
-  return ticket.recommendation;
+  return GENERIC_RECOMMENDATION;
 }
 
 async function fetchJsonWithTimeout<T>(path: string, timeoutMs = 3500): Promise<T> {
@@ -223,7 +226,7 @@ async function readExportError(response: Response) {
 }
 
 function toQueueTicketFromLive(ticket: Ticket): QueueTicket {
-  return {
+  const base: Omit<QueueTicket, "recommendation"> = {
     ticketId: ticket.ticket_id,
     title: ticket.title,
     status: ticket.status,
@@ -234,20 +237,8 @@ function toQueueTicketFromLive(ticket: Ticket): QueueTicket {
     daysOpen: ticket.days_open,
     createdAt: ticket.created_at,
     incidentId: ticket.incident_id,
-    recommendation: describeAction({
-      ticketId: ticket.ticket_id,
-      title: ticket.title,
-      status: ticket.status,
-      priority: ticket.priority_raw,
-      score: ticket.priority_score ?? 0,
-      assignee: ticket.assignee || "Unassigned",
-      category: ticket.category || ticket.root_cause_hypothesis || "Unknown",
-      daysOpen: ticket.days_open,
-      createdAt: ticket.created_at,
-      incidentId: ticket.incident_id,
-      recommendation: "Validate ownership, root cause, and next concrete action.",
-    }),
   };
+  return { ...base, recommendation: describeAction(base) };
 }
 
 function getLiveIncidents(incidents: Incident[]): IncidentCard[] {

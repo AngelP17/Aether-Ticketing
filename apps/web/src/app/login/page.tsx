@@ -525,7 +525,7 @@ export default function LoginPage() {
             </div>
 
             <div className="grid gap-3">
-              <div className="rounded-2xl border border-white/8 bg-black/20 p-4 backdrop-blur-sm">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-sm">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600">
                   Live workspace
                 </div>
@@ -533,7 +533,7 @@ export default function LoginPage() {
                   Sign in to open the current ticket queue, incident clusters, reports, and replay history.
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/8 bg-black/20 p-4 backdrop-blur-sm">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-sm">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600">
                   Real authentication
                 </div>
@@ -541,7 +541,7 @@ export default function LoginPage() {
                   Sessions are stored in the browser after the backend issues a token.
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/8 bg-black/20 p-4 backdrop-blur-sm">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-sm">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600">
                   Actionable routes
                 </div>

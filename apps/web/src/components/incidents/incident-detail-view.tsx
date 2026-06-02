@@ -130,8 +130,8 @@ export function IncidentDetailView({
       showNotificationBell
     >
       <div className="mx-auto max-w-7xl">
-        <div className="rounded-[2rem] border border-white/8 bg-black/20 shadow-2xl shadow-black/30 backdrop-blur-xl">
-          <div className="border-b border-white/6 px-5 py-5 sm:px-7">
+        <div className="rounded-[2rem] border border-white/10 bg-black/20 shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div className="border-b border-white/5 px-5 py-5 sm:px-7">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.28em] text-cyan-200">
@@ -152,24 +152,24 @@ export function IncidentDetailView({
 
           <div className="space-y-6 px-5 py-6 sm:px-7">
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[1.5rem] border border-white/8 bg-gradient-to-br from-slate-900/95 to-slate-950/80 p-5">
+              <div className="rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-slate-900/95 to-slate-950/80 p-5">
                 <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Status</div>
                 <div className="mt-3 text-2xl font-semibold text-white">{payload.incident.status}</div>
                 <div className="mt-2 text-sm text-slate-400">Current lifecycle state of the cluster.</div>
               </div>
-              <div className="rounded-[1.5rem] border border-white/8 bg-gradient-to-br from-slate-900/95 to-slate-950/80 p-5">
+              <div className="rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-slate-900/95 to-slate-950/80 p-5">
                 <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Linked Tickets</div>
                 <div className="mt-3 text-3xl font-semibold text-white">{payload.incident.ticket_count}</div>
                 <div className="mt-2 text-sm text-slate-400">Cases currently grouped into this incident.</div>
               </div>
-              <div className="rounded-[1.5rem] border border-white/8 bg-gradient-to-br from-cyan-500/10 to-slate-950/80 p-5">
+              <div className="rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-cyan-500/10 to-slate-950/80 p-5">
                 <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Confidence</div>
                 <div className="mt-3 text-3xl font-semibold text-cyan-200">
                   {formatPercent(payload.incident.confidence)}
                 </div>
                 <div className="mt-2 text-sm text-slate-400">Strength of the current grouping hypothesis.</div>
               </div>
-              <div className="rounded-[1.5rem] border border-white/8 bg-gradient-to-br from-amber-500/10 to-slate-950/80 p-5">
+              <div className="rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-amber-500/10 to-slate-950/80 p-5">
                 <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Business Impact</div>
                 <div className={`mt-3 text-3xl font-semibold ${impactTone(payload.incident.business_impact_score)}`}>
                   {formatScore(payload.incident.business_impact_score)}
@@ -179,7 +179,7 @@ export function IncidentDetailView({
             </section>
 
             <section className="grid gap-6 xl:grid-cols-[1.05fr,0.95fr]">
-              <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-6 shadow-xl shadow-black/20">
+              <section className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-black/20">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-[0.24em] text-cyan-200">Operational Assessment</p>
@@ -190,7 +190,7 @@ export function IncidentDetailView({
                   </div>
                 </div>
 
-                <div className="mt-6 rounded-[1.25rem] border border-white/6 bg-slate-950/50 p-5">
+                <div className="mt-6 rounded-[1.25rem] border border-white/5 bg-slate-950/50 p-5">
                   <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Common Cause</div>
                   <p className="mt-3 text-sm leading-7 text-slate-300">{payload.common_cause}</p>
                 </div>
@@ -201,7 +201,7 @@ export function IncidentDetailView({
                 </div>
               </section>
 
-              <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-6 shadow-xl shadow-black/20">
+              <section className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-black/20">
                 <p className="text-xs uppercase tracking-[0.24em] text-cyan-200">Operator Actions</p>
                 <div className="mt-5 space-y-3">
                   <Link
@@ -220,7 +220,7 @@ export function IncidentDetailView({
                   </Link>
                 </div>
 
-                <div className="mt-6 rounded-[1.25rem] border border-white/6 bg-slate-950/45 p-5">
+                <div className="mt-6 rounded-[1.25rem] border border-white/5 bg-slate-950/45 p-5">
                   <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Cluster Snapshot</div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div>
@@ -305,7 +305,7 @@ export function IncidentDetailView({
               </section>
             </section>
 
-            <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-6 shadow-xl shadow-black/20">
+            <section className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-black/20">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-cyan-200">Related Tickets</p>
@@ -326,7 +326,7 @@ export function IncidentDetailView({
                     <Link
                       key={ticket.ticket_id}
                       href={`/tickets/${ticket.ticket_id}`}
-                      className="block rounded-[1.15rem] border border-white/8 bg-slate-950/45 p-4 transition hover:border-cyan-300/40 hover:bg-cyan-400/5"
+                      className="block rounded-[1.15rem] border border-white/10 bg-slate-950/45 p-4 transition hover:border-cyan-300/40 hover:bg-cyan-400/5"
                     >
                       <div className="flex flex-col gap-3 md:grid md:grid-cols-[auto,minmax(0,1fr),auto] md:items-center">
                         <div className="min-w-[7rem] text-sm font-semibold text-white">{ticket.ticket_id}</div>

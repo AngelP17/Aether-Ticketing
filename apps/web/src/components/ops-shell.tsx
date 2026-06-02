@@ -160,9 +160,9 @@ function OpsStatusPill({ pill }: { pill?: StatusPill }) {
   }
   const palette =
     pill.kind === "ready"
-      ? "border-emerald-500/20 bg-emerald-500/8 text-emerald-200"
+      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
       : pill.kind === "loading"
-        ? "border-cyan-500/20 bg-cyan-500/8 text-cyan-100"
+        ? "border-cyan-500/20 bg-cyan-500/10 text-cyan-100"
         : "border-rose-500/20 bg-rose-500/10 text-rose-100";
   const dotColor =
     pill.kind === "ready" ? "#22c55e" : pill.kind === "loading" ? "#22d3ee" : "#fb7185";
@@ -435,7 +435,7 @@ export function OpsShell({
                     href={item.href}
                     className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${
                       isActive
-                        ? "border-amber-400/30 bg-amber-500/12 text-amber-100"
+                        ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
                         : "border-zinc-800/80 bg-black/20 text-zinc-400 hover:border-zinc-700 hover:text-zinc-100"
                     }`}
                     aria-current={isActive ? "page" : undefined}

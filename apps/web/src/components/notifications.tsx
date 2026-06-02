@@ -373,12 +373,9 @@ function Toast({ id, type, title, message, onClose }: ToastProps) {
 
   return (
     <div
-      className={`pointer-events-auto flex w-80 items-start gap-3 rounded-xl border px-4 py-3 shadow-xl transition-all ${
+      className={`pointer-events-auto slide-in flex w-80 items-start gap-3 rounded-xl border px-4 py-3 shadow-xl transition-all ${
         typeStyles[type].bg
       } ${typeStyles[type].border}`}
-      style={{
-        animation: "slideIn 0.3s ease-out",
-      }}
     >
       <Icon className={`h-4 w-4 shrink-0 mt-0.5 ${typeColors[type]}`} />
       <div className="flex-1 min-w-0">

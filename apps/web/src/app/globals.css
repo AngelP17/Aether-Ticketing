@@ -641,7 +641,8 @@ body {
   }
 
   .scan-line,
-  .rise {
+  .rise,
+  .slide-in {
     animation: none !important;
   }
 
@@ -654,4 +655,21 @@ body {
   .aether-btn {
     transition: none !important;
   }
+}
+
+/* Toast entry animation. Kept as a single named keyframe so the
+ * notifications component does not have to ship an inline style. */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }

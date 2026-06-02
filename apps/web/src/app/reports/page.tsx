@@ -304,7 +304,7 @@ export default function ReportsPage() {
 
               <div className="rounded-[1.5rem] border border-zinc-800 bg-zinc-950/60 p-5 sm:p-6">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/12 text-amber-300">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-300">
                     <Zap size={18} />
                   </div>
                   <div>
