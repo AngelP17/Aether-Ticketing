@@ -10,7 +10,7 @@ from apps.api.schemas.management import (
     LabelCreateRequest,
 )
 from apps.api.security import get_current_user, require_admin
-from apps.api.services.catalog_service import CatalogService
+from apps.api.services.catalog_service import CatalogService as CatalogService
 
 router = APIRouter()
 

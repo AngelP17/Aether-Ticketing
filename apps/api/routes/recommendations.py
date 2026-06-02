@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from apps.api.deps import get_db
-from apps.api.services.recommendation_service import RecommendationService
+from apps.api.services.recommendation_service import RecommendationService as RecommendationService
 
 router = APIRouter()
 

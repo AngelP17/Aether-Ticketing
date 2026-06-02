@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
 from apps.api.security import get_current_user, require_ticket_write
-from apps.api.services.action_service import ActionService
+from apps.api.services.action_service import ActionService as ActionService
 
 router = APIRouter()
 

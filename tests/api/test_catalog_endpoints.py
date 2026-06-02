@@ -196,7 +196,7 @@ def test_delete_assignee_400_on_value_error(admin_client: Any) -> None:
 
 
 def test_options_endpoint_returns_full_options(agent_client: Any) -> None:
-    payload = {
+    payload: dict[str, Any] = {
         "categories": [],
         "labels": [],
         "assignees": [],

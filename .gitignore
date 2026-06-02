@@ -23,3 +23,9 @@ coverage/
 
 .snapshots/
 .tmp-logs/
+
+# Microsoft Office lock files (Excel/Word/PowerPoint editor temp files)
+~$
+
+# Local data exploration files (not part of the Aether OpsCenter project)
+*Printer_Inventory*.xlsx

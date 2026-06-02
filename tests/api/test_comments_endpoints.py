@@ -1,9 +1,10 @@
 """Endpoint tests for /api/tickets/.../comments routes."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from fastapi.routing import APIRoute
 
 import apps.api.routes.comments as comments_routes
 from apps.api.routes.comments import router as comments_router
@@ -124,4 +125,7 @@ def test_comment_writes_require_write_role(viewer_client: Any) -> None:
 def test_comment_router_path_prefix() -> None:
     # Sanity: the router does not accidentally expose a leading slash that
     # would break mounting under /api.
-    assert all(not r.path.startswith("/api") for r in comments_router.routes)
+    assert all(
+        not cast(APIRoute, r).path.startswith("/api")
+        for r in comments_router.routes
+    )

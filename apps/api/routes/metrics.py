@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
-from apps.api.services.accuracy_service import AccuracyService
-from apps.api.services.metrics_service import MetricsService
+from apps.api.services.accuracy_service import AccuracyService as AccuracyService
+from apps.api.services.metrics_service import MetricsService as MetricsService
 from infrastructure.logging.feedback_learner import FeedbackLearner
 
 router = APIRouter()

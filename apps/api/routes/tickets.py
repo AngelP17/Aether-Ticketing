@@ -13,7 +13,7 @@ from apps.api.schemas.management import (
 )
 from apps.api.schemas.ticket import TicketResponse, TicketDetailResponse
 from apps.api.security import require_ticket_write
-from apps.api.services.ticket_service import TicketService
+from apps.api.services.ticket_service import TicketService as TicketService
 
 router = APIRouter()
 

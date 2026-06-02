@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
-from apps.api.services.replay_service import ReplayService
+from apps.api.services.replay_service import ReplayService as ReplayService
 
 router = APIRouter()
 

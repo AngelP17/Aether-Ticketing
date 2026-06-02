@@ -9,7 +9,7 @@ from apps.api.schemas.management import (
     UserUpdateRequest,
 )
 from apps.api.security import get_current_user, require_admin
-from apps.api.services.auth_service import AuthService, login_rate_limiter
+from apps.api.services.auth_service import AuthService as AuthService, login_rate_limiter as login_rate_limiter
 
 router = APIRouter()
 

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
-from apps.api.services.asset_service import AssetService
+from apps.api.services.asset_service import AssetService as AssetService
 
 router = APIRouter()
 

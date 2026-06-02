@@ -6,7 +6,7 @@ from io import BytesIO
 from datetime import datetime
 
 from apps.api.deps import get_db
-from apps.api.services.report_service import ReportService
+from apps.api.services.report_service import ReportService as ReportService
 
 router = APIRouter()
 

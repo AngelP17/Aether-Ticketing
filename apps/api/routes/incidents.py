@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
 from apps.api.schemas.incident import IncidentDetailResponse, IncidentResponse
-from apps.api.services.incident_service import IncidentService
+from apps.api.services.incident_service import IncidentService as IncidentService
 
 router = APIRouter()
 

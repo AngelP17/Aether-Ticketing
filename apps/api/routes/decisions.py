@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
 from apps.api.schemas.decision import DecisionResponse
-from apps.api.services.decision_service import DecisionService
+from apps.api.services.decision_service import DecisionService as DecisionService
 
 router = APIRouter()
 
