@@ -144,57 +144,120 @@ class TicketService:
         if ticket is None:
             return None
 
-        decisions = DecisionService(self.db)
-        decision = decisions.get_latest_decision(ticket_id)
-        similar_cases = fetch_similar_cases(self.db, ticket)
-        events = EventService(self.db).get_ticket_event_stream(ticket_id)
+        try:
+            decision = DecisionService(self.db).get_latest_decision(ticket_id)
+        except Exception:
+            logger.exception("ticket decision detail failed", extra={"ticket_id": ticket_id})
+            decision = None
 
-        all_rows = list(self.db.execute(text(_ticket_list_sql(self.db))).mappings())
-        incident_rows = [dict(row) for row in all_rows]
-        incident_decision_map = build_live_decision_map(incident_rows)
-        incident = next(
-            (
-                current
-                for current in synthesize_incidents(
-                    [
-                        build_ticket_snapshot(
-                            row,
-                            incident_decision_map.get(row["ticket_id"]),
-                        )
-                        for row in incident_rows
-                    ]
-                )
-                if any(item["ticket_id"] == ticket_id for item in current["tickets"])
-            ),
-            None,
-        )
-        return {
+        try:
+            similar_cases = fetch_similar_cases(self.db, ticket)
+        except Exception:
+            logger.exception("ticket similar-case detail failed", extra={"ticket_id": ticket_id})
+            similar_cases = []
+
+        try:
+            events = EventService(self.db).get_ticket_event_stream(ticket_id)
+        except Exception:
+            logger.exception("ticket event stream failed", extra={"ticket_id": ticket_id})
+            events = []
+
+        incident = self._linked_incident_for_ticket(ticket_id)
+
+        try:
+            ticket_snapshot = build_ticket_snapshot(
+                ticket,
+                decision=decision,
+                incident_id=incident.get("id") or incident.get("incident_key") if incident else None,
+            )
+        except Exception:
+            logger.exception("ticket detail snapshot failed", extra={"ticket_id": ticket_id})
+            ticket_snapshot = _fallback_ticket_snapshot(ticket)
+
+        try:
+            labels = self.get_ticket_labels(ticket_id)
+        except Exception:
+            logger.exception("ticket labels failed", extra={"ticket_id": ticket_id})
+            labels = []
+
+        try:
+            comments = self.comments.list_comments(ticket_id)
+        except Exception:
+            logger.exception("ticket comments failed", extra={"ticket_id": ticket_id})
+            comments = []
+
+        try:
+            attachments = [
+                attachment
+                for attachment in self.attachments.list_attachments(ticket_id)
+                if attachment.get("comment_id") is None
+            ]
+        except Exception:
+            logger.exception("ticket attachments failed", extra={"ticket_id": ticket_id})
+            attachments = []
+
+        payload = {
             "ticket": {
-                **build_ticket_snapshot(
-                    ticket,
-                    decision=decision,
-                    incident_id=incident["id"] if incident else None,
-                ),
+                **ticket_snapshot,
                 "request_type": ticket.get("request_type") or ticket.get("category_name"),
                 "requester": ticket.get("requester"),
                 "description": ticket.get("description") or "",
                 "resolution_notes": ticket.get("resolution_notes") or "",
                 "category": ticket.get("category_name") or ticket.get("request_type"),
                 "category_id": ticket.get("category_id"),
-                "labels": self.get_ticket_labels(ticket_id),
+                "labels": labels,
             },
             "decision": decision,
-            "recommendations": decision.get("recommendations", []) if decision else [],
+            "recommendations": decision.get("recommendations", []) if isinstance(decision, dict) else [],
             "similar_cases": similar_cases,
             "events": events,
             "linked_incident": incident,
-            "comments": self.comments.list_comments(ticket_id),
-            "attachments": [
-                attachment
-                for attachment in self.attachments.list_attachments(ticket_id)
-                if attachment.get("comment_id") is None
-            ],
+            "comments": comments,
+            "attachments": attachments,
         }
+        return _json_safe_value(payload)
+
+    def _linked_incident_for_ticket(self, ticket_id: str) -> dict[str, Any] | None:
+        try:
+            all_rows = list(
+                self.db.execute(
+                    text(_ticket_list_sql(self.db, limit_clause="LIMIT 200"))
+                ).mappings()
+            )
+            incident_rows = [dict(row) for row in all_rows]
+            try:
+                incident_decision_map = build_live_decision_map(incident_rows)
+            except Exception:
+                logger.exception("ticket detail incident decision enrichment failed")
+                incident_decision_map = {}
+
+            snapshots = []
+            for row in incident_rows:
+                try:
+                    snapshots.append(
+                        build_ticket_snapshot(
+                            row,
+                            incident_decision_map.get(row["ticket_id"]),
+                        )
+                    )
+                except Exception:
+                    logger.exception(
+                        "ticket detail incident snapshot failed",
+                        extra={"ticket_id": row.get("ticket_id")},
+                    )
+                    snapshots.append(_fallback_ticket_snapshot(row))
+
+            return next(
+                (
+                    current
+                    for current in synthesize_incidents(snapshots)
+                    if any(item.get("ticket_id") == ticket_id for item in current.get("tickets", []))
+                ),
+                None,
+            )
+        except Exception:
+            logger.exception("ticket linked incident lookup failed", extra={"ticket_id": ticket_id})
+            return None
 
     def get_ticket_events(self, ticket_id: str) -> Any:
         return EventService(self.db).get_ticket_event_stream(ticket_id)
