@@ -7,7 +7,7 @@ return deterministic data, so we never need a real Postgres connection.
 """
 from __future__ import annotations
 
-from typing import Any, Iterator
+from typing import Iterator
 
 import pytest
 from fastapi import Header, HTTPException

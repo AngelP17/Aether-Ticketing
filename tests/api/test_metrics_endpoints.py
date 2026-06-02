@@ -12,7 +12,6 @@ from typing import Any
 
 import pytest
 
-from apps.api.routes import metrics as metrics_routes
 from apps.api.services import accuracy_service, metrics_service
 from infrastructure.logging import feedback_learner
 

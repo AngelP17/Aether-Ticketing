@@ -1,7 +1,6 @@
 """Endpoint tests for /api/reports/excel and /api/reports/csv."""
 from __future__ import annotations
 
-from io import BytesIO
 from typing import Any
 
 import pytest
@@ -47,7 +46,7 @@ def test_csv_report_returns_text_csv(agent_client: Any) -> None:
 
 
 def test_excel_report_404_on_lookup_error(admin_client: Any) -> None:
-    def _raise(self: Any, *args: Any, **kwargs: Any) -> Workbook:
+    def _raise(self: Any, *args: Any, **kwargs: Any) -> Any:
         raise LookupError("no data")
 
     with pytest.MonkeyPatch.context() as monkeypatch:
@@ -57,7 +56,7 @@ def test_excel_report_404_on_lookup_error(admin_client: Any) -> None:
 
 
 def test_excel_report_500_on_unexpected_error(admin_client: Any) -> None:
-    def _raise(self: Any, *args: Any, **kwargs: Any) -> Workbook:
+    def _raise(self: Any, *args: Any, **kwargs: Any) -> Any:
         raise RuntimeError("boom")
 
     with pytest.MonkeyPatch.context() as monkeypatch:
@@ -68,7 +67,7 @@ def test_excel_report_500_on_unexpected_error(admin_client: Any) -> None:
 
 
 def test_csv_report_500_on_unexpected_error(admin_client: Any) -> None:
-    def _raise(self: Any, *args: Any, **kwargs: Any) -> str:
+    def _raise(self: Any, *args: Any, **kwargs: Any) -> Any:
         raise RuntimeError("kaboom")
 
     with pytest.MonkeyPatch.context() as monkeypatch:

@@ -8,8 +8,6 @@ import pytest
 import apps.api.routes.comments as comments_routes
 from apps.api.routes.comments import router as comments_router
 
-from tests.api.factories import ticket_detail_payload
-
 
 @pytest.fixture
 def client(admin_client: Any) -> Any:
