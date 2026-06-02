@@ -13,26 +13,22 @@ import {
 import type { ComponentType } from "react";
 import {
   Activity,
-  AlertTriangle,
   CheckCircle2,
-  ChevronRight,
   Clock3,
   Columns3,
-  Download,
   FileSpreadsheet,
   Filter,
   Gauge,
   Layers3,
   LogOut,
-  MoreHorizontal,
   Plus,
   Radar,
-  Search,
   Shield,
   ShieldAlert,
   Ticket as TicketIcon,
 } from "lucide-react";
 
+import { OpsShell } from "@/components/ops-shell";
 import { SectionEmptyState } from "@/components/command-center/section-empty-state";
 import { CompactStatusChart } from "@/components/command-center/status-donut";
 import { PriorityStackChart } from "@/components/command-center/priority-donut";
@@ -82,18 +78,6 @@ type ActivityItem = {
 
 type TicketFilter = "all" | "active" | "waiting" | "closed";
 
-type RailItem =
-  | {
-      label: string;
-      action: () => void;
-      icon: ComponentType<{ className?: string }>;
-    }
-  | {
-      label: string;
-      href: "/board" | "/reports" | "/admin";
-      icon: ComponentType<{ className?: string }>;
-    };
-
 const ticketFilterOptions: Array<{ key: TicketFilter; label: string }> = [
   { key: "all", label: "All" },
   { key: "active", label: "Active" },
@@ -113,18 +97,6 @@ const initialFeed: FeedState = {
 
 function isClosedStatus(status: string) {
   return status === "Closed" || status === "Resolved";
-}
-
-function formatSync(seconds: number) {
-  if (seconds < 60) {
-    return `${seconds}s ago`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes}m ago`;
-  }
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
 }
 
 function normalizeConfidence(value: number) {
@@ -280,7 +252,8 @@ function toQueueTicketFromLive(ticket: Ticket): QueueTicket {
 
 function getLiveIncidents(incidents: Incident[]): IncidentCard[] {
   return incidents.map((incident) => ({
-    id: incident.id,
+    id: String(incident.id),
+    numericId: incident.id,
     title: incident.title,
     rootCause: incident.root_cause_hypothesis || "Unknown cause",
     ticketCount: incident.ticket_count,
@@ -317,6 +290,23 @@ function buildActivity(queue: QueueTicket[]): ActivityItem[] {
   });
 }
 
+function statusPillFor(status: FeedStatus) {
+  if (status === "ready") {
+    return { kind: "ready" as const, label: "Live · API connected" };
+  }
+  if (status === "loading") {
+    return { kind: "loading" as const, label: "Syncing live data" };
+  }
+  return { kind: "error" as const, label: "Live data unavailable" };
+}
+
+function scrollToSection(id: string) {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 
 export default function CommandCenterPage() {
   const router = useRouter();
@@ -327,7 +317,6 @@ export default function CommandCenterPage() {
   const [search, setSearch] = useState("");
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>("all");
   const [lastSyncSeconds, setLastSyncSeconds] = useState(0);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const deferredSearch = useDeferredValue(search);
@@ -496,6 +485,16 @@ export default function CommandCenterPage() {
       tone: "from-rose-500/15 to-rose-500/[0.03] text-rose-100",
       icon: ShieldAlert,
     },
+    {
+      label: "SLA Risk",
+      value: slaRisk,
+      note:
+        feed.metrics?.sla_breach_risk != null
+          ? "Tickets within 75% of their SLA window, reported live by the metrics API."
+          : "Open tickets open 3+ days, derived locally while the metrics API is unavailable.",
+      tone: "from-orange-500/15 to-orange-500/[0.03] text-orange-100",
+      icon: Clock3,
+    },
   ];
 
   const filteredQueue = rankedQueue.filter((ticket) => {
@@ -561,11 +560,6 @@ export default function CommandCenterPage() {
       selectedTicket ? incident.rootCause.toLowerCase().includes(selectedTicket.category.toLowerCase()) : false,
     );
 
-  function scrollToSection(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setMoreOpen(false);
-  }
-
   async function handleWorkbookDownload() {
     if (isExporting) {
       return;
@@ -629,612 +623,483 @@ export default function CommandCenterPage() {
     }
   }
 
-  const railItems: RailItem[] = [
-    { label: "Overview", action: () => scrollToSection("overview"), icon: Gauge },
-    { label: "Command", action: () => scrollToSection("decision"), icon: Radar },
-    { label: "Tickets", action: () => scrollToSection("tickets"), icon: TicketIcon },
-    { label: "Board", href: "/board", icon: Columns3 },
-    { label: "Reports", href: "/reports", icon: FileSpreadsheet },
-    { label: "Admin", href: "/admin", icon: Shield },
+  const railItems = [
+    { kind: "action" as const, label: "Overview", onClick: () => scrollToSection("overview"), icon: Gauge },
+    { kind: "action" as const, label: "Command", onClick: () => scrollToSection("decision"), icon: Radar },
+    { kind: "action" as const, label: "Tickets", onClick: () => scrollToSection("tickets"), icon: TicketIcon },
+    { kind: "link" as const, href: "/board", label: "Board", icon: Columns3 },
+    { kind: "link" as const, href: "/reports", label: "Reports", icon: FileSpreadsheet },
+    { kind: "link" as const, href: "/admin", label: "Admin", icon: Shield },
+  ];
+
+  const sheetItems = [
+    { kind: "link" as const, href: "/tickets/new", label: "New ticket", icon: Plus, tone: "amber" as const },
+    { kind: "link" as const, href: "/board", label: "Workflow board", icon: Columns3, tone: "default" as const },
+    { kind: "link" as const, href: "/reports", label: "Reports", icon: Activity, tone: "cyan" as const },
+    {
+      kind: "action" as const,
+      onClick: handleWorkbookDownload,
+      label: isExporting ? "Preparing export..." : "Export workbook",
+      icon: FileSpreadsheet,
+      tone: "amber" as const,
+    },
+    ...(incidentCards.length > 0
+      ? [
+          {
+            kind: "action" as const,
+            onClick: () => scrollToSection("decision"),
+            label: `Incident clusters (${incidentCards.length})`,
+            icon: ShieldAlert,
+            tone: "rose" as const,
+          },
+        ]
+      : []),
+  ];
+
+  const shellWarnings: string[] = [
+    ...(incidentCards.length > 0
+      ? [`${incidentCards.length} active incident${incidentCards.length === 1 ? "" : "s"}`]
+      : []),
+    ...feed.warnings,
   ];
 
   return (
-    <div className="ops-grid relative min-h-[100dvh] bg-[var(--bg-deep)]">
-      <div className="scan-line" />
-
-      <button
-        type="button"
-        onClick={handleWorkbookDownload}
-        disabled={isExporting}
-        className="ops-floating-export inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-500 text-black shadow-[0_16px_36px_rgba(245,158,11,0.28)] transition hover:scale-[1.03] hover:bg-amber-400"
-        title="Export workbook"
-        aria-label={isExporting ? "Preparing workbook export" : "Export workbook"}
-      >
-        <Download className="h-4 w-4" />
-      </button>
-
-      <div className="relative z-10 grid min-h-[100dvh] lg:grid-cols-[72px,minmax(0,1fr)]">
-        <aside className="ops-rail ops-shell z-20 hidden border-r border-zinc-800/50 px-2 py-4 lg:sticky lg:top-0 lg:flex lg:h-[100dvh] lg:flex-col">
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-500/10 text-amber-300">
-            <Radar className="h-5 w-5" />
-          </div>
-
-          <nav className="mt-6 flex flex-1 flex-col justify-center gap-2">
-            {railItems.map((item) => {
-              const Icon = item.icon;
-              const className =
-                "group flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-zinc-500 transition hover:border-zinc-700/60 hover:bg-zinc-900/60 hover:text-zinc-100";
-
-              if ("href" in item) {
-                return (
-                  <Link key={item.label} href={item.href} className={className}>
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="ops-rail-label text-sm font-medium">{item.label}</span>
-                  </Link>
-                );
-              }
-
-              return (
-                <button key={item.label} type="button" onClick={item.action} className={className}>
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span className="ops-rail-label text-sm font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="px-2 pb-2 pt-6">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-xs font-bold text-black">
-              AP
-            </div>
-          </div>
-        </aside>
-
-        <main className="ops-safe-bottom px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-          <div className="ops-glass rounded-[28px] px-4 py-4 sm:px-6 sm:py-6">
-            <header className="border-b border-zinc-800/50 pb-5">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div className="max-w-4xl">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p className="mono-data text-[10px] uppercase tracking-[0.32em] text-amber-300">
-                      Aether OpsCenter
-                    </p>
-                    <div
-                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] ${
-                        feed.status === "ready"
-                          ? "border-emerald-500/20 bg-emerald-500/8 text-emerald-200"
-                          : feed.status === "loading"
-                            ? "border-cyan-500/20 bg-cyan-500/8 text-cyan-100"
-                            : "border-rose-500/20 bg-rose-500/10 text-rose-100"
-                      }`}
-                    >
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{
-                          backgroundColor:
-                            feed.status === "ready"
-                              ? "#22c55e"
-                              : feed.status === "loading"
-                                ? "#22d3ee"
-                                : "#fb7185",
-                        }}
-                      />
-                      {feed.status === "ready"
-                        ? "Live data active"
-                        : feed.status === "loading"
-                          ? "Syncing live data"
-                          : "Live data unavailable"}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Desktop action row */}
-                <div className="hidden xl:flex flex-wrap gap-3">
-                  <Link
-                    href="/tickets/new"
-                    className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
-                  >
-                    <Plus className="h-4 w-4" />
-                    New ticket
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={handleWorkbookDownload}
-                    disabled={isExporting}
-                    className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-100 transition hover:bg-amber-500/20"
-                  >
-                    <FileSpreadsheet className="h-4 w-4" />
-                    {isExporting ? "Exporting..." : "Export"}
-                  </button>
-                  <Link
-                    href="/board"
-                    className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
-                  >
-                    <Columns3 className="h-4 w-4" />
-                    Board
-                  </Link>
-                  <Link
-                    href="/reports"
-                    className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
-                  >
-                    <Activity className="h-4 w-4" />
-                    Reports
-                  </Link>
-                  <Link
-                    href="/admin"
-                    className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
-                  >
-                    <Shield className="h-4 w-4" />
-                    Admin
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    disabled={isSigningOut}
-                    className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-rose-400/40 hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    {isSigningOut ? "Signing out..." : "Logout"}
-                  </button>
-                  <NotificationBell />
-                </div>
-
-                {/* Mobile/tablet condensed action row */}
-                <div className="flex xl:hidden items-center gap-2">
-                  <Link
-                    href="/tickets/new"
-                    className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">New ticket</span>
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={handleWorkbookDownload}
-                    disabled={isExporting}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-400/20 bg-amber-500/10 text-amber-100 transition hover:bg-amber-500/20"
-                    aria-label={isExporting ? "Preparing export" : "Export workbook"}
-                  >
-                    <FileSpreadsheet className="h-4 w-4" />
-                  </button>
-                  <NotificationBell />
-                </div>
-              </div>
-
-              <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-500">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800/70 bg-black/20 px-3 py-2">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    <span>
-                      {feed.status === "ready"
-                        ? `Last sync ${formatSync(lastSyncSeconds)}`
-                        : feed.status === "loading"
-                          ? "Waiting for first sync"
-                          : "Last sync unavailable"}
-                    </span>
-                  </div>
-                  {feed.warnings.map((warning) => (
-                    <div
-                      key={warning}
-                      className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-amber-100"
-                    >
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      <span>{warning}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <label className="relative block w-full max-w-md">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search queue, owner, category, or ticket"
-                    className="w-full rounded-2xl border border-zinc-800 bg-black/20 py-3 pl-10 pr-4 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-amber-400/30"
-                  />
-                </label>
-              </div>
-            </header>
-
-            {feed.status === "loading" ? (
-              <div className="mt-6 grid gap-4">
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="ops-card rounded-[24px] border border-zinc-800/60 bg-black/20 p-5"
-                    >
-                      <div className="h-3 w-24 rounded-full bg-zinc-800/90" />
-                      <div className="mt-5 h-10 w-20 rounded-full bg-zinc-800/80" />
-                      <div className="mt-4 h-3 w-full rounded-full bg-zinc-900/80" />
-                      <div className="mt-2 h-3 w-2/3 rounded-full bg-zinc-900/80" />
-                    </div>
-                  ))}
-                </div>
-                <div className="ops-card rounded-[26px] p-6">
-                  <SectionEmptyState
-                    title="Loading live workspace"
-                    message="Pulling tickets, metrics, and incident clusters from the API now."
-                  />
-                </div>
-              </div>
-            ) : feed.status === "error" ? (
-              <div className="mt-6 ops-card rounded-[26px] p-6">
-                <div className="flex flex-col gap-4 border-b border-zinc-800/50 pb-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-rose-300">
-                      Command center offline
-                    </div>
-                    <h2 className="mt-2 text-2xl font-semibold text-zinc-50">Live data did not load</h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
-                      {feed.errorMessage || "The live API did not return a usable response for this workspace."}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void hydrateFeed({ notifyOnError: true })}
-                    className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-100 transition hover:bg-amber-500/20"
-                  >
-                    <Activity className="h-4 w-4" />
-                    Retry live sync
-                  </button>
-                </div>
-
-                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  {metrics.map((card) => {
-                    const Icon = card.icon;
-                    return (
-                      <div
-                        key={card.label}
-                        className={`ops-card relative overflow-hidden rounded-[24px] bg-gradient-to-br p-5 ${card.tone}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-                            {card.label}
-                          </div>
-                          <div className="rounded-2xl border border-white/10 bg-black/20 p-2">
-                            <Icon className="h-4 w-4" />
-                          </div>
-                        </div>
-                        <div className="mono-data mt-5 text-4xl font-bold tracking-tight text-zinc-50">0</div>
-                        <p className="mt-3 text-sm leading-6 text-zinc-400">
-                          Live values will appear after the next successful sync.
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <>
-            <section id="overview" className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {metrics.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div
-                    key={card.label}
-                    className={`ops-card relative overflow-hidden rounded-[24px] bg-gradient-to-br p-5 ${card.tone}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-                        {card.label}
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-black/20 p-2">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                    </div>
-                    <div className="mono-data mt-5 text-4xl font-bold tracking-tight text-zinc-50">{card.value}</div>
-                    <p className="mt-3 text-sm leading-6 text-zinc-400">{card.note}</p>
-                  </div>
-                );
-              })}
-            </section>
-
-            <section className="mt-6 grid gap-4 2xl:grid-cols-[1fr,1fr,0.95fr]">
-              <CompactStatusChart data={statusSlices} />
-              <PriorityStackChart data={prioritySlices} />
-              <TrendChart tickets={trendTickets} />
-            </section>
-
-            <section id="decision" className="mt-6 grid gap-6 2xl:grid-cols-[1.15fr,0.85fr]">
-              <QueueTable
-                tickets={filteredQueue}
-                selectedId={selectedTicket?.ticketId ?? null}
-                onSelect={setSelectedTicketId}
-                searchTerm={searchTerm}
-              />
-              <div className="space-y-6">
-                <DecisionDetailPanel
-                  selectedTicket={selectedTicket}
-                  linkedIncident={linkedIncident}
-                />
-                <IncidentList incidents={incidentCards} />
-              </div>
-            </section>
-
-            <section className="mt-6 grid gap-6 xl:grid-cols-[1fr,1fr]">
-              <div className="ops-card rounded-[24px] p-5 sm:p-6">
-                <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-                  Top Request Types
-                </div>
-                <div className="mt-5 space-y-4">
-                  {requestTypeSlices.length ? requestTypeSlices.map((slice) => (
-                      <div key={slice.label} className="flex items-center justify-between gap-3 text-sm">
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-full"
-                          style={{ backgroundColor: slice.color }}
-                        />
-                        <span className="flex-1 truncate text-zinc-300">{slice.label}</span>
-                        <span className="mono-data text-zinc-500">{slice.value}</span>
-                      </div>
-                  )) : (
-                    <SectionEmptyState
-                      title="No request mix"
-                      message="Request-type distribution will appear when live tickets are available."
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div className="ops-card rounded-[24px] p-5 sm:p-6">
-                <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-                  Team Workload
-                </div>
-                <div className="mt-5 space-y-4">
-                  {assigneeSlices.length ? assigneeSlices.map((slice) => (
-                      <div key={slice.label} className="flex items-center justify-between gap-3 text-sm">
-                        <div className="mono-data flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-cyan-400 text-[10px] font-bold text-black">
-                          {slice.label.slice(0, 2).toUpperCase()}
-                        </div>
-                        <span className="flex-1 truncate text-zinc-300">{slice.label}</span>
-                        <span className="mono-data rounded-full border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-[11px] text-zinc-400">
-                          {slice.value}
-                        </span>
-                      </div>
-                  )) : (
-                    <SectionEmptyState
-                      title="No workload yet"
-                      message="Assignee workload will populate once the live queue returns ownership data."
-                    />
-                  )}
-                </div>
-              </div>
-            </section>
-
-            <section className="mt-6 ops-card rounded-[24px] p-5 sm:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-                    Open Queue Composition
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-zinc-400">
-                    These are the request pockets actually consuming the open queue right now.
-                  </p>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800/60 bg-black/20 px-3 py-2 text-xs text-zinc-500">
-                  <Activity className="h-3.5 w-3.5" />
-                  Live composition
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {openMix.length ? openMix.map((slice) => (
-                  <div
-                    key={slice.label}
-                    className="rounded-full border px-3 py-2 text-xs font-medium"
-                    style={{
-                      borderColor: `${slice.color}35`,
-                      backgroundColor: `${slice.color}18`,
-                      color: slice.color,
-                    }}
-                  >
-                    {slice.label} <span className="mono-data opacity-70">{slice.value}</span>
-                  </div>
-                )) : (
-                  <SectionEmptyState
-                    title="No open queue composition"
-                    message="Open-category composition will appear once live tickets are in flight."
-                  />
-                )}
-              </div>
-            </section>
-
-            <section id="tickets" className="mt-6 ops-card rounded-[26px] p-5 sm:p-6">
-              <div className="flex flex-col gap-4 border-b border-zinc-800/50 pb-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <h2 className="text-2xl font-semibold text-zinc-50">Ticket Stream</h2>
-                  <p className="mt-1 text-sm text-zinc-400">
-                    Searchable, filterable, and export-adjacent instead of a thin afterthought.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {ticketFilterOptions.map((option) => (
-                    <button
-                      key={option.key}
-                      type="button"
-                      onClick={() => setTicketFilter(option.key)}
-                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${
-                        ticketFilter === option.key
-                          ? "border-amber-400/25 bg-amber-500/10 text-amber-100"
-                          : "border-zinc-800/70 bg-black/20 text-zinc-400 hover:border-zinc-700"
-                      }`}
-                    >
-                      <Filter className="h-3.5 w-3.5" />
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-[22px] border border-zinc-800/60">
-                <div className="ops-ticket-table bg-zinc-950/80 px-4 py-3 text-[11px] uppercase tracking-[0.24em] text-zinc-500">
-                  <div>ID</div>
-                  <div>Title</div>
-                  <div>Status</div>
-                  <div>Priority</div>
-                  <div>Owner</div>
-                </div>
-
-                {ticketRows.length ? ticketRows.map((ticket) => (
-                  <div key={ticket.ticketId}>
-                    <Link
-                      href={`/tickets/${ticket.ticketId}`}
-                      className="ops-ticket-table items-center gap-3 border-t border-zinc-800/60 bg-black/10 px-4 py-4 text-sm transition hover:bg-white/[0.02]"
-                    >
-                      <div className="mono-data text-zinc-400">{ticket.ticketId}</div>
-                      <div className="min-w-0">
-                        <div className="truncate text-zinc-100">{ticket.title}</div>
-                        <div className="mt-1 text-xs text-zinc-500">{ticket.category}</div>
-                      </div>
-                      <div className="text-zinc-400">{ticket.status}</div>
-                      <div className="mono-data" style={{ color: priorityPalette[ticket.priority] ?? "#d4d4d8" }}>
-                        {ticket.priority}
-                      </div>
-                      <div className="truncate text-zinc-500">{ticket.assignee}</div>
-                    </Link>
-
-                    <Link
-                      href={`/tickets/${ticket.ticketId}`}
-                      className="ops-ticket-card border-t border-zinc-800/60 bg-black/10 px-4 py-4 transition hover:bg-white/[0.02]"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className="mt-1 h-10 w-1 rounded-full"
-                          style={{ backgroundColor: priorityPalette[ticket.priority] ?? "#71717a" }}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="mono-data text-[11px] text-zinc-500">{ticket.ticketId}</span>
-                            <span
-                              className="rounded-full px-2 py-1 text-[10px] font-medium"
-                              style={{
-                                color: priorityPalette[ticket.priority] ?? "#d4d4d8",
-                                backgroundColor: `${priorityPalette[ticket.priority] ?? "#71717a"}18`,
-                              }}
-                            >
-                              {ticket.priority}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-zinc-100">{ticket.title}</p>
-                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                            <span>{ticket.status}</span>
-                            <span>{ticket.category}</span>
-                            <span>{ticket.assignee}</span>
-                            <span className="mono-data">{ticket.daysOpen}d</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                )) : (
-                  <SectionEmptyState
-                    title="No tickets visible"
-                    message={
-                      searchTerm
-                        ? "No tickets matched the current search and filter combination."
-                        : "The live ticket stream is currently empty."
-                    }
-                  />
-                )}
-              </div>
-            </section>
-              </>
-            )}
-
-          </div>
-        </main>
-      </div>
-
-      <nav className="ops-mobile-nav lg:hidden">
-        <button type="button" onClick={() => scrollToSection("overview")} className="ops-mobile-item active">
-          <Gauge className="h-4 w-4" />
-          <span className="text-[9px] font-semibold uppercase tracking-[0.2em]">Overview</span>
-        </button>
-        <button type="button" onClick={() => scrollToSection("decision")} className="ops-mobile-item">
-          <Radar className="h-4 w-4" />
-          <span className="text-[9px] font-semibold uppercase tracking-[0.2em]">Queue</span>
-        </button>
-        <button type="button" onClick={() => scrollToSection("tickets")} className="ops-mobile-item">
-          <TicketIcon className="h-4 w-4" />
-          <span className="text-[9px] font-semibold uppercase tracking-[0.2em]">Tickets</span>
-        </button>
-        <Link href="/board" className="ops-mobile-item">
-          <Columns3 className="h-4 w-4" />
-          <span className="text-[9px] font-semibold uppercase tracking-[0.2em]">Board</span>
-        </Link>
-        <button type="button" onClick={() => setMoreOpen(true)} className="ops-mobile-item">
-          <MoreHorizontal className="h-4 w-4" />
-          <span className="text-[9px] font-semibold uppercase tracking-[0.2em]">More</span>
-        </button>
-      </nav>
-
-      <div className="ops-mobile-sheet lg:hidden" data-open={moreOpen ? "true" : "false"}>
-        <button
-          type="button"
-          aria-label="Close sheet"
-          className="absolute inset-0 bg-black/60"
-          onClick={() => setMoreOpen(false)}
-        />
-        <div className="ops-mobile-sheet-panel px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3">
-          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-zinc-700" />
-          <div className="space-y-2">
+    <OpsShell
+      eyebrow="Aether OpsCenter"
+      title="Command Center"
+      subtitle="Live triage, incident intelligence, and operator actions in one cockpit."
+      statusPill={statusPillFor(feed.status)}
+      lastSyncSeconds={lastSyncSeconds}
+      warnings={shellWarnings}
+      search={{
+        value: search,
+        onChange: setSearch,
+        placeholder: "Search queue, owner, category, or ticket",
+      }}
+      railItems={railItems}
+      sheetItems={sheetItems}
+      exportButton={{ isExporting, onClick: handleWorkbookDownload, label: "Export workbook" }}
+      showNotificationBell
+      onLogout={handleLogout}
+      isSigningOut={isSigningOut}
+      headerActions={
+        <>
+          {/* Desktop action row */}
+          <div className="hidden flex-wrap gap-2 xl:flex">
+            <Link
+              href="/tickets/new"
+              className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+            >
+              <Plus className="h-4 w-4" />
+              New ticket
+            </Link>
             <button
               type="button"
               onClick={handleWorkbookDownload}
               disabled={isExporting}
-              className="flex items-center justify-between rounded-2xl border border-zinc-800/70 bg-black/20 px-4 py-4 text-sm text-zinc-100"
+              className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-100 transition hover:bg-amber-500/20"
             >
-              <span className="flex items-center gap-3">
-                <Download className="h-4 w-4 text-amber-300" />
-                {isExporting ? "Preparing export..." : "Export workbook"}
-              </span>
-              <ChevronRight className="h-4 w-4 text-zinc-600" />
+              <FileSpreadsheet className="h-4 w-4" />
+              {isExporting ? "Exporting..." : "Export"}
             </button>
-            <Link
-              href="/reports"
-              className="flex items-center justify-between rounded-2xl border border-zinc-800/70 bg-black/20 px-4 py-4 text-sm text-zinc-100"
-            >
-              <span className="flex items-center gap-3">
-                <Activity className="h-4 w-4 text-cyan-300" />
-                Reports
-              </span>
-              <ChevronRight className="h-4 w-4 text-zinc-600" />
-            </Link>
             <Link
               href="/board"
-              className="flex items-center justify-between rounded-2xl border border-zinc-800/70 bg-black/20 px-4 py-4 text-sm text-zinc-100"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
             >
-              <span className="flex items-center gap-3">
-                <Columns3 className="h-4 w-4 text-zinc-300" />
-                Workflow board
-              </span>
-              <ChevronRight className="h-4 w-4 text-zinc-600" />
+              <Columns3 className="h-4 w-4" />
+              Board
             </Link>
-            <button
-              type="button"
-              onClick={() => scrollToSection("decision")}
-              className="flex w-full items-center justify-between rounded-2xl border border-zinc-800/70 bg-black/20 px-4 py-4 text-sm text-zinc-100"
+            <Link
+              href="/reports"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
             >
-              <span className="flex items-center gap-3">
-                <ShieldAlert className="h-4 w-4 text-rose-300" />
-                Incident clusters
-              </span>
-              <span className="mono-data text-xs text-zinc-500">{incidentCards.length}</span>
-            </button>
+              <Activity className="h-4 w-4" />
+              Reports
+            </Link>
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
+            >
+              <Shield className="h-4 w-4" />
+              Admin
+            </Link>
             <button
               type="button"
               onClick={handleLogout}
               disabled={isSigningOut}
-              className="flex w-full items-center justify-between rounded-2xl border border-zinc-800/70 bg-black/20 px-4 py-4 text-sm text-zinc-100 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-rose-400/40 hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <span className="flex items-center gap-3">
-                <LogOut className="h-4 w-4 text-rose-300" />
-                {isSigningOut ? "Signing out..." : "Logout"}
-              </span>
-              <ChevronRight className="h-4 w-4 text-zinc-600" />
+              <LogOut className="h-4 w-4" />
+              {isSigningOut ? "Signing out..." : "Logout"}
             </button>
+            <NotificationBell />
+          </div>
+
+          {/* Mobile/tablet condensed action row */}
+          <div className="flex items-center gap-2 xl:hidden">
+            <Link
+              href="/tickets/new"
+              className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">New ticket</span>
+            </Link>
+            <button
+              type="button"
+              onClick={handleWorkbookDownload}
+              disabled={isExporting}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-400/20 bg-amber-500/10 text-amber-100 transition hover:bg-amber-500/20"
+              aria-label={isExporting ? "Preparing export" : "Export workbook"}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+            </button>
+            <NotificationBell />
+          </div>
+        </>
+      }
+    >
+      <section className="ops-hero-panel rise rounded-[32px] px-5 py-6 sm:px-7 lg:px-8">
+        <div className="relative z-[1] grid gap-6 xl:grid-cols-[minmax(0,1.35fr),minmax(360px,0.65fr)] xl:items-end">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mono-data rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.24em] text-amber-200">
+                Live operations plane
+              </span>
+              <span className="mono-data rounded-full border border-zinc-800/80 bg-black/30 px-3 py-1.5 text-[10px] uppercase tracking-[0.24em] text-zinc-400">
+                {feed.status === "ready" ? `${totalTickets} tickets indexed` : "Awaiting sync"}
+              </span>
+            </div>
+            <h2 className="mt-5 max-w-4xl text-3xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
+              Command the queue before it becomes an incident.
+            </h2>
+            <p className="mt-5 max-w-2xl text-sm leading-6 text-zinc-300 sm:text-base">
+              Aether turns the live ticket stream into ranked work, correlated incidents, and export-ready operating context.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="rounded-[20px] border border-white/10 bg-black/28 p-4">
+              <div className="mono-data text-[10px] uppercase tracking-[0.24em] text-zinc-500">Active load</div>
+              <div className="mono-data mt-2 text-3xl font-bold text-amber-200">{openTickets}</div>
+              <div className="mt-1 text-xs text-zinc-500">Open work items</div>
+            </div>
+            <div className="rounded-[20px] border border-white/10 bg-black/28 p-4">
+              <div className="mono-data text-[10px] uppercase tracking-[0.24em] text-zinc-500">SLA pressure</div>
+              <div className="mono-data mt-2 text-3xl font-bold text-orange-200">{slaRisk}</div>
+              <div className="mt-1 text-xs text-zinc-500">Cases needing focus</div>
+            </div>
+            <div className="rounded-[20px] border border-white/10 bg-black/28 p-4">
+              <div className="mono-data text-[10px] uppercase tracking-[0.24em] text-zinc-500">Clusters</div>
+              <div className="mono-data mt-2 text-3xl font-bold text-rose-200">{incidentCards.length}</div>
+              <div className="mt-1 text-xs text-zinc-500">Incident patterns</div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      {feed.status === "loading" ? (
+        <div className="mt-6 grid gap-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className="ops-card rounded-[24px] border border-zinc-800/60 bg-black/20 p-5"
+              >
+                <div className="h-3 w-24 rounded-full bg-zinc-800/90" />
+                <div className="mt-5 h-10 w-20 rounded-full bg-zinc-800/80" />
+                <div className="mt-4 h-3 w-full rounded-full bg-zinc-900/80" />
+                <div className="mt-2 h-3 w-2/3 rounded-full bg-zinc-900/80" />
+              </div>
+            ))}
+          </div>
+          <div className="ops-card rounded-[26px] p-6">
+            <SectionEmptyState
+              title="Loading live workspace"
+              message="Pulling tickets, metrics, and incident clusters from the API now."
+            />
+          </div>
+        </div>
+      ) : feed.status === "error" ? (
+        <div className="mt-6 ops-card rounded-[26px] p-6">
+          <div className="flex flex-col gap-4 border-b border-zinc-800/50 pb-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-rose-300">
+                Command center offline
+              </div>
+              <h2 className="mt-2 text-2xl font-semibold text-zinc-50">Live data did not load</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+                {feed.errorMessage || "The live API did not return a usable response for this workspace."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void hydrateFeed({ notifyOnError: true })}
+              className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-100 transition hover:bg-amber-500/20"
+            >
+              <Activity className="h-4 w-4" />
+              Retry live sync
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {metrics.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.label}
+                  className={`ops-card relative overflow-hidden rounded-[24px] bg-gradient-to-br p-5 ${card.tone}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
+                      {card.label}
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-2">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                  </div>
+                  <div className="mono-data mt-5 text-4xl font-bold tracking-tight text-zinc-50">0</div>
+                  <p className="mt-3 text-sm leading-6 text-zinc-400">
+                    Live values will appear after the next successful sync.
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <>
+          <section id="overview" className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {metrics.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.label}
+                  className={`ops-stat-tile relative overflow-hidden rounded-[24px] bg-gradient-to-br p-5 ${card.tone}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
+                      {card.label}
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-2">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                  </div>
+                  <div className="mono-data mt-5 text-4xl font-bold tracking-tight text-zinc-50">{card.value}</div>
+                  <p className="mt-3 text-sm leading-6 text-zinc-400">{card.note}</p>
+                </div>
+              );
+            })}
+          </section>
+
+          <section className="mt-6 grid gap-4 2xl:grid-cols-[1fr,1fr,0.95fr]">
+            <CompactStatusChart data={statusSlices} />
+            <PriorityStackChart data={prioritySlices} />
+            <TrendChart tickets={trendTickets} />
+          </section>
+
+          <section id="decision" className="mt-6 grid gap-6 2xl:grid-cols-[1.15fr,0.85fr]">
+            <QueueTable
+              tickets={filteredQueue}
+              selectedId={selectedTicket?.ticketId ?? null}
+              onSelect={setSelectedTicketId}
+              searchTerm={searchTerm}
+            />
+            <div className="space-y-6">
+              <DecisionDetailPanel
+                selectedTicket={selectedTicket}
+                linkedIncident={linkedIncident}
+              />
+              <IncidentList incidents={incidentCards} />
+            </div>
+          </section>
+
+          <section className="mt-6 grid gap-6 xl:grid-cols-[1fr,1fr]">
+            <div className="ops-card rounded-[24px] p-5 sm:p-6">
+              <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
+                Top Request Types
+              </div>
+              <div className="mt-5 space-y-4">
+                {requestTypeSlices.length ? requestTypeSlices.map((slice) => (
+                    <div key={slice.label} className="flex items-center justify-between gap-3 text-sm">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: slice.color }}
+                      />
+                      <span className="flex-1 truncate text-zinc-300">{slice.label}</span>
+                      <span className="mono-data text-zinc-500">{slice.value}</span>
+                    </div>
+                )) : (
+                  <SectionEmptyState
+                    title="No request mix"
+                    message="Request-type distribution will appear when live tickets are available."
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="ops-card rounded-[24px] p-5 sm:p-6">
+              <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
+                Team Workload
+              </div>
+              <div className="mt-5 space-y-4">
+                {assigneeSlices.length ? assigneeSlices.map((slice) => (
+                    <div key={slice.label} className="flex items-center justify-between gap-3 text-sm">
+                      <div className="mono-data flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-cyan-400 text-[10px] font-bold text-black">
+                        {slice.label.slice(0, 2).toUpperCase()}
+                      </div>
+                      <span className="flex-1 truncate text-zinc-300">{slice.label}</span>
+                      <span className="mono-data rounded-full border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-[11px] text-zinc-400">
+                        {slice.value}
+                      </span>
+                    </div>
+                )) : (
+                  <SectionEmptyState
+                    title="No workload yet"
+                    message="Assignee workload will populate once the live queue returns ownership data."
+                  />
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-6 ops-card rounded-[24px] p-5 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
+                  Open Queue Composition
+                </div>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  These are the request pockets actually consuming the open queue right now.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800/60 bg-black/20 px-3 py-2 text-xs text-zinc-500">
+                <Activity className="h-3.5 w-3.5" />
+                Live composition
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {openMix.length ? openMix.map((slice) => (
+                <div
+                  key={slice.label}
+                  className="rounded-full border px-3 py-2 text-xs font-medium"
+                  style={{
+                    borderColor: `${slice.color}35`,
+                    backgroundColor: `${slice.color}18`,
+                    color: slice.color,
+                  }}
+                >
+                  {slice.label} <span className="mono-data opacity-70">{slice.value}</span>
+                </div>
+              )) : (
+                <SectionEmptyState
+                  title="No open queue composition"
+                  message="Open-category composition will appear once live tickets are in flight."
+                />
+              )}
+            </div>
+          </section>
+
+          <section id="tickets" className="mt-6 ops-card rounded-[26px] p-5 sm:p-6">
+            <div className="flex flex-col gap-4 border-b border-zinc-800/50 pb-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-zinc-50">Ticket Stream</h2>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Searchable, filterable, and export-adjacent instead of a thin afterthought.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ticketFilterOptions.map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setTicketFilter(option.key)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${
+                      ticketFilter === option.key
+                        ? "border-amber-400/25 bg-amber-500/10 text-amber-100"
+                        : "border-zinc-800/70 bg-black/20 text-zinc-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    <Filter className="h-3.5 w-3.5" />
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 overflow-hidden rounded-[22px] border border-zinc-800/60">
+              <div className="ops-ticket-table bg-zinc-950/80 px-4 py-3 text-[11px] uppercase tracking-[0.24em] text-zinc-500">
+                <div>ID</div>
+                <div>Title</div>
+                <div>Status</div>
+                <div>Priority</div>
+                <div>Owner</div>
+              </div>
+
+              {ticketRows.length ? ticketRows.map((ticket) => (
+                <div key={ticket.ticketId}>
+                  <Link
+                    href={`/tickets/${ticket.ticketId}`}
+                    className="ops-ticket-table items-center gap-3 border-t border-zinc-800/60 bg-black/10 px-4 py-4 text-sm transition hover:bg-white/[0.02]"
+                  >
+                    <div className="mono-data text-zinc-400">{ticket.ticketId}</div>
+                    <div className="min-w-0">
+                      <div className="truncate text-zinc-100">{ticket.title}</div>
+                      <div className="mt-1 text-xs text-zinc-500">{ticket.category}</div>
+                    </div>
+                    <div className="text-zinc-400">{ticket.status}</div>
+                    <div className="mono-data" style={{ color: priorityPalette[ticket.priority] ?? "#d4d4d8" }}>
+                      {ticket.priority}
+                    </div>
+                    <div className="truncate text-zinc-500">{ticket.assignee}</div>
+                  </Link>
+
+                  <Link
+                    href={`/tickets/${ticket.ticketId}`}
+                    className="ops-ticket-card border-t border-zinc-800/60 bg-black/10 px-4 py-4 transition hover:bg-white/[0.02]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="mt-1 h-10 w-1 rounded-full"
+                        style={{ backgroundColor: priorityPalette[ticket.priority] ?? "#71717a" }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="mono-data text-[11px] text-zinc-500">{ticket.ticketId}</span>
+                          <span
+                            className="rounded-full px-2 py-1 text-[10px] font-medium"
+                            style={{
+                              color: priorityPalette[ticket.priority] ?? "#d4d4d8",
+                              backgroundColor: `${priorityPalette[ticket.priority] ?? "#71717a"}18`,
+                            }}
+                          >
+                            {ticket.priority}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-zinc-100">{ticket.title}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                          <span>{ticket.status}</span>
+                          <span>{ticket.category}</span>
+                          <span>{ticket.assignee}</span>
+                          <span className="mono-data">{ticket.daysOpen}d</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              )) : (
+                <SectionEmptyState
+                  title="No tickets visible"
+                  message={
+                    searchTerm
+                      ? "No tickets matched the current search and filter combination."
+                      : "The live ticket stream is currently empty."
+                  }
+                />
+              )}
+            </div>
+          </section>
+        </>
+      )}
+    </OpsShell>
   );
 }

@@ -1,12 +1,20 @@
-from typing import Any
-from sqlalchemy.orm import Session
-from sqlalchemy import text
+from __future__ import annotations
 
+import json
+from datetime import datetime
+from typing import Any
+
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from apps.api.services.graph_intelligence_service import features_for_ticket
 from apps.api.services.operational_intelligence import (
     compute_live_decision,
     count_similar_cases,
     fetch_ticket_row,
 )
+from pipelines.decisions.decision_hash import compute_decision_hash
+from pipelines.decisions.uncertainty_bands import band_payload
 
 
 class DecisionService:
@@ -31,7 +39,18 @@ class DecisionService:
                     dr.uncertainty_penalty,
                     dr.root_cause_hypothesis,
                     dr.confidence_score,
-                    dr.decision_ts
+                    dr.decision_ts,
+                    dr.decision_version,
+                    dr.rule_version,
+                    dr.model_version,
+                    dr.decision_band,
+                    dr.priority_interval_low,
+                    dr.priority_interval_high,
+                    dr.decision_hash,
+                    dr.graph_degree,
+                    dr.graph_weighted_degree,
+                    dr.feature_snapshot_json,
+                    dr.explanation_json
                 FROM decision_records dr
                 JOIN tickets t ON t.id = dr.ticket_id
                 WHERE t.ticket_id = :ticket_id
@@ -42,7 +61,7 @@ class DecisionService:
             {"ticket_id": ticket_id},
         ).mappings().first()
         if existing:
-            payload = dict(existing)
+            payload = _serialize_decision(dict(existing))
             payload["recommendations"] = self._load_recommendations(payload["id"])
             return payload
         if not persist_if_missing:
@@ -57,8 +76,40 @@ class DecisionService:
         if ticket is None:
             return None
 
-        similar_cases_count = count_similar_cases(self.db, ticket)
+        graph_features = features_for_ticket(self.db, ticket_id)
+        graph_degree = int(graph_features.get("graph_degree", 0) or 0)
+        similar_cases_count = max(count_similar_cases(self.db, ticket), graph_degree)
         decision = compute_live_decision(ticket, similar_cases_count)
+
+        feature_snapshot_json = dict(decision["feature_snapshot_json"])
+        feature_snapshot_json["graph_features"] = graph_features
+        feature_snapshot_json["similar_cases_source"] = {
+            "legacy_similar_count": count_similar_cases(self.db, ticket),
+            "graph_degree": graph_degree,
+            "used_similar_cases_count": similar_cases_count,
+        }
+
+        explanation_json = dict(decision["explanation_json"])
+        explanation_json["graph_reasoning"] = graph_features.get("graph_reasoning", "")
+
+        band_info = band_payload(
+            priority_score=decision["priority_score"],
+            confidence_score=decision["confidence_score"],
+            uncertainty_penalty=decision["uncertainty_penalty"],
+            graph_signal_density=graph_features.get("signal_density", 0.0),
+        )
+        rule_version = "rules-2026-graph"
+        decision_version = "v2"
+        decision_hash = compute_decision_hash(
+            ticket_id=ticket_id,
+            priority_score=decision["priority_score"],
+            decision_band=band_info["decision_band"],
+            root_cause_hypothesis=decision["root_cause_hypothesis"],
+            confidence_score=decision["confidence_score"],
+            feature_snapshot_json=feature_snapshot_json,
+            explanation_json=explanation_json,
+            rule_version=rule_version,
+        )
 
         inserted = self.db.execute(
             text(
@@ -81,6 +132,12 @@ class DecisionService:
                     decision_version,
                     rule_version,
                     model_version,
+                    decision_band,
+                    priority_interval_low,
+                    priority_interval_high,
+                    decision_hash,
+                    graph_degree,
+                    graph_weighted_degree,
                     explanation_json
                 )
                 VALUES (
@@ -98,9 +155,15 @@ class DecisionService:
                     :priority_score,
                     :root_cause_hypothesis,
                     :confidence_score,
-                    'v1',
-                    'rules-2026-04',
+                    :decision_version,
+                    :rule_version,
                     NULL,
+                    :decision_band,
+                    :priority_interval_low,
+                    :priority_interval_high,
+                    :decision_hash,
+                    :graph_degree,
+                    :graph_weighted_degree,
                     CAST(:explanation_json AS JSONB)
                 )
                 RETURNING id, decision_ts
@@ -109,20 +172,25 @@ class DecisionService:
             {
                 **decision,
                 "ticket_pk": ticket["id"],
-                "feature_snapshot_json": __import__("json").dumps(decision["feature_snapshot_json"]),
-                "explanation_json": __import__("json").dumps(decision["explanation_json"]),
+                "feature_snapshot_json": json.dumps(feature_snapshot_json),
+                "explanation_json": json.dumps(explanation_json),
+                "decision_version": decision_version,
+                "rule_version": rule_version,
+                "decision_band": band_info["decision_band"],
+                "priority_interval_low": band_info["priority_interval_low"],
+                "priority_interval_high": band_info["priority_interval_high"],
+                "decision_hash": decision_hash,
+                "graph_degree": graph_features.get("graph_degree", 0),
+                "graph_weighted_degree": graph_features.get("graph_weighted_degree", 0.0),
             },
         ).mappings().first()
 
-        decision_id = int(inserted["id"])  # type: ignore[index]
-        decision_ts = inserted["decision_ts"].isoformat()  # type: ignore[index]
+        if inserted is None:
+            raise RuntimeError("decision_records insert returned no row")
+        decision_id = int(inserted["id"])
+        decision_ts = inserted["decision_ts"].isoformat()
         self.db.execute(
-            text(
-                """
-                DELETE FROM recommendations
-                WHERE decision_record_id = :decision_id
-                """
-            ),
+            text("DELETE FROM recommendations WHERE decision_record_id = :decision_id"),
             {"decision_id": decision_id},
         )
         for recommendation in decision["recommendations"]:
@@ -140,7 +208,8 @@ class DecisionService:
                         confidence,
                         requires_approval,
                         recommended_runbook_id,
-                        status
+                        status,
+                        created_at
                     )
                     VALUES (
                         :decision_record_id,
@@ -153,7 +222,8 @@ class DecisionService:
                         :confidence,
                         FALSE,
                         :recommended_runbook_id,
-                        'proposed'
+                        'proposed',
+                        NOW()
                     )
                     """
                 ),
@@ -188,10 +258,16 @@ class DecisionService:
             ),
             {
                 "ticket_pk": ticket["id"],
-                "payload_json": __import__("json").dumps(
+                "payload_json": json.dumps(
                     {
                         "priority_score": decision["priority_score"],
                         "root_cause_hypothesis": decision["root_cause_hypothesis"],
+                        "decision_version": decision_version,
+                        "rule_version": rule_version,
+                        "model_version": None,
+                        "decision_band": band_info["decision_band"],
+                        "decision_hash": decision_hash,
+                        "graph_degree": graph_degree,
                     }
                 ),
                 "source_hash": ticket.get("source_hash"),
@@ -214,8 +290,10 @@ class DecisionService:
                 "source_hash": ticket.get("source_hash"),
             },
         )
+
         self.db.commit()
 
+        recommendations = self._load_recommendations(decision_id)
         return {
             "id": decision_id,
             "ticket_id": ticket["ticket_id"],
@@ -231,7 +309,22 @@ class DecisionService:
             "root_cause_hypothesis": decision["root_cause_hypothesis"],
             "confidence_score": decision["confidence_score"],
             "decision_ts": decision_ts,
-            "recommendations": self._load_recommendations(decision_id),
+            "decision_version": decision_version,
+            "rule_version": rule_version,
+            "model_version": None,
+            "decision_band": band_info["decision_band"],
+            "priority_interval_low": band_info["priority_interval_low"],
+            "priority_interval_high": band_info["priority_interval_high"],
+            "decision_hash": decision_hash,
+            "graph_degree": graph_features.get("graph_degree", 0),
+            "graph_weighted_degree": graph_features.get("graph_weighted_degree", 0.0),
+            "graph_signal_density": graph_features.get("signal_density", 0.0),
+            "graph_reasoning": graph_features.get("graph_reasoning", ""),
+            "band_rationale": band_info["band_rationale"],
+            "operator_action": band_info["operator_action"],
+            "feature_snapshot_json": feature_snapshot_json,
+            "explanation_json": explanation_json,
+            "recommendations": recommendations,
         }
 
     def _load_recommendations(self, decision_id: int) -> list[dict[str, Any]]:
@@ -247,8 +340,10 @@ class DecisionService:
                     risk_level,
                     expected_benefit,
                     confidence,
+                    requires_approval,
                     recommended_runbook_id,
-                    status
+                    status,
+                    created_at
                 FROM recommendations
                 WHERE decision_record_id = :decision_id
                 ORDER BY rank ASC, id ASC
@@ -256,4 +351,83 @@ class DecisionService:
             ),
             {"decision_id": decision_id},
         ).mappings()
-        return [dict(row) for row in rows]
+        recommendations = [dict(row) for row in rows]
+        for rec in recommendations:
+            rec["last_feedback"] = self._load_last_feedback(rec["id"])
+            rec["latest_action_run"] = self._load_latest_action_run(rec["id"])
+            if rec.get("created_at") is not None:
+                rec["created_at"] = _iso(rec["created_at"])
+        return recommendations
+
+    def _load_last_feedback(self, recommendation_id: int) -> dict[str, Any] | None:
+        row = self.db.execute(
+            text(
+                """
+                SELECT id, feedback_type, feedback_note, feedback_ts, operator_id
+                FROM operator_feedback
+                WHERE recommendation_id = :rid
+                ORDER BY feedback_ts DESC, id DESC
+                LIMIT 1
+                """
+            ),
+            {"rid": recommendation_id},
+        ).mappings().first()
+        if row is None:
+            return None
+        result = dict(row)
+        result["feedback_ts"] = _iso(result.get("feedback_ts"))
+        return result
+
+    def _load_latest_action_run(self, recommendation_id: int) -> dict[str, Any] | None:
+        row = self.db.execute(
+            text(
+                """
+                SELECT
+                    id,
+                    recommendation_id,
+                    action_type,
+                    risk_level,
+                    requested_by,
+                    approved_by,
+                    started_at,
+                    finished_at,
+                    status,
+                    result_json,
+                    rollback_available,
+                    rollback_metadata_json,
+                    operator_note,
+                    rollback_payload_json,
+                    ticket_event_id
+                FROM action_runs
+                WHERE recommendation_id = :rid
+                ORDER BY started_at DESC, id DESC
+                LIMIT 1
+                """
+            ),
+            {"rid": recommendation_id},
+        ).mappings().first()
+        if row is None:
+            return None
+        result = dict(row)
+        result["started_at"] = _iso(result.get("started_at"))
+        result["finished_at"] = _iso(result.get("finished_at"))
+        result["rollback_available"] = bool(result.get("rollback_available"))
+        return result
+
+
+def _serialize_decision(row: dict[str, Any]) -> dict[str, Any]:
+    payload = dict(row)
+    for ts_field in ("decision_ts",):
+        if hasattr(payload.get(ts_field), "isoformat"):
+            payload[ts_field] = payload[ts_field].isoformat()
+    return payload
+
+
+def _iso(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if hasattr(value, "isoformat"):
+        return str(value.isoformat())
+    return str(value)

@@ -1,4 +1,4 @@
-.PHONY: dev test lint lint-py lint-web migrate rollback clean deps api web typecheck build-docker run-docker seed-auth
+.PHONY: dev test lint lint-py lint-web migrate rollback clean deps api web typecheck build-docker run-docker seed-auth verify-mobile
 
 dev:
 	uvicorn apps.api.main:app --reload --port 8000
@@ -49,4 +49,9 @@ run-docker:
 
 seed-auth:
 	python scripts/seed_auth.py
+
+verify-mobile:
+	BASE_URL=$${BASE_URL:-http://127.0.0.1:3001} \
+	API_BASE_URL=$${API_BASE_URL:-http://127.0.0.1:8002/api} \
+	node scripts/verify-mobile.mjs
 

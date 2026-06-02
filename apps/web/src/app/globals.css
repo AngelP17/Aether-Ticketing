@@ -17,29 +17,65 @@
   color-scheme: dark;
   --font-display: var(--font-chakra), "Chakra Petch", "Avenir Next", "Segoe UI", sans-serif;
   --font-mono: var(--font-jetbrains), "JetBrains Mono", "SFMono-Regular", "Menlo", "Monaco", ui-monospace, monospace;
+
+  /* surfaces (solid + glass + elevated) */
   --bg-void: #060708;
   --bg-deep: #070809;
   --bg-base: #0d0d11;
   --bg-surface: rgba(20, 20, 23, 0.72);
   --bg-elevated: rgba(30, 30, 36, 0.72);
+  --surface: rgba(20, 21, 25, 0.9);
+  --surface-2: rgba(28, 30, 36, 0.92);
   --surface-solid: #121317;
   --surface-card: #131419;
   --surface-hi: #181a20;
+
+  /* borders */
   --line: rgba(255, 255, 255, 0.07);
+  --line-2: rgba(255, 255, 255, 0.12);
   --line-strong: rgba(255, 255, 255, 0.12);
   --line-amber: rgba(245, 158, 11, 0.22);
+  --line-amber-2: rgba(245, 158, 11, 0.45);
   --border-subtle: rgba(63, 63, 70, 0.25);
   --border-strong: rgba(82, 82, 91, 0.42);
+
+  /* text */
   --text-primary: #fafafa;
   --text-secondary: #b4b4be;
   --text-muted: #666672;
+  --fg: #f7f7f8;
+  --fg-2: #b7b8c0;
+  --fg-3: #74757f;
+  --fg-4: #4a4b54;
+
+  /* brand + status (single-accent amber with severity ramp) */
   --accent: #f59e0b;
   --accent-dim: rgba(245, 158, 11, 0.08);
-  --cyan: #06b6d4;
+  --amber: #f59e0b;
+  --amber-hi: #fbbf24;
+  --amber-lo: #b8761f;
+  --amber-dim: rgba(245, 158, 11, 0.1);
+  --cyan: #22b8cf;
   --emerald: #22c55e;
+  --violet: #8b5cf6;
   --rose: #f43f5e;
   --orange: #f97316;
-  --violet: #8b5cf6;
+  --blue: #60a5fa;
+
+  /* motion + radii + shadows (Aether design system alignment) */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 130ms;
+  --dur: 220ms;
+  --dur-slow: 420ms;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --shadow-glass: 0 24px 80px rgba(0, 0, 0, 0.5);
+  --shadow-amber: 0 0 40px rgba(245, 158, 11, 0.22);
+  --shadow-card: 0 18px 60px rgba(0, 0, 0, 0.22);
+  --shadow-card-strong: 0 22px 72px rgba(0, 0, 0, 0.26);
 }
 
 /*
@@ -111,6 +147,39 @@ body {
     linear-gradient(180deg, rgba(10, 10, 13, 0.94), rgba(7, 8, 11, 0.98));
 }
 
+.ops-cockpit-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(720px 360px at 84% -6%, rgba(245, 158, 11, 0.18), transparent 62%),
+    radial-gradient(560px 320px at 12% 18%, rgba(34, 184, 207, 0.1), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 34%);
+}
+
+.ops-topbar {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(18, 19, 23, 0.92), rgba(10, 11, 13, 0.86));
+  border: 1px solid rgba(245, 158, 11, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 24px 80px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+.ops-topbar::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.7), transparent);
+  opacity: 0.75;
+}
+
 .ops-glass {
   background: rgba(10, 11, 13, 0.82);
   border: 1px solid var(--line);
@@ -130,31 +199,159 @@ body {
   box-shadow: 0 22px 72px rgba(0, 0, 0, 0.26);
 }
 
+.ops-hero-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(245, 158, 11, 0.16);
+  background:
+    radial-gradient(560px 240px at 100% 0%, rgba(245, 158, 11, 0.18), transparent 58%),
+    linear-gradient(135deg, rgba(24, 26, 32, 0.96), rgba(10, 11, 13, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 28px 90px rgba(0, 0, 0, 0.4);
+}
+
+.ops-hero-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(245, 158, 11, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 158, 11, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(90deg, transparent, black 24%, black 78%, transparent);
+  opacity: 0.5;
+}
+
+.ops-stat-tile {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    var(--surface-solid);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
+}
+
+.ops-stat-tile::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.52), transparent);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.ops-stat-tile:hover::after {
+  opacity: 1;
+}
+
+/* Aether design system aliases — use the same tokens, exposed as
+ * shorter, semantic class names that match the standalone bundle.
+ * The existing .ops-* classes are kept untouched so that no
+ * route-level markup needs to change. */
+.aether-glass {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+.aether-card {
+  background: var(--surface-solid);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  transition:
+    border-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.aether-card-hover:hover {
+  border-color: var(--line-amber);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+.aether-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--line-2);
+  color: var(--fg);
+  background: var(--surface-2);
+  transition: all var(--dur-fast) var(--ease);
+  white-space: nowrap;
+}
+
+.aether-btn:hover {
+  border-color: var(--line-amber);
+  background: var(--surface-hi);
+}
+
+.aether-btn-primary {
+  background: var(--amber);
+  color: #1a1205;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.18);
+}
+
+.aether-btn-primary:hover {
+  background: var(--amber-hi);
+  box-shadow: var(--shadow-amber);
+  border-color: transparent;
+}
+
+.aether-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+  border: 1px solid var(--line);
+  color: var(--fg-2);
+  white-space: nowrap;
+}
+
+.aether-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.aether-tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
 .mono-data {
   font-family: var(--font-mono), "SFMono-Regular", "Menlo", "Monaco", ui-monospace, monospace;
 }
 
 .ops-rail {
-  width: 4.5rem;
-  transition: width 220ms ease;
-}
-
-.ops-rail:hover {
-  width: 16rem;
+  width: 16.25rem;
 }
 
 .ops-rail-label {
-  opacity: 0;
-  transform: translateX(-4px);
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
-  white-space: nowrap;
-}
-
-.ops-rail:hover .ops-rail-label {
   opacity: 1;
-  transform: translateX(0);
+  transform: none;
+  white-space: nowrap;
 }
 
 .ops-shimmer::before {
@@ -295,13 +492,11 @@ body {
 }
 
 @media (max-width: 1023px) {
-  .ops-rail,
-  .ops-rail:hover {
+  .ops-rail {
     width: 100%;
   }
 
-  .ops-rail-label,
-  .ops-rail:hover .ops-rail-label {
+  .ops-rail-label {
     opacity: 1;
     transform: none;
   }
@@ -310,6 +505,17 @@ body {
 @media (max-width: 767px) {
   .scan-line {
     display: none;
+  }
+
+  .ops-topbar {
+    border-radius: 1.35rem;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 18px 56px rgba(0, 0, 0, 0.34);
+  }
+
+  .ops-hero-panel {
+    border-radius: 1.6rem;
   }
 
   .ops-mobile-nav {
@@ -335,6 +541,9 @@ body {
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 
   .scan-line,
@@ -345,7 +554,10 @@ body {
   .ops-mobile-sheet,
   .ops-mobile-sheet-panel,
   .ops-rail,
-  .ops-rail-label {
+  .ops-rail-label,
+  .aether-card,
+  .aether-card-hover,
+  .aether-btn {
     transition: none !important;
   }
 }

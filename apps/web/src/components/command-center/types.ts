@@ -15,6 +15,7 @@ export type QueueTicket = {
 
 export type IncidentCard = {
   id: string;
+  numericId?: number;
   title: string;
   rootCause: string;
   ticketCount: number;

@@ -1,317 +1,591 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, Columns3, Plus, Radar, Ticket } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
+import {
+  AlertTriangle,
+  Columns3,
+  Plus,
+  RefreshCw,
+  ShieldAlert,
+  Sparkles,
+} from "lucide-react";
 
-import { getServerApiUrl } from "@/lib/server-api";
-import type { Ticket as TicketType } from "@/types";
+import { OpsShell } from "@/components/ops-shell";
+import { SectionEmptyState } from "@/components/command-center/section-empty-state";
+import { useToast } from "@/components/notifications";
+import { ticketsApi } from "@/lib/api";
+import { clearStoredSession } from "@/lib/auth";
+import type { Ticket } from "@/types";
 
-export const dynamic = "force-dynamic";
+import { BoardCard } from "@/components/board/board-card";
+import { BoardColumn, type BoardColumnDef } from "@/components/board/board-column";
+import { PRIORITIES } from "@/components/board/palette";
 
-type BoardColumn = {
-  key: string;
-  label: string;
-  description: string;
-  accent: string;
-  tone: string;
-};
+const SLA_RISK_HOURS = 24;
+const SLA_RISK_WINDOW_MS = SLA_RISK_HOURS * 60 * 60 * 1000;
 
-type TicketsFeed =
-  | {
-      status: "ready";
-      tickets: TicketType[];
-    }
-  | {
-      status: "error";
-      message: string;
-    };
+type FeedStatus = "loading" | "ready" | "error";
 
-const columns: BoardColumn[] = [
+const COLUMNS: BoardColumnDef[] = [
   {
-    key: "TO DO",
-    label: "To Do",
-    description: "Fresh work that still needs routing, triage, or better intake detail.",
-    accent: "#71717a",
-    tone: "border-zinc-700/60 bg-zinc-900/45 text-zinc-300",
+    key: "OPEN",
+    label: "Open",
+    description: "Fresh work and waiting states that still need routing or operator follow-up.",
+    accent: "#f59e0b",
+    pillTone: "border-amber-500/20 bg-amber-500/8 text-amber-200",
   },
   {
-    key: "IN PROGRESS",
+    key: "IN_PROGRESS",
     label: "In Progress",
     description: "Assigned cases with active operator work, execution, or diagnosis underway.",
-    accent: "#f59e0b",
-    tone: "border-amber-500/20 bg-amber-500/8 text-amber-200",
+    accent: "#22b8cf",
+    pillTone: "border-cyan-500/20 bg-cyan-500/8 text-cyan-200",
   },
   {
-    key: "IN REVIEW",
-    label: "In Review",
-    description: "Waiting on customer confirmation, validation steps, or a final check before close.",
-    accent: "#06b6d4",
-    tone: "border-cyan-500/20 bg-cyan-500/8 text-cyan-200",
-  },
-  {
-    key: "DONE",
-    label: "Done",
-    description: "Resolved and closed work retained for throughput and historical context.",
+    key: "RESOLVED",
+    label: "Resolved",
+    description: "Closed or resolved work retained for throughput and historical context.",
     accent: "#22c55e",
-    tone: "border-emerald-500/20 bg-emerald-500/8 text-emerald-200",
+    pillTone: "border-emerald-500/20 bg-emerald-500/8 text-emerald-200",
   },
 ];
 
-async function getTickets(): Promise<TicketsFeed> {
-  try {
-    const response = await fetch(getServerApiUrl("/api/tickets?limit=200"), {
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      return {
-        status: "error",
-        message: `Ticket board API returned ${response.status} ${response.statusText || "without a status message"}.`,
-      };
-    }
-    return {
-      status: "ready",
-      tickets: (await response.json()) as TicketType[],
+const COLUMN_STATUSES: Record<string, string[]> = {
+  OPEN: ["Open", "Waiting for Info", "Waiting Info"],
+  IN_PROGRESS: ["In Progress"],
+  RESOLVED: ["Resolved", "Closed"],
+};
+
+const REPRESENTATIVE_STATUS: Record<string, string> = {
+  OPEN: "Open",
+  IN_PROGRESS: "In Progress",
+  RESOLVED: "Resolved",
+};
+
+function statusMatchesColumn(status: string, columnKey: string) {
+  return COLUMN_STATUSES[columnKey]?.includes(status) ?? false;
+}
+
+export default function BoardPage() {
+  const router = useRouter();
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  const syncStartRef = useRef(Date.now());
+  const mountedRef = useRef(true);
+
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [status, setStatus] = useState<FeedStatus>("loading");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastSyncSeconds, setLastSyncSeconds] = useState(0);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [activePriorities, setActivePriorities] = useState<Set<string>>(new Set());
+  const [slaRiskOnly, setSlaRiskOnly] = useState(false);
+
+  const [dragTicketId, setDragTicketId] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [movingTicketId, setMovingTicketId] = useState<string | null>(null);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
+  const loadTickets = useCallback(
+    async ({ notifyOnError = false }: { notifyOnError?: boolean } = {}) => {
+      if (!mountedRef.current) {
+        return;
+      }
+      setStatus("loading");
+      setErrorMessage(null);
+
+      try {
+        const response = await ticketsApi.list({ limit: 200 });
+        if (!mountedRef.current) {
+          return;
+        }
+        const next = (response.data ?? []) as Ticket[];
+        syncStartRef.current = Date.now();
+        setTickets(next);
+        setStatus("ready");
+        setLastSyncSeconds(0);
+      } catch (error) {
+        if (!mountedRef.current) {
+          return;
+        }
+        const message =
+          error instanceof Error ? error.message : "The workflow board could not load the live API.";
+        setStatus("error");
+        setErrorMessage(message);
+        setTickets([]);
+        if (notifyOnError) {
+          toastRef.current.error("Board unavailable", message);
+        }
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    mountedRef.current = true;
+    void loadTickets({ notifyOnError: true });
+
+    const timer = window.setInterval(() => {
+      setLastSyncSeconds(Math.floor((Date.now() - syncStartRef.current) / 1000));
+    }, 1000);
+
+    return () => {
+      mountedRef.current = false;
+      window.clearInterval(timer);
     };
-  } catch (error) {
-    return {
-      status: "error",
-      message: error instanceof Error ? error.message : "Unable to reach the ticket board API.",
-    };
-  }
-}
+  }, [loadTickets]);
 
-function statusToColumn(status: string) {
-  switch (status) {
-    case "In Progress":
-      return "IN PROGRESS";
-    case "Waiting for Info":
-    case "Waiting Info":
-      return "IN REVIEW";
-    case "Resolved":
-    case "Closed":
-      return "DONE";
-    default:
-      return "TO DO";
-  }
-}
-
-function priorityTone(priority: string) {
-  switch (priority.toLowerCase()) {
-    case "critical":
-      return "border-rose-500/20 bg-rose-500/10 text-rose-200";
-    case "high":
-      return "border-orange-500/20 bg-orange-500/10 text-orange-200";
-    case "medium":
-      return "border-amber-500/20 bg-amber-500/10 text-amber-200";
-    default:
-      return "border-zinc-700/60 bg-zinc-800/70 text-zinc-200";
-  }
-}
-
-export default async function BoardPage() {
-  const feed = await getTickets();
-
-  if (feed.status === "error") {
-    return (
-      <div className="ops-shell ops-safe-bottom relative min-h-[100dvh] overflow-hidden text-white">
-        <div className="ops-grid absolute inset-0 opacity-70" />
-        <div className="absolute right-[-6rem] top-[-6rem] h-[24rem] w-[24rem] rounded-full bg-amber-500/10 blur-[120px]" />
-        <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-[1680px] items-center px-4 py-5 sm:px-6 lg:px-8">
-          <div className="ops-card w-full rounded-[2rem] border border-rose-500/20 bg-black/40 p-8 text-center">
-            <div className="mono-data text-[11px] uppercase tracking-[0.32em] text-rose-300">Board unavailable</div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">The live board could not load</h1>
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-zinc-400">{feed.message}</p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/board"
-                className="inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-400"
-              >
-                Retry board load
-              </Link>
-              <Link
-                href="/command-center"
-                className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
-              >
-                Command Center
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+  const searchTerm = search.trim().toLowerCase();
+  const slaRiskCount = useMemo(() => {
+    const cutoff = Date.now() - SLA_RISK_WINDOW_MS;
+    return tickets.reduce(
+      (count, ticket) =>
+        (ticket.priority_raw === "Critical" || ticket.priority_raw === "High") &&
+        ticket.created_at &&
+        new Date(ticket.created_at).getTime() < cutoff
+          ? count + 1
+          : count,
+      0,
     );
-  }
+  }, [tickets]);
 
-  const grouped = columns.reduce<Record<string, TicketType[]>>((accumulator, column) => {
-    accumulator[column.key] = [];
-    return accumulator;
-  }, {});
+  const filteredTickets = useMemo(() => {
+    if (status === "error") {
+      return [];
+    }
+    const slaCutoff = Date.now() - SLA_RISK_WINDOW_MS;
+    return tickets.filter((ticket) => {
+      if (activePriorities.size > 0 && !activePriorities.has(ticket.priority_raw)) {
+        return false;
+      }
+      if (slaRiskOnly) {
+        const isPriority = ticket.priority_raw === "Critical" || ticket.priority_raw === "High";
+        const createdMs = ticket.created_at ? new Date(ticket.created_at).getTime() : NaN;
+        if (!isPriority || Number.isNaN(createdMs) || createdMs >= slaCutoff) {
+          return false;
+        }
+      }
+      if (searchTerm) {
+        const haystack = [
+          ticket.ticket_id,
+          ticket.title,
+          ticket.assignee || "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(searchTerm)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [tickets, activePriorities, slaRiskOnly, searchTerm, status]);
 
-  feed.tickets.forEach((ticket) => {
-    grouped[statusToColumn(ticket.status)].push(ticket);
-  });
+  const grouped = useMemo<Record<string, Ticket[]>>(() => {
+    const empty = COLUMNS.reduce<Record<string, Ticket[]>>((acc, column) => {
+      acc[column.key] = [];
+      return acc;
+    }, {});
 
-  const openCount = feed.tickets.filter((ticket) => !["Resolved", "Closed"].includes(ticket.status)).length;
-  const activeCount = grouped["IN PROGRESS"].length;
-  const reviewCount = grouped["IN REVIEW"].length;
-  const throughputCount = grouped["DONE"].length;
+    filteredTickets.forEach((ticket) => {
+      for (const column of COLUMNS) {
+        if (statusMatchesColumn(ticket.status, column.key)) {
+          empty[column.key].push(ticket);
+          return;
+        }
+      }
+    });
+
+    return empty;
+  }, [filteredTickets]);
+
+  const totalMatching = filteredTickets.length;
+
+  const togglePriority = useCallback((priority: string) => {
+    setActivePriorities((current) => {
+      const next = new Set(current);
+      if (next.has(priority)) {
+        next.delete(priority);
+      } else {
+        next.add(priority);
+      }
+      return next;
+    });
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setSearch("");
+    setActivePriorities(new Set());
+    setSlaRiskOnly(false);
+  }, []);
+
+  const moveTicket = useCallback(
+    async (ticketId: string, newStatus: string) => {
+      const current = tickets.find((t) => t.ticket_id === ticketId);
+      if (!current || current.status === newStatus) {
+        return;
+      }
+
+      const previousStatus = current.status;
+      setMovingTicketId(ticketId);
+      setTickets((prev) =>
+        prev.map((t) => (t.ticket_id === ticketId ? { ...t, status: newStatus } : t)),
+      );
+
+      try {
+        await ticketsApi.move(ticketId, { status: newStatus });
+        toast.success("Ticket moved", `${ticketId} → ${newStatus}`);
+      } catch (error) {
+        setTickets((prev) =>
+          prev.map((t) =>
+            t.ticket_id === ticketId ? { ...t, status: previousStatus } : t,
+          ),
+        );
+        const message = error instanceof Error ? error.message : "Could not move the ticket.";
+        toast.error("Move failed", message);
+      } finally {
+        setMovingTicketId((currentId) => (currentId === ticketId ? null : currentId));
+      }
+    },
+    [tickets, toast],
+  );
+
+  const handleDragStart = useCallback((event: DragEvent<HTMLDivElement>, ticketId: string) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", ticketId);
+    setDragTicketId(ticketId);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDragTicketId(null);
+    setDragOverColumn(null);
+  }, []);
+
+  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>, columnKey: string) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (dragOverColumn !== columnKey) {
+      setDragOverColumn(columnKey);
+    }
+  }, [dragOverColumn]);
+
+  const handleDragLeave = useCallback((columnKey: string) => {
+    setDragOverColumn((current) => (current === columnKey ? null : current));
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>, columnKey: string) => {
+      event.preventDefault();
+      const data = event.dataTransfer.getData("text/plain");
+      const ticketId = data || dragTicketId;
+      const newStatus = REPRESENTATIVE_STATUS[columnKey];
+      setDragTicketId(null);
+      setDragOverColumn(null);
+      if (ticketId && newStatus) {
+        void moveTicket(ticketId, newStatus);
+      }
+    },
+    [dragTicketId, moveTicket],
+  );
+
+  const handleLogout = useCallback(async () => {
+    if (isSigningOut) {
+      return;
+    }
+    setIsSigningOut(true);
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        cache: "no-store",
+      }).catch(() => null);
+    } finally {
+      clearStoredSession();
+      toast.success("Signed out successfully");
+      router.replace("/login");
+      setIsSigningOut(false);
+    }
+  }, [isSigningOut, router, toast]);
+
+  const statusPill =
+    status === "ready"
+      ? { kind: "ready" as const, label: "Live" }
+      : status === "loading"
+        ? { kind: "loading" as const, label: "Loading…" }
+        : { kind: "error" as const, label: "Disconnected" };
+
+  const filterCount =
+    (searchTerm ? 1 : 0) + activePriorities.size + (slaRiskOnly ? 1 : 0);
 
   return (
-    <div className="ops-shell ops-safe-bottom relative min-h-[100dvh] overflow-hidden text-white">
-      <div className="ops-grid absolute inset-0 opacity-70" />
-      <div className="absolute right-[-6rem] top-[-6rem] h-[24rem] w-[24rem] rounded-full bg-amber-500/10 blur-[120px]" />
-      <div className="absolute bottom-[-8rem] left-[8%] h-[20rem] w-[20rem] rounded-full bg-cyan-500/10 blur-[120px]" />
-
-      <div className="relative z-10 mx-auto max-w-[1680px] px-4 py-5 sm:px-6 lg:px-8">
-        <div className="ops-glass rounded-[2rem] overflow-hidden">
-          <div className="border-b border-zinc-800/70 bg-black/20 px-5 py-5 sm:px-8">
-            <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-              <div className="max-w-2xl">
-                <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  Incident Board
-                </h1>
-                <p className="mt-2 text-sm leading-6 text-zinc-400">
-                  Kanban view of the live ticket stream. Drag and drop is not yet wired; use the queue in Command Center for ranked triage.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <Link
-                  href="/tickets/new"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 active:scale-[0.98]"
+    <OpsShell
+      eyebrow="Aether OpsCenter"
+      title="Workflow Tracking"
+      subtitle="Live ticket board with search, priority filters, SLA focus, desktop drag/drop, and touch-safe move controls."
+      statusPill={statusPill}
+      lastSyncSeconds={lastSyncSeconds}
+      search={{ value: search, onChange: setSearch, placeholder: "Search title, id, or owner" }}
+      headerActions={
+        <>
+          <Link
+            href="/tickets/new"
+            className="inline-flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500 px-3 py-2 text-sm font-semibold text-black transition hover:bg-amber-400 active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            New ticket
+          </Link>
+          <button
+            type="button"
+            onClick={() => void loadTickets({ notifyOnError: true })}
+            disabled={status === "loading"}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-800 bg-black/20 text-zinc-400 transition hover:border-amber-400/30 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Refresh board"
+            title="Refresh board"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${status === "loading" ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+          </button>
+        </>
+      }
+      onLogout={handleLogout}
+      isSigningOut={isSigningOut}
+      showNotificationBell
+    >
+      <div className="mx-auto w-full max-w-[1480px] space-y-5">
+        <div className="ops-glass rounded-[28px] px-4 py-4 sm:px-6 sm:py-5">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+              <span className="mono-data rounded-full border border-zinc-800/70 bg-black/20 px-3 py-1.5 uppercase tracking-[0.24em]">
+                {totalMatching} visible
+              </span>
+              {filterCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="mono-data inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-1.5 text-amber-200 transition hover:bg-amber-500/15"
                 >
-                  <Plus size={16} />
-                  New ticket
-                </Link>
-                <Link
-                  href="/command-center"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10 active:scale-[0.98]"
-                >
-                  <Radar size={16} />
-                  Command Center
-                </Link>
-              </div>
+                  Reset filters
+                </button>
+              ) : null}
             </div>
           </div>
 
-          <div className="grid gap-4 border-b border-zinc-800/70 px-5 py-5 sm:grid-cols-2 xl:grid-cols-4 sm:px-8">
-            {[
-              {
-                label: "Open Queue",
-                value: openCount,
-                note: "Cases still requiring active handling",
-                icon: Ticket,
-                color: "#06b6d4",
-              },
-              {
-                label: "In Progress",
-                value: activeCount,
-                note: "Cases in execution right now",
-                icon: Columns3,
-                color: "#f59e0b",
-              },
-              {
-                label: "Awaiting Review",
-                value: reviewCount,
-                note: "Waiting on detail, customer input, or validation",
-                icon: Radar,
-                color: "#8b5cf6",
-              },
-              {
-                label: "Throughput",
-                value: throughputCount,
-                note: "Resolved or closed work in the current board",
-                icon: ArrowRight,
-                color: "#22c55e",
-              },
-            ].map((card) => {
-              const Icon = card.icon;
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="mono-data text-[10px] uppercase tracking-[0.24em] text-zinc-500">
+              Priority
+            </span>
+            {PRIORITIES.map((priority) => {
+              const active = activePriorities.has(priority);
               return (
-                <div key={card.label} className="ops-card rounded-[1.25rem] p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-zinc-500">{card.label}</div>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/5 bg-black/20">
-                      <Icon size={16} style={{ color: card.color }} />
+                <button
+                  key={priority}
+                  type="button"
+                  onClick={() => togglePriority(priority)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${
+                    active
+                      ? "border-amber-400/40 bg-amber-500/10 text-amber-100"
+                      : "border-zinc-800/70 bg-black/20 text-zinc-400 hover:border-zinc-700"
+                  }`}
+                  aria-pressed={active}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      priority === "Critical"
+                        ? "bg-rose-400"
+                        : priority === "High"
+                          ? "bg-orange-400"
+                          : priority === "Medium"
+                            ? "bg-amber-400"
+                            : "bg-zinc-500"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {priority}
+                </button>
+              );
+            })}
+            <span className="mx-1 hidden h-4 w-px bg-zinc-800 sm:inline-block" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={() => setSlaRiskOnly((current) => !current)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${
+                slaRiskOnly
+                  ? "border-rose-400/40 bg-rose-500/10 text-rose-100"
+                  : "border-zinc-800/70 bg-black/20 text-zinc-400 hover:border-zinc-700"
+              }`}
+              aria-pressed={slaRiskOnly}
+              title="Show only Critical/High tickets created more than 24h ago"
+            >
+              <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
+              SLA risk ({slaRiskCount})
+            </button>
+            {filterCount === 0 ? (
+              <span className="text-[11px] text-zinc-500">No filters active.</span>
+            ) : null}
+          </div>
+        </div>
+
+        {status === "loading" ? (
+          <BoardSkeleton />
+        ) : status === "error" ? (
+          <BoardError message={errorMessage || "The board could not load."} onRetry={() => void loadTickets({ notifyOnError: true })} />
+        ) : totalMatching === 0 ? (
+          <BoardEmpty hasFilters={filterCount > 0} onReset={resetFilters} />
+        ) : (
+          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:pb-0">
+            {COLUMNS.map((column) => {
+              const tickets = grouped[column.key];
+              return (
+                <BoardColumn
+                  key={column.key}
+                  column={column}
+                  count={tickets.length}
+                  isDropTarget={dragOverColumn === column.key}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  {tickets.length === 0 ? (
+                    <div className="rounded-[1.15rem] border border-dashed border-zinc-800 bg-zinc-950/45 px-4 py-10 text-center text-sm text-zinc-600">
+                      No tickets in this lane.
                     </div>
-                  </div>
-                  <div className="mono-data mt-4 text-4xl font-bold tracking-tight text-white">{card.value}</div>
-                  <div className="mt-3 text-xs leading-6 text-zinc-500">{card.note}</div>
-                </div>
+                  ) : (
+                    tickets.map((ticket) => (
+                      <BoardCard
+                        key={ticket.ticket_id}
+                        ticket={ticket}
+                        isDragging={dragTicketId === ticket.ticket_id}
+                        isMoving={movingTicketId === ticket.ticket_id}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onMove={moveTicket}
+                      />
+                    ))
+                  )}
+                </BoardColumn>
               );
             })}
           </div>
+        )}
+      </div>
+    </OpsShell>
+  );
+}
 
-          {feed.tickets.length === 0 ? (
-            <div className="border-b border-zinc-800/70 px-5 py-5 sm:px-8">
-              <div className="rounded-[1.25rem] border border-dashed border-zinc-700 bg-zinc-950/50 px-5 py-6 text-sm leading-7 text-zinc-400">
-                The API returned no tickets, so this board is genuinely empty right now.
+function BoardSkeleton() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
+      {COLUMNS.map((column) => (
+        <div key={column.key} className="ops-card rounded-[1.5rem] p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3 border-b border-zinc-800/70 pb-4">
+            <div className="space-y-2">
+              <div className="h-3 w-24 rounded-full bg-zinc-800/80" />
+              <div className="h-3 w-40 rounded-full bg-zinc-900/80" />
+            </div>
+            <div className="h-6 w-16 rounded-full bg-zinc-900/80" />
+          </div>
+          <div className="mt-4 space-y-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="rounded-[1.15rem] border border-zinc-800/60 bg-zinc-950/60 p-4">
+                <div className="h-3 w-20 rounded-full bg-zinc-800/80" />
+                <div className="mt-3 h-3 w-full rounded-full bg-zinc-900/80" />
+                <div className="mt-2 h-3 w-2/3 rounded-full bg-zinc-900/80" />
+                <div className="mt-4 flex gap-2">
+                  <div className="h-5 w-16 rounded-full bg-zinc-900/80" />
+                  <div className="h-5 w-20 rounded-full bg-zinc-900/80" />
+                </div>
               </div>
-            </div>
-          ) : null}
-
-          <div className="px-5 py-5 sm:px-8">
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {columns.map((column) => (
-                <section
-                  key={column.key}
-                  className="ops-card rounded-[1.5rem] p-4 sm:p-5"
-                >
-                  <div className="border-b border-zinc-800/70 pb-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: column.accent }} />
-                          <h2 className="text-lg font-semibold text-white">{column.label}</h2>
-                        </div>
-                        <p className="mt-2 text-sm leading-6 text-zinc-500">{column.description}</p>
-                      </div>
-                      <div className={`mono-data rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.24em] ${column.tone}`}>
-                        {grouped[column.key].length}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-3">
-                    {grouped[column.key].length === 0 ? (
-                      <div className="rounded-[1.15rem] border border-dashed border-zinc-800 bg-zinc-950/45 px-4 py-10 text-center text-sm text-zinc-600">
-                        No tickets in this lane.
-                      </div>
-                    ) : (
-                      grouped[column.key].map((ticket) => (
-                        <Link
-                          key={ticket.ticket_id}
-                          href={`/tickets/${ticket.ticket_id}`}
-                          className="block rounded-[1.15rem] border border-zinc-800 bg-zinc-950/60 p-4 transition hover:border-amber-500/20 hover:bg-zinc-900/80"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="mono-data text-[11px] uppercase tracking-[0.24em] text-zinc-500">
-                              {ticket.ticket_id}
-                            </div>
-                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${priorityTone(ticket.priority_raw)}`}>
-                              {ticket.priority_raw}
-                            </span>
-                          </div>
-
-                          <p className="mt-3 text-sm leading-6 text-zinc-100">{ticket.title}</p>
-
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <span className="rounded-full border border-zinc-800 bg-zinc-900/70 px-2.5 py-1 text-[11px] text-zinc-400">
-                              {ticket.assignee || "Unassigned"}
-                            </span>
-                            <span className="rounded-full border border-zinc-800 bg-zinc-900/70 px-2.5 py-1 text-[11px] text-zinc-400">
-                              {ticket.status}
-                            </span>
-                            <span className="mono-data rounded-full border border-zinc-800 bg-zinc-900/70 px-2.5 py-1 text-[11px] text-zinc-500">
-                              {ticket.days_open}d open
-                            </span>
-                          </div>
-                        </Link>
-                      ))
-                    )}
-                  </div>
-                </section>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
+      ))}
+    </div>
+  );
+}
+
+function BoardError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="ops-card rounded-[26px] border border-rose-500/25 p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200">
+            <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="mono-data text-[10px] uppercase tracking-[0.28em] text-rose-300">
+              Workflow board offline
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-white">The live board could not load</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">{message}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-100 transition hover:bg-amber-500/15"
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Retry load
+          </button>
+          <Link
+            href="/command-center"
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
+          >
+            <Columns3 className="h-4 w-4" aria-hidden="true" />
+            Command Center
+          </Link>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function BoardEmpty({ hasFilters, onReset }: { hasFilters: boolean; onReset: () => void }) {
+  return (
+    <div className="ops-card rounded-[26px] p-6">
+      <SectionEmptyState
+        title="No tickets visible"
+        message={
+          hasFilters
+            ? "No tickets matched the current search, priority, or SLA-risk filters."
+            : "The live ticket stream is currently empty. New tickets will appear here as they are created."
+        }
+      />
+      {hasFilters ? (
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={onReset}
+            className="inline-flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-100 transition hover:bg-amber-500/15"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            Reset filters
+          </button>
+          <Link
+            href="/command-center"
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
+          >
+            <Columns3 className="h-4 w-4" aria-hidden="true" />
+            Open Command Center
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

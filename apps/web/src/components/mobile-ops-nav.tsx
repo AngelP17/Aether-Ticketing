@@ -101,12 +101,15 @@ export function MobileOpsNav() {
               <span className="mono-data text-[10px] uppercase tracking-[0.24em] text-amber-300">Create</span>
             </Link>
             <Link
-              href="/tickets/new"
-              className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-zinc-200"
+              href="/command-center"
+              className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-zinc-200"
               onClick={closeSheet}
             >
-              <Ticket className="h-4 w-4 text-zinc-400" aria-hidden="true" />
-              Ticket workspace
+              <span className="flex items-center gap-3">
+                <Ticket className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+                Queue overview
+              </span>
+              <span className="mono-data text-[10px] uppercase tracking-[0.24em] text-zinc-500">Open</span>
             </Link>
             {primaryLinks.map((item) => {
               const Icon = item.icon;

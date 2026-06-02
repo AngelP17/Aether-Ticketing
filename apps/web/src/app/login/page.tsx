@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   User,
@@ -9,7 +10,6 @@ import {
   EyeOff,
   AlertCircle,
   Loader2,
-  Zap,
 } from "lucide-react";
 import { useToast } from "@/components/notifications";
 import { ACCESS_TOKEN_KEY, USER_STORAGE_KEY } from "@/lib/auth";
@@ -486,9 +486,14 @@ export default function LoginPage() {
 
           <div className="relative z-10 fade-up">
             <div className="mb-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                <Zap className="h-4 w-4 text-amber-500" />
-              </div>
+              <Image
+                src="/logo.png"
+                alt="Aether OpsCenter"
+                width={40}
+                height={40}
+                priority
+                className="h-10 w-10 rounded-xl border border-amber-500/20 bg-amber-500/10 p-1"
+              />
               <span className="text-lg font-semibold tracking-tight">Aether</span>
             </div>
             <p className="text-[10px] font-mono text-zinc-600 tracking-widest uppercase">
@@ -549,9 +554,14 @@ export default function LoginPage() {
 
         <div className="right-panel">
           <div className="mobile-brand fade-up">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-              <Zap className="h-3.5 w-3.5 text-amber-500" />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Aether"
+              width={32}
+              height={32}
+              priority
+              className="h-8 w-8 rounded-lg border border-amber-500/20 bg-amber-500/10 p-1"
+            />
             <span className="text-sm font-semibold">Aether</span>
           </div>
 
@@ -565,6 +575,38 @@ export default function LoginPage() {
               <h1 className="text-2xl font-bold tracking-tight mb-1.5">{greeting}</h1>
               <p className="text-sm text-zinc-500">Sign in to your OpsCenter account</p>
             </div>
+
+            {process.env.NODE_ENV !== "production" ? (
+              <div
+                className="fade-up delay-1 mb-6 flex items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-[11px] text-amber-100/80"
+                data-testid="demo-credentials"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden="true" />
+                  <span className="font-mono uppercase tracking-[0.18em] text-amber-200">Demo</span>
+                </div>
+                <div className="flex items-center gap-3 font-mono">
+                  <span>
+                    user <span className="text-amber-50">admin</span>
+                  </span>
+                  <span className="text-amber-400/60">/</span>
+                  <span>
+                    pass <span className="text-amber-50">admin123</span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsername("admin");
+                    setPassword("admin123");
+                    clearErrors();
+                  }}
+                  className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-100 transition hover:bg-amber-500/20"
+                >
+                  Fill
+                </button>
+              </div>
+            ) : null}
 
             <form
               id="login-form"

@@ -31,8 +31,40 @@ Use commands that are already defined in this repo:
 - Roll back one migration: `make rollback`
 - Build Docker images: `make build-docker`
 - Run Docker stack: `make run-docker`
+- Reset local auth user store: `make seed-auth`
 - Web typecheck: `cd apps/web && npm run typecheck`
 - Web production build: `cd apps/web && npm run build`
+
+### Local Auth + Port Flexibility
+
+Default credentials after `make seed-auth`:
+
+- Username: `admin`
+- Password: `admin123` (the legacy SHA-256 hash in `users.json` matches this
+  plaintext, so the first successful login migrates the record to bcrypt via
+  `AuthService`.)
+
+The login page also surfaces a `Demo` badge with a `Fill` action in
+non-production builds so mobile browser checks do not require a manual
+credential lookup.
+
+The default API port is `8000`. If that port is already taken by another
+process (common on developer machines with another Python service running),
+the Makefile targets can be overridden:
+
+```bash
+# API on a free port
+API_PORT=8002 make api
+
+# Web dev with that port wired through
+API_INTERNAL_URL=http://127.0.0.1:8002 \
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8002/api \
+  make web
+```
+
+The mobile-screenshot / verification scripts in `scripts/` also accept
+`API_BASE_URL` and `BASE_URL` so they can be re-pointed at a non-default
+port without code changes.
 
 ## Conventions And Constraints
 

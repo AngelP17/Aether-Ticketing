@@ -8,6 +8,13 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from domain.policies import CLUSTERING_THRESHOLDS, SLATargetHours
+from pipelines.retrieval.ticket_graph import (
+    EDGE_ASSET,
+    EDGE_ROOT_CAUSE,
+    EDGE_SITE,
+    GraphEdge,
+    build_ticket_graph,
+)
 from pipelines.decisions.recommendation_engine import generate_recommendations
 from pipelines.decisions.root_cause_rules import (
     classify_root_cause,
@@ -312,6 +319,14 @@ def compute_live_decision(
 
 
 def synthesize_incidents(ticket_snapshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    graph_incidents = _synthesize_graph_incidents(ticket_snapshots)
+    if graph_incidents:
+        return graph_incidents
+
+    return _synthesize_grouped_incidents(ticket_snapshots)
+
+
+def _synthesize_grouped_incidents(ticket_snapshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
     min_link = CLUSTERING_THRESHOLDS.MIN_CONFIDENCE_TO_LINK * 100
     min_create = CLUSTERING_THRESHOLDS.MIN_CONFIDENCE_TO_CREATE * 100
 
@@ -327,7 +342,7 @@ def synthesize_incidents(ticket_snapshots: list[dict[str, Any]]) -> list[dict[st
         grouped.setdefault(key, []).append(snapshot)
 
     incidents: list[dict[str, Any]] = []
-    for index, ((root_cause, category), tickets) in enumerate(grouped.items(), start=1):
+    for ((root_cause, category), tickets) in grouped.items():
         if len(tickets) < 2:
             continue
         avg_priority = round(
@@ -338,13 +353,17 @@ def synthesize_incidents(ticket_snapshots: list[dict[str, Any]]) -> list[dict[st
         )
         if confidence < min_create:
             continue
-        opened_at = min(ticket["created_at"] for ticket in tickets)
+        opened_at_values = _text_values(tickets, "created_at")
+        opened_at = min(opened_at_values) if opened_at_values else None
+        site_scope = _text_values(tickets, "site") or ["global"]
+        requesters = _text_values(tickets, "requester")
+        assignees = _text_values(tickets, "assignee")
         incidents.append(
             {
-                "id": f"INC-{index:04d}",
                 "title": f"{category} cluster",
                 "status": "open",
                 "root_cause_hypothesis": root_cause,
+                "site_scope": ", ".join(site_scope),
                 "ticket_count": len(tickets),
                 "confidence": confidence,
                 "business_impact_score": avg_priority,
@@ -352,9 +371,175 @@ def synthesize_incidents(ticket_snapshots: list[dict[str, Any]]) -> list[dict[st
                 "tickets": tickets,
                 "common_cause": root_cause,
                 "recommended_action": f"Coordinate handling for {category.lower()} cases.",
+                "graph_evidence": {
+                    "shared_site": site_scope[0] if site_scope else "global",
+                    "distinct_sites": site_scope,
+                    "shared_requester_count": len(requesters),
+                    "shared_assignee_count": len(assignees),
+                    "primary_requesters": requesters[:3],
+                    "primary_assignees": assignees[:3],
+                    "evidence_basis": "site + requester + assignee + root_cause cluster",
+                },
             }
         )
     return incidents
+
+
+def _synthesize_graph_incidents(ticket_snapshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    eligible = [
+        snapshot
+        for snapshot in ticket_snapshots
+        if snapshot["status"] not in {"Resolved", "Closed"}
+        and (snapshot.get("confidence_score") or 0) >= CLUSTERING_THRESHOLDS.MIN_CONFIDENCE_TO_LINK * 100
+    ]
+    if len(eligible) < 2:
+        return []
+
+    graph_rows = [_graph_row(snapshot) for snapshot in eligible]
+    graph = build_ticket_graph(graph_rows)
+    by_ticket_id = {snapshot["ticket_id"]: snapshot for snapshot in eligible}
+    adjacency = _strong_graph_adjacency(graph.edges)
+    visited: set[str] = set()
+    incidents: list[dict[str, Any]] = []
+
+    for ticket_id in sorted(by_ticket_id):
+        if ticket_id in visited:
+            continue
+        component = _component(ticket_id, adjacency, visited)
+        if len(component) < 2:
+            continue
+
+        tickets = [by_ticket_id[item] for item in sorted(component) if item in by_ticket_id]
+        confidence = round(
+            sum(ticket.get("confidence_score") or 0 for ticket in tickets) / len(tickets), 2
+        )
+        if confidence < CLUSTERING_THRESHOLDS.MIN_CONFIDENCE_TO_CREATE * 100:
+            continue
+
+        evidence_counts = _component_evidence_counts(graph.edges, component)
+        site_scope = _text_values(tickets, "site") or ["global"]
+        requesters = _text_values(tickets, "requester")
+        assignees = _text_values(tickets, "assignee")
+        root_cause = _dominant_value(tickets, "root_cause_hypothesis") or "unknown"
+        category = _dominant_value(tickets, "category") or root_cause
+        avg_priority = round(
+            sum(ticket.get("priority_score") or 0 for ticket in tickets) / len(tickets), 2
+        )
+        opened_at_values = _text_values(tickets, "created_at")
+        opened_at = min(opened_at_values) if opened_at_values else None
+        incidents.append(
+            {
+                "title": _graph_incident_title(category, evidence_counts),
+                "status": "open",
+                "root_cause_hypothesis": root_cause,
+                "site_scope": ", ".join(site_scope),
+                "ticket_count": len(tickets),
+                "confidence": confidence,
+                "business_impact_score": avg_priority,
+                "opened_at": opened_at,
+                "tickets": tickets,
+                "common_cause": root_cause,
+                "recommended_action": _graph_recommended_action(evidence_counts),
+                "graph_evidence": {
+                    "shared_site": site_scope[0] if site_scope else "global",
+                    "distinct_sites": site_scope,
+                    "shared_requester_count": len(requesters),
+                    "shared_assignee_count": len(assignees),
+                    "primary_requesters": requesters[:3],
+                    "primary_assignees": assignees[:3],
+                    "edge_counts": evidence_counts,
+                    "evidence_basis": "ticket relationship graph",
+                },
+            }
+        )
+    return incidents
+
+
+def _graph_row(snapshot: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "ticket_id": snapshot["ticket_id"],
+        "requester": snapshot.get("requester"),
+        "assignee": snapshot.get("assignee"),
+        "site_id": snapshot.get("site"),
+        "asset_id": snapshot.get("asset_id"),
+        "category": snapshot.get("category"),
+        "root_cause_hypothesis": snapshot.get("root_cause_hypothesis"),
+        "created_at": snapshot.get("created_at"),
+    }
+
+
+def _strong_graph_adjacency(edges: list[GraphEdge]) -> dict[str, set[str]]:
+    strong_edge_types = {
+        EDGE_ASSET,
+        EDGE_ROOT_CAUSE,
+        EDGE_SITE,
+    }
+    adjacency: dict[str, set[str]] = {}
+    for edge in edges:
+        if edge.edge_type not in strong_edge_types:
+            continue
+        adjacency.setdefault(edge.source, set()).add(edge.target)
+        adjacency.setdefault(edge.target, set()).add(edge.source)
+    return adjacency
+
+
+def _component(
+    start: str,
+    adjacency: dict[str, set[str]],
+    visited: set[str],
+) -> set[str]:
+    stack = [start]
+    component: set[str] = set()
+    while stack:
+        current = stack.pop()
+        if current in visited:
+            continue
+        visited.add(current)
+        component.add(current)
+        stack.extend(sorted(adjacency.get(current, set()) - visited))
+    return component
+
+
+def _component_evidence_counts(edges: list[GraphEdge], component: set[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    seen: set[str] = set()
+    for edge in edges:
+        if edge.source not in component or edge.target not in component:
+            continue
+        fingerprint = edge.fingerprint()
+        if fingerprint in seen:
+            continue
+        seen.add(fingerprint)
+        counts[edge.edge_type] = counts.get(edge.edge_type, 0) + 1
+    return counts
+
+
+def _dominant_value(tickets: list[dict[str, Any]], key: str) -> str | None:
+    values = [str(ticket.get(key)) for ticket in tickets if ticket.get(key)]
+    if not values:
+        return None
+    return Counter(values).most_common(1)[0][0]
+
+
+def _text_values(tickets: list[dict[str, Any]], key: str) -> list[str]:
+    return sorted({str(ticket[key]) for ticket in tickets if ticket.get(key)})
+
+
+def _graph_incident_title(category: str, evidence_counts: dict[str, int]) -> str:
+    strongest = sorted(evidence_counts, key=lambda edge_type: evidence_counts[edge_type], reverse=True)
+    if strongest:
+        return f"{category} cluster by {strongest[0].replace('_', ' ')}"
+    return f"{category} cluster"
+
+
+def _graph_recommended_action(evidence_counts: dict[str, int]) -> str:
+    if evidence_counts.get(EDGE_ASSET):
+        return "Check the shared asset first before treating tickets independently."
+    if evidence_counts.get(EDGE_SITE):
+        return "Validate whether this is a site-level issue before dispatching separate work."
+    if evidence_counts.get(EDGE_ROOT_CAUSE):
+        return "Use the same runbook path for linked tickets unless new evidence appears."
+    return "Review linked tickets as one operational incident cluster."
 
 
 def _days_open(value: Any, status: str | None) -> int:

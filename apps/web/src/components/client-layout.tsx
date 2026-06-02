@@ -1,7 +1,6 @@
 "use client";
 
 import { AuthGate } from "@/components/auth-gate";
-import { MobileOpsNav } from "@/components/mobile-ops-nav";
 import { NotificationProvider, ToastContainer, useNotifications } from "@/components/notifications";
 
 function ToastViewport() {
@@ -18,7 +17,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     <NotificationProvider>
       <AuthGate>
         {children}
-        <MobileOpsNav />
       </AuthGate>
       <ToastViewport />
     </NotificationProvider>

@@ -2,12 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { KeyRound, Settings2, Shield, Tag, Users } from "lucide-react";
+import { KeyRound, Plus, Settings2, Shield, Tag, Users } from "lucide-react";
 
+import { OpsShell } from "@/components/ops-shell";
 import { useToast } from "@/components/notifications";
-import { authApi, catalogApi } from "@/lib/api";
+import { authApi, catalogApi, governanceApi } from "@/lib/api";
 import { isAdmin, readStoredUser, type AuthUser } from "@/lib/auth";
-import type { CatalogCategory, CatalogOptions, TicketLabel } from "@/types";
+import type {
+  CatalogCategory,
+  CatalogOptions,
+  GovernanceSummaryResponse,
+  TicketLabel,
+} from "@/types";
 
 type EditableUser = {
   username: string;
@@ -38,6 +44,8 @@ export default function AdminPage() {
     confirm_password: "",
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [governance, setGovernance] = useState<GovernanceSummaryResponse | null>(null);
+  const [governanceError, setGovernanceError] = useState<string | null>(null);
 
   const categories = useMemo<CatalogCategory[]>(() => options?.categories ?? [], [options]);
   const labels = useMemo<TicketLabel[]>(() => options?.labels ?? [], [options]);
@@ -78,6 +86,33 @@ export default function AdminPage() {
       setIsLoading(false);
     }
   }, [adminAccess, loadConsole]);
+
+  useEffect(() => {
+    if (!adminAccess) {
+      setGovernance(null);
+      return;
+    }
+    let cancelled = false;
+    governanceApi
+      .summary()
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+        setGovernance(response.data as GovernanceSummaryResponse);
+        setGovernanceError(null);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        const message = error instanceof Error ? error.message : "Governance summary unavailable";
+        setGovernanceError(message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [adminAccess]);
 
   const updateUserDraft = (username: string, patch: Partial<EditableUser>) => {
     setUsers((current) =>
@@ -260,7 +295,13 @@ export default function AdminPage() {
 
   if (!adminAccess) {
     return (
-      <div className="ops-shell ops-safe-bottom min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
+      <OpsShell
+        eyebrow="Aether OpsCenter"
+        title="Administration"
+        subtitle="Users, roles, categories, labels, assignees, and credential maintenance."
+        statusPill={{ kind: "error", label: "Restricted" }}
+        showNotificationBell
+      >
         <div className="mx-auto max-w-4xl rounded-[2rem] border border-rose-500/20 bg-black/20 p-8">
           <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-rose-300">Admin access required</div>
           <h1 className="mt-3 text-3xl font-semibold text-white">This console is restricted to administrators</h1>
@@ -276,39 +317,28 @@ export default function AdminPage() {
             </Link>
           </div>
         </div>
-      </div>
+      </OpsShell>
     );
   }
 
   return (
-    <div className="ops-shell ops-safe-bottom min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
+    <OpsShell
+      eyebrow="Aether OpsCenter"
+      title="Administration"
+      subtitle="Users, roles, categories, labels, assignees, and credential maintenance."
+      statusPill={{ kind: "ready", label: "Live" }}
+      headerActions={
+        <Link
+          href="/tickets/new"
+          className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
+        >
+          <Plus className="h-4 w-4" />
+          New ticket
+        </Link>
+      }
+      showNotificationBell
+    >
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="ops-glass rounded-[2rem] px-5 py-5 sm:px-7">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-amber-300">Admin Console</div>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">Users, permissions, categories, and labels</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">
-                This keeps the operational control plane inside the new Aether design while restoring the management features a real ticketing system needs.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/tickets/new"
-                className="rounded-full bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400"
-              >
-                New ticket
-              </Link>
-              <Link
-                href="/command-center"
-                className="rounded-full border border-zinc-700 bg-zinc-950/60 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500"
-              >
-                Back to command center
-              </Link>
-            </div>
-          </div>
-        </div>
-
         {isLoading ? (
           <div className="rounded-[1.5rem] border border-zinc-800 bg-black/20 p-6 text-sm text-zinc-400">
             Loading admin data...
@@ -624,7 +654,102 @@ export default function AdminPage() {
             </div>
           </section>
         </div>
+
+        <section className="ops-card rounded-[1.75rem] p-6">
+          <div className="flex items-center gap-3">
+            <Shield className="h-5 w-5 text-amber-300" />
+            <div>
+              <div className="text-lg font-semibold text-white">Decision engine governance</div>
+              <div className="mt-1 text-sm text-zinc-500">
+                Live drift, graph health, and the engine card that documents what powers the recommendations.
+              </div>
+            </div>
+          </div>
+          {governanceError ? (
+            <div className="mt-6 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 text-sm text-rose-100">
+              Governance summary unavailable: {governanceError}
+            </div>
+          ) : null}
+          {governance ? (
+            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+              <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Drift status
+                </div>
+                <div
+                  className={`mt-3 text-2xl font-semibold ${
+                    governance.drift.status === "drift"
+                      ? "text-rose-200"
+                      : governance.drift.status === "watch"
+                        ? "text-amber-200"
+                        : "text-emerald-200"
+                  }`}
+                >
+                  {governance.drift.status.toUpperCase()}
+                </div>
+                <div className="mt-2 text-xs text-zinc-400">
+                  Decisions {governance.drift.current_decision_count ?? 0} (vs prior{" "}
+                  {governance.drift.prior_decision_count ?? 0})
+                </div>
+                {governance.drift.priority_shift ? (
+                  <div className="mt-1 text-xs text-zinc-400">
+                    Priority Δ {governance.drift.priority_shift.delta.toFixed(2)} ·{" "}
+                    {governance.drift.priority_shift.pct_change.toFixed(1)}%
+                  </div>
+                ) : null}
+                {governance.drift.root_cause_spikes?.length ? (
+                  <div className="mt-3 space-y-1 text-xs text-zinc-300">
+                    {governance.drift.root_cause_spikes.slice(0, 3).map((spike) => (
+                      <div key={spike.root_cause}>
+                        <span className="text-amber-200">{spike.root_cause}</span>{" "}
+                        {spike.pct_change.toFixed(0)}%
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Graph health
+                </div>
+                <div className="mt-3 text-2xl font-semibold text-zinc-50">
+                  {governance.graph.node_count} nodes · {governance.graph.edge_count} edges
+                </div>
+                <div className="mt-2 text-xs text-zinc-400">
+                  avg degree {governance.graph.average_degree.toFixed(2)} · isolated{" "}
+                  {governance.graph.isolated_count}
+                </div>
+                {Object.keys(governance.graph.edges_by_type).length ? (
+                  <div className="mt-3 space-y-1 text-xs text-zinc-300">
+                    {Object.entries(governance.graph.edges_by_type).map(([edgeType, count]) => (
+                      <div key={edgeType} className="flex items-center justify-between">
+                        <span className="text-zinc-400">{edgeType}</span>
+                        <span className="font-mono">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Engine card
+                </div>
+                <div className="mt-3 text-base font-semibold text-zinc-50">
+                  {governance.card.engine.name}
+                </div>
+                <div className="mt-1 text-xs text-zinc-400">
+                  {governance.card.engine.kind} · schema {governance.card.engine.decision_schema_version}
+                </div>
+                <ul className="mt-3 space-y-1 text-xs text-zinc-300">
+                  {governance.card.what_this_engine_is.slice(0, 3).map((line) => (
+                    <li key={line}>• {line}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : null}
+        </section>
       </div>
-    </div>
+    </OpsShell>
   );
 }

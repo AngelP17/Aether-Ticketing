@@ -1,8 +1,15 @@
+from __future__ import annotations
+
+from typing import Any
+
 import fakeredis
 
+from apps.api.services import auth_service
 from apps.api.services.auth_service import (
     LOGIN_RATE_LIMIT_ATTEMPTS,
+    InMemoryLoginRateLimiter,
     RedisLoginRateLimiter,
+    build_login_rate_limiter,
 )
 
 
@@ -69,50 +76,55 @@ def test_redis_limiter_clear_removes_all_keys() -> None:
     assert not limiter.is_limited("viewer", "10.0.0.2")
 
 
-def test_build_limiter_returns_redis_when_configured(monkeypatch) -> None:
-    from apps.api.services import auth_service
-
+def test_build_limiter_returns_redis_when_configured(monkeypatch: Any) -> None:
     fake = fakeredis.FakeRedis(decode_responses=True)
+
     monkeypatch.setattr(auth_service.settings, "RATE_LIMIT_BACKEND", "redis")
     monkeypatch.setattr(auth_service.settings, "REDIS_URL", "redis://localhost:6379/0")
 
-    def fake_from_url(url: str, decode_responses: bool = True):
+    def fake_from_url(url: str, decode_responses: bool = True) -> Any:
         assert url == "redis://localhost:6379/0"
         return fake
 
-    monkeypatch.setattr(auth_service.redis, "Redis", type("R", (), {"from_url": staticmethod(fake_from_url)}))
+    fake_redis_class = type(
+        "R",
+        (),
+        {"from_url": staticmethod(fake_from_url)},
+    )
+    monkeypatch.setattr(auth_service.redis, "Redis", fake_redis_class)
 
-    limiter = auth_service.build_login_rate_limiter()
+    limiter = build_login_rate_limiter()
 
     assert isinstance(limiter, RedisLoginRateLimiter)
 
 
-def test_build_limiter_falls_back_when_redis_unreachable(monkeypatch) -> None:
-    from apps.api.services import auth_service
-
-    monkeypatch.setattr(auth_service.settings, "RATE_LIMIT_BACKEND", "redis")
-    monkeypatch.setattr(auth_service.settings, "REDIS_URL", "redis://localhost:6379/0")
-
+def test_build_limiter_falls_back_when_redis_unreachable(monkeypatch: Any) -> None:
     class BrokenRedis:
         def ping(self) -> None:
             raise auth_service.redis.ConnectionError("nope")
 
-    def fake_from_url(url: str, decode_responses: bool = True):
+    def fake_from_url(url: str, decode_responses: bool = True) -> Any:
         return BrokenRedis()
 
-    monkeypatch.setattr(auth_service.redis, "Redis", type("R", (), {"from_url": staticmethod(fake_from_url)}))
+    fake_redis_class = type(
+        "R",
+        (),
+        {"from_url": staticmethod(fake_from_url)},
+    )
 
-    limiter = auth_service.build_login_rate_limiter()
+    monkeypatch.setattr(auth_service.settings, "RATE_LIMIT_BACKEND", "redis")
+    monkeypatch.setattr(auth_service.settings, "REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setattr(auth_service.redis, "Redis", fake_redis_class)
 
-    assert isinstance(limiter, auth_service.InMemoryLoginRateLimiter)
+    limiter = build_login_rate_limiter()
+
+    assert isinstance(limiter, InMemoryLoginRateLimiter)
 
 
-def test_build_limiter_falls_back_when_redis_url_missing(monkeypatch) -> None:
-    from apps.api.services import auth_service
-
+def test_build_limiter_falls_back_when_redis_url_missing(monkeypatch: Any) -> None:
     monkeypatch.setattr(auth_service.settings, "RATE_LIMIT_BACKEND", "redis")
     monkeypatch.setattr(auth_service.settings, "REDIS_URL", None)
 
-    limiter = auth_service.build_login_rate_limiter()
+    limiter = build_login_rate_limiter()
 
-    assert isinstance(limiter, auth_service.InMemoryLoginRateLimiter)
+    assert isinstance(limiter, InMemoryLoginRateLimiter)

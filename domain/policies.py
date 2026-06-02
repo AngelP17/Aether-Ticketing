@@ -11,6 +11,7 @@ class ScoringWeights:
     DEPENDENCY_CRITICALITY: float = 0.08
     ACTIONABILITY: float = 0.08
     UNCERTAINTY_PENALTY: float = 0.10
+    version_tag: str = "rules-2024-Q1"
 
 
 SCORING_WEIGHTS = ScoringWeights()
@@ -25,6 +26,47 @@ class ClusteringThresholds:
 
 
 CLUSTERING_THRESHOLDS = ClusteringThresholds()
+
+
+@dataclass(frozen=True)
+class GraphFeatureWeights:
+    """Per-edge-type weights for the ticket relationship graph.
+
+    Weights are intentionally small (sub-1.0) so that an unweighted
+    edge from `similar_cases_count` cannot be drowned out, and so that
+    a ticket with many edges still produces a bounded feature.
+    """
+
+    REQUESTER: float = 0.6
+    ASSIGNEE: float = 0.5
+    SITE: float = 0.8
+    ASSET: float = 1.0
+    CATEGORY: float = 0.7
+    ROOT_CAUSE: float = 0.9
+    TIME_WINDOW: float = 0.3
+
+
+GRAPH_FEATURE_WEIGHTS = GraphFeatureWeights()
+GRAPH_TIME_WINDOW_HOURS = 6
+
+
+@dataclass(frozen=True)
+class UncertaintyBandThresholds:
+    """Cutoffs that map (priority, confidence, edge_density) to a band."""
+
+    HIGH_CONFIDENCE_MIN_PRIORITY: float = 70.0
+    HIGH_CONFIDENCE_MIN_CONFIDENCE: float = 80.0
+    REVIEW_NEEDED_MAX_CONFIDENCE: float = 60.0
+    REVIEW_NEEDED_MAX_PRIORITY: float = 55.0
+    UNCERTAINTY_PENALTY_REVIEW: float = 25.0
+
+
+UNCERTAINTY_BAND_THRESHOLDS = UncertaintyBandThresholds()
+
+
+BAND_HIGH_CONFIDENCE_ACTION = "high_confidence_action"
+BAND_REVIEW_NEEDED = "review_needed"
+BAND_STANDARD_QUEUE = "standard_queue"
 
 
 SEVERITY_KEYWORDS: dict[str, tuple[str, ...]] = {

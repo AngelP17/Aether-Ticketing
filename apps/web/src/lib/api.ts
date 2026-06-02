@@ -71,6 +71,28 @@ export const recommendationsApi = {
     api.post(`/recommendations/${id}/override`, { override_note: note, override_priority: priority }),
 };
 
+export const actionsApi = {
+  apply: (
+    recommendationId: number,
+    payload: {
+      action_type?: string;
+      override_priority?: number;
+      confirm?: boolean;
+      note?: string;
+    },
+  ) => api.post(`/actions/recommendations/${recommendationId}/apply`, payload),
+  get: (actionRunId: number) => api.get(`/actions/${actionRunId}`),
+};
+
+export const intelligenceApi = {
+  health: () => api.get("/intelligence/health"),
+};
+
+export const governanceApi = {
+  summary: () => api.get("/governance/summary"),
+  card: () => api.get("/governance/card"),
+};
+
 export const reportsApi = {
   excel: (params?: Record<string, string>) =>
     api.get("/reports/excel", { params, responseType: "blob" }),

@@ -6,7 +6,9 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(path.resolve(process.cwd(), "apps/web/node_modules/playwright"));
 
 const BASE_URL = process.env.BASE_URL ?? "http://127.0.0.1:3001";
-const API_BASE_URL = process.env.API_BASE_URL ?? "http://127.0.0.1:8011/api";
+const API_BASE_URL = process.env.API_BASE_URL ?? "http://127.0.0.1:8002/api";
+const DEMO_USERNAME = process.env.DEMO_USERNAME ?? "admin";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "admin123";
 const SCREENSHOT_DIR = path.resolve(process.cwd(), "docs/screenshots");
 
 const shots = [
@@ -47,7 +49,7 @@ async function createSession() {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify({ username: "admin", password: "admin" }),
+    body: JSON.stringify({ username: DEMO_USERNAME, password: DEMO_PASSWORD }),
   });
 
   if (!response.ok) {

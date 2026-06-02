@@ -17,6 +17,21 @@ from redis import Redis
 
 from apps.api.config import settings
 
+__all__ = [
+    "ALGORITHM",
+    "ACCESS_TOKEN_MINUTES",
+    "AuthService",
+    "InMemoryLoginRateLimiter",
+    "LOGIN_RATE_LIMIT_ATTEMPTS",
+    "LOGIN_RATE_LIMIT_KEY_PREFIX",
+    "LOGIN_RATE_LIMIT_WINDOW_SECONDS",
+    "PROJECT_ROOT",
+    "RedisLoginRateLimiter",
+    "build_login_rate_limiter",
+    "redis",
+    "settings",
+]
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_MINUTES = 60 * 8
 LOGIN_RATE_LIMIT_ATTEMPTS = 5

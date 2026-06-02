@@ -19,6 +19,7 @@ class Incident(Base):
     business_impact_score = Column(Float, default=0.0)
     confidence = Column(Float, default=0.0)
     opened_at = Column(DateTime, default=datetime.utcnow)
+    last_updated_at = Column(DateTime, default=datetime.utcnow, index=True)
     closed_at = Column(DateTime, nullable=True)
 
     ticket_links = relationship(

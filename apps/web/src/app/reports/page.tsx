@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import { ArrowRight, FileSpreadsheet, Plus, Radar, Shield, ShieldCheck, Sparkles, Zap } from "lucide-react";
 
+import { OpsShell } from "@/components/ops-shell";
 import { useToast } from "@/components/notifications";
 
 const workbookTabs = [
@@ -105,43 +106,49 @@ export default function ReportsPage() {
   }, [isDownloading, toast]);
 
   return (
-    <div className="ops-shell ops-safe-bottom relative min-h-[100dvh] overflow-hidden text-white">
-      <div className="ops-grid absolute inset-0 opacity-70" />
-      <div className="absolute right-[-8rem] top-[-8rem] h-[26rem] w-[26rem] rounded-full bg-amber-500/10 blur-[120px]" />
-      <div className="absolute bottom-[-10rem] left-[6%] h-[22rem] w-[22rem] rounded-full bg-cyan-500/10 blur-[120px]" />
-
-      <div className="relative z-10 mx-auto max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8">
+    <OpsShell
+      eyebrow="Aether OpsCenter"
+      title="Reports & Export"
+      subtitle="Download the styled Excel workbook for queue review, incident analysis, and audit delivery."
+      statusPill={{ kind: "ready", label: "Live" }}
+      headerActions={
+        <>
+          <Link
+            href="/command-center"
+            className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
+          >
+            <Radar size={16} />
+            Command Center
+          </Link>
+          <button
+            type="button"
+            onClick={handleWorkbookDownload}
+            disabled={isDownloading}
+            aria-busy={isDownloading}
+            className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <FileSpreadsheet size={16} />
+            {isDownloading ? "Preparing workbook..." : "Download Workbook"}
+          </button>
+        </>
+      }
+      exportButton={{
+        isExporting: isDownloading,
+        onClick: handleWorkbookDownload,
+        label: "Download workbook",
+      }}
+      showNotificationBell
+    >
+      <div className="mx-auto max-w-[1500px]">
         <div className="ops-glass rounded-[2rem] overflow-hidden">
           <div className="border-b border-zinc-800/70 bg-black/20 px-5 py-5 sm:px-8">
-            <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-              <div className="max-w-2xl">
-                <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  Reports &amp; Export
-                </h1>
-                <p className="mt-2 text-sm leading-6 text-zinc-400">
-                  Download the styled Excel workbook for queue review, incident analysis, and audit delivery.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleWorkbookDownload}
-                  disabled={isDownloading}
-                  aria-busy={isDownloading}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <FileSpreadsheet size={16} />
-                  {isDownloading ? "Preparing workbook..." : "Download Workbook"}
-                </button>
-                <Link
-                  href="/command-center"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
-                >
-                  <Radar size={16} />
-                  Command Center
-                </Link>
-              </div>
+            <div className="max-w-2xl">
+              <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                Reports &amp; Export
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-zinc-400">
+                Download the styled Excel workbook for queue review, incident analysis, and audit delivery.
+              </p>
             </div>
           </div>
 
@@ -270,7 +277,7 @@ export default function ReportsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </OpsShell>
   );
 }
 

@@ -84,12 +84,46 @@ make web
 
 The API runs on port 8000. The web app runs on the port selected by Next.js, usually 3000.
 
+### Local Auth Credentials
+
+The shipped `users.json` ships with one admin account. The legacy SHA-256
+hash in the file matches the plaintext `admin123`, so a first successful
+login migrates the record to bcrypt automatically.
+
+- Username: `admin`
+- Password: `admin123`
+
+If `users.json` ever drifts, `make seed-auth` rewrites it to the documented
+default. The login page also surfaces a `Demo` badge with a `Fill` action in
+non-production builds so mobile browser checks do not require a manual
+credential lookup.
+
+### Port Flexibility
+
+If `8000` is already taken on your machine (common on developer machines
+with another Python service running), the Makefile targets can be
+overridden:
+
+```bash
+# API on a free port
+API_PORT=8002 make api
+
+# Web dev with that port wired through
+API_INTERNAL_URL=http://127.0.0.1:8002 \
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8002/api \
+  make web
+```
+
+The mobile-screenshot / verification scripts in `scripts/` also accept
+`API_BASE_URL` and `BASE_URL` so they can be re-pointed at a non-default
+port without code changes.
+
 ## Development Commands
 
 | Command | Purpose |
 |---|---|
 | `make deps` | Install Python dev package and web dependencies |
-| `make dev` / `make api` | Run the FastAPI app with reload on port 8000 |
+| `make dev` / `make api` | Run the FastAPI app with reload on port 8000 (or `API_PORT=N` to override) |
 | `make web` | Run the Next.js dev server from `apps/web` |
 | `make test` | Run the Python test suite |
 | `make lint` | Run Python and web lint commands |
@@ -100,6 +134,7 @@ The API runs on port 8000. The web app runs on the port selected by Next.js, usu
 | `make rollback` | Downgrade one Alembic migration |
 | `make build-docker` | Build Docker images with `docker/docker-compose.yml` |
 | `make run-docker` | Start the Docker stack with `docker/docker-compose.yml` |
+| `make seed-auth` | Rewrite `users.json` to the documented `admin` / `admin123` default |
 | `cd apps/web && npm run typecheck` | Run TypeScript typecheck |
 | `cd apps/web && npm run build` | Build the production Next.js app |
  

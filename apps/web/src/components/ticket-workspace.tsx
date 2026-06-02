@@ -17,6 +17,7 @@ import {
 
 import { FileDropzone } from "@/components/file-dropzone";
 import { useToast } from "@/components/notifications";
+import { RecommendationsPanel } from "@/components/recommendations-panel";
 import { authApi, catalogApi, ticketsApi } from "@/lib/api";
 import { canWriteTickets, isAdmin, readStoredUser, type AuthUser } from "@/lib/auth";
 import type {
@@ -444,8 +445,8 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
 
   if (isLoading) {
     return (
-      <div className="ops-shell ops-safe-bottom min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl rounded-[2rem] border border-zinc-800 bg-black/20 p-8">
+      <div className="mx-auto max-w-7xl text-white">
+        <div className="ops-card rounded-[2rem] p-8">
           <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-amber-300">Loading workspace</div>
           <div className="mt-4 text-sm text-zinc-400">Pulling ticket state, operators, categories, labels, and comments.</div>
         </div>
@@ -455,8 +456,8 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
 
   if (error || !options) {
     return (
-      <div className="ops-shell ops-safe-bottom min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl rounded-[2rem] border border-rose-500/20 bg-black/20 p-8">
+      <div className="mx-auto max-w-7xl text-white">
+        <div className="ops-card rounded-[2rem] border-rose-500/20 p-8">
           <div className="flex items-center gap-3 text-rose-300">
             <AlertTriangle className="h-5 w-5" />
             <span className="mono-data text-[11px] uppercase tracking-[0.28em]">Workspace unavailable</span>
@@ -471,9 +472,8 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
   const attachments = detail?.attachments ?? [];
 
   return (
-    <div className="ops-shell ops-safe-bottom min-h-[100dvh] px-4 py-5 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="ops-glass rounded-[2rem] px-5 py-5 sm:px-7">
+    <div className="mx-auto max-w-7xl space-y-6 text-white">
+        <div className="ops-hero-panel rounded-[2rem] px-5 py-5 sm:px-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-amber-300">
@@ -803,6 +803,14 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
           </section>
 
           <section className="space-y-6">
+            {ticketId && detail ? (
+              <RecommendationsPanel
+                ticketId={ticketId}
+                detail={detail}
+                onDetailRefresh={refreshDetail}
+                canMutate={writable}
+              />
+            ) : null}
             <div className="ops-card rounded-[1.75rem] p-6">
               <div className="flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-amber-300" />
@@ -954,6 +962,44 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
                   </div>
                 </div>
 
+                {detail.decision ? (
+                  <div className="mt-4 grid gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-[11px] font-mono uppercase tracking-[0.18em] text-amber-200 sm:grid-cols-2">
+                    <div>
+                      <div className="text-amber-300/70">engine</div>
+                      <div className="mt-1 text-amber-50 normal-case tracking-normal">
+                        {detail.decision.decision_version ?? "v1"} / {detail.decision.rule_version ?? "rules-2024-Q1"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-amber-300/70">model</div>
+                      <div className="mt-1 text-amber-50 normal-case tracking-normal">
+                        {detail.decision.model_version ?? "rules (no trained model)"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-amber-300/70">priority</div>
+                      <div className="mt-1 text-amber-50 normal-case tracking-normal">
+                        {detail.decision.priority_score?.toFixed(1) ?? "—"} · confidence{" "}
+                        {detail.decision.confidence_score?.toFixed(0) ?? "—"}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-amber-300/70">root cause</div>
+                      <div className="mt-1 text-amber-50 normal-case tracking-normal">
+                        {detail.decision.root_cause_hypothesis || "unknown"}
+                      </div>
+                    </div>
+                    {detail.decision.feature_snapshot_json ? (
+                      <div className="sm:col-span-2">
+                        <div className="text-amber-300/70">feature snapshot</div>
+                        <pre className="mono-data mt-1 max-h-32 overflow-auto rounded-xl border border-amber-500/20 bg-black/40 p-2 text-[10px] normal-case tracking-normal text-amber-50/80">
+                          {JSON.stringify(detail.decision.feature_snapshot_json, null, 2)}
+                        </pre>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div className="mt-6 space-y-4">
                   {detail.events.map((event) => (
                     <div key={`${event.event_type}-${event.event_ts}-${event.actor_id || ""}`} className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
@@ -973,7 +1019,6 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
             ) : null}
           </section>
         </div>
-      </div>
     </div>
   );
 }

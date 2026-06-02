@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { CheckCircle, AlertCircle, Info, Bell, X } from "lucide-react";
 
@@ -134,16 +134,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const addNotification = useCallback(
     (type: NotificationType, title: string, message?: string) => {
-      const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-      const notification: Notification = {
-        id,
-        type,
-        title,
-        message,
-        timestamp: new Date(),
-        read: false,
-      };
-      setNotifications((prev) => [notification, ...prev].slice(0, MAX_NOTIFICATIONS));
+      // Coalesce identical errors raised in quick succession (e.g. a useEffect
+      // loop that re-fires the same toast on every render). The dedupe key
+      // uses the first 750 ms after a notification is added as the window
+      // for a re-entry, which is enough to swallow the re-render storm
+      // while still allowing a distinct retry to surface later.
+      setNotifications((prev) => {
+        const dedupeKey = `${type}::${title}::${message ?? ""}`;
+        const now = Date.now();
+        const lastDuplicate = prev.find(
+          (n) => `${n.type}::${n.title}::${n.message ?? ""}` === dedupeKey && now - n.timestamp.getTime() < 750,
+        );
+        if (lastDuplicate) {
+          return prev;
+        }
+        const id = `notif-${now}-${Math.random().toString(36).slice(2, 11)}`;
+        const notification: Notification = {
+          id,
+          type,
+          title,
+          message,
+          timestamp: new Date(),
+          read: false,
+        };
+        return [notification, ...prev].slice(0, MAX_NOTIFICATIONS);
+      });
     },
     []
   );
@@ -433,10 +448,17 @@ export function useToast() {
     [context]
   );
 
-  return {
-    success: (title: string, message?: string) => toast("success", title, message),
-    error: (title: string, message?: string) => toast("error", title, message),
-    warning: (title: string, message?: string) => toast("warning", title, message),
-    info: (title: string, message?: string) => toast("info", title, message),
-  };
+  // Memoize the returned object so consumers can list it in a useEffect
+  // dependency array without re-firing every render. The previous shape
+  // returned a fresh object literal each call, which made useEffect loops
+  // (and any useCallback that captured toast) re-run on every render.
+  return useMemo(
+    () => ({
+      success: (title: string, message?: string) => toast("success", title, message),
+      error: (title: string, message?: string) => toast("error", title, message),
+      warning: (title: string, message?: string) => toast("warning", title, message),
+      info: (title: string, message?: string) => toast("info", title, message),
+    }),
+    [toast],
+  );
 }

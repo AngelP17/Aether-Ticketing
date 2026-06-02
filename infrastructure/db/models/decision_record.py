@@ -29,6 +29,12 @@ class DecisionRecord(Base):
     decision_version = Column(String(20), default="v1")
     rule_version = Column(String(20), default="rules-2024-Q1")
     model_version = Column(String(20), nullable=True)
+    decision_band = Column(String(40), nullable=True, index=True)
+    priority_interval_low = Column(Float, nullable=True)
+    priority_interval_high = Column(Float, nullable=True)
+    decision_hash = Column(String(64), nullable=True, index=True)
+    graph_degree = Column(Integer, default=0)
+    graph_weighted_degree = Column(Float, default=0.0)
     explanation_json = Column(JSON)
 
     ticket = relationship("Ticket", back_populates="decisions")

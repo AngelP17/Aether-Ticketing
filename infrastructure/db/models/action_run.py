@@ -22,5 +22,8 @@ class ActionRun(Base):
     result_json = Column(JSON, nullable=True)
     rollback_available = Column(Integer, default=0)
     rollback_metadata_json = Column(JSON, nullable=True)
+    operator_note = Column(String(500), nullable=True)
+    rollback_payload_json = Column(JSON, nullable=True)
+    ticket_event_id = Column(Integer, nullable=True, index=True)
 
     recommendation = relationship("Recommendation", back_populates="action_runs")

@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
+from datetime import datetime
+
+from sqlalchemy import Column, DateTime, Integer, String, Float, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 
 from infrastructure.db.base import Base
@@ -21,6 +23,7 @@ class Recommendation(Base):
     requires_approval = Column(Boolean, default=False)
     recommended_runbook_id = Column(String(50), nullable=True)
     status = Column(String(20), default="proposed", index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     decision_record = relationship("DecisionRecord", back_populates="recommendations")
     feedback = relationship("OperatorFeedback", back_populates="recommendation", uselist=False)
