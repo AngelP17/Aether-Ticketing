@@ -24,6 +24,11 @@ type EditableUser = {
 
 const roleOptions = ["admin", "agent", "viewer"];
 
+function formatNumber(value: unknown, digits = 0) {
+  const numberValue = Number(value ?? 0);
+  return Number.isFinite(numberValue) ? numberValue.toFixed(digits) : (0).toFixed(digits);
+}
+
 export default function AdminPage() {
   const toast = useToast();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -693,8 +698,8 @@ export default function AdminPage() {
                 </div>
                 {governance.drift.priority_shift ? (
                   <div className="mt-1 text-xs text-zinc-400">
-                    Priority Δ {governance.drift.priority_shift.delta.toFixed(2)} ·{" "}
-                    {governance.drift.priority_shift.pct_change.toFixed(1)}%
+                    Priority Δ {formatNumber(governance.drift.priority_shift.delta, 2)} ·{" "}
+                    {formatNumber(governance.drift.priority_shift.pct_change, 1)}%
                   </div>
                 ) : null}
                 {governance.drift.root_cause_spikes?.length ? (
@@ -702,7 +707,7 @@ export default function AdminPage() {
                     {governance.drift.root_cause_spikes.slice(0, 3).map((spike) => (
                       <div key={spike.root_cause}>
                         <span className="text-amber-200">{spike.root_cause}</span>{" "}
-                        {spike.pct_change.toFixed(0)}%
+                        {formatNumber(spike.pct_change, 0)}%
                       </div>
                     ))}
                   </div>
@@ -716,7 +721,7 @@ export default function AdminPage() {
                   {governance.graph.node_count} nodes · {governance.graph.edge_count} edges
                 </div>
                 <div className="mt-2 text-xs text-zinc-400">
-                  avg degree {governance.graph.average_degree.toFixed(2)} · isolated{" "}
+                  avg degree {formatNumber(governance.graph.average_degree, 2)} · isolated{" "}
                   {governance.graph.isolated_count}
                 </div>
                 {Object.keys(governance.graph.edges_by_type).length ? (
