@@ -51,7 +51,6 @@ seed-auth:
 	python scripts/seed_auth.py
 
 verify-mobile:
-	BASE_URL=$${BASE_URL:-http://127.0.0.1:3001} \
-	API_BASE_URL=$${API_BASE_URL:-http://127.0.0.1:8002/api} \
+	BASE_URL=$${BASE_URL:-http://localhost:3000} \
+	API_BASE_URL=$${API_BASE_URL:-http://localhost:8002/api} \
 	node scripts/verify-mobile.mjs
-

@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { ArrowRight, FileSpreadsheet, Plus, Radar, Shield, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  FileSpreadsheet,
+  FileText,
+  Plus,
+  Radar,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  Zap,
+} from "lucide-react";
 
 import { OpsShell } from "@/components/ops-shell";
 import { useToast } from "@/components/notifications";
@@ -56,60 +66,81 @@ const reportHighlights = [
   },
 ];
 
+type ExportFormat = "xlsx" | "csv";
+
 export default function ReportsPage() {
   const toast = useToast();
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [activeFormat, setActiveFormat] = useState<ExportFormat | null>(null);
 
-  const handleWorkbookDownload = useCallback(async () => {
-    if (isDownloading) {
-      return;
-    }
-
-    setIsDownloading(true);
-
-    try {
-      const response = await fetch("/api/reports/excel", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error(await readExportError(response));
+  const handleDownload = useCallback(
+    async (format: ExportFormat) => {
+      if (activeFormat) {
+        return;
       }
 
-      const blob = await response.blob();
-      if (blob.size === 0) {
-        throw new Error("The workbook export was empty.");
+      setActiveFormat(format);
+
+      try {
+        const response = await fetch(`/api/reports/${format}`, {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error(await readExportError(response));
+        }
+
+        const blob = await response.blob();
+        if (blob.size === 0) {
+          throw new Error("The export was empty.");
+        }
+
+        const filename = parseFilename(
+          response.headers.get("content-disposition"),
+          format,
+        );
+        const url = URL.createObjectURL(blob);
+
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.rel = "noopener";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast.success(
+          format === "csv" ? "CSV download started" : "Workbook download started",
+          filename,
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not generate export.";
+        toast.error("Export failed", message);
+      } finally {
+        setActiveFormat(null);
       }
+    },
+    [activeFormat, toast],
+  );
 
-      const filename = parseFilename(
-        response.headers.get("content-disposition")
-      );
-      const url = URL.createObjectURL(blob);
+  const handleWorkbookDownload = useCallback(
+    () => handleDownload("xlsx"),
+    [handleDownload],
+  );
+  const handleCsvDownload = useCallback(
+    () => handleDownload("csv"),
+    [handleDownload],
+  );
 
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.rel = "noopener";
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success("Workbook download started", filename);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not generate workbook.";
-      toast.error("Export failed", message);
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [isDownloading, toast]);
+  const isDownloading = activeFormat !== null;
 
   return (
     <OpsShell
       eyebrow="Aether OpsCenter"
       title="Reports & Export"
-      subtitle="Download the styled Excel workbook for queue review, incident analysis, and audit delivery."
+      subtitle="Download the styled Excel workbook or the CSV extract for queue review, incident analysis, and audit delivery."
       statusPill={{ kind: "ready", label: "Live" }}
       headerActions={
         <>
@@ -122,18 +153,28 @@ export default function ReportsPage() {
           </Link>
           <button
             type="button"
+            onClick={handleCsvDownload}
+            disabled={isDownloading}
+            aria-busy={isDownloading && activeFormat === "csv"}
+            className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-cyan-500/30 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <FileText size={16} />
+            {activeFormat === "csv" ? "Preparing CSV..." : "Download CSV"}
+          </button>
+          <button
+            type="button"
             onClick={handleWorkbookDownload}
             disabled={isDownloading}
-            aria-busy={isDownloading}
+            aria-busy={isDownloading && activeFormat === "xlsx"}
             className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-70"
           >
             <FileSpreadsheet size={16} />
-            {isDownloading ? "Preparing workbook..." : "Download Workbook"}
+            {activeFormat === "xlsx" ? "Preparing workbook..." : "Download Workbook"}
           </button>
         </>
       }
       exportButton={{
-        isExporting: isDownloading,
+        isExporting: isDownloading && activeFormat === "xlsx",
         onClick: handleWorkbookDownload,
         label: "Download workbook",
       }}
@@ -147,7 +188,7 @@ export default function ReportsPage() {
                 Reports &amp; Export
               </h1>
               <p className="mt-2 text-sm leading-6 text-zinc-400">
-                Download the styled Excel workbook for queue review, incident analysis, and audit delivery.
+                Download the styled Excel workbook or the matching CSV extract for queue review, incident analysis, and audit delivery.
               </p>
             </div>
           </div>
@@ -254,9 +295,10 @@ export default function ReportsPage() {
               <div className="rounded-[1.5rem] border border-amber-500/20 bg-amber-500/10 p-5 sm:p-6">
                 <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-amber-300">Export Behavior</div>
                 <p className="mt-4 text-sm leading-7 text-amber-100">
-                  The download action stays live. If the backend feed is down, the workbook request fails without
-                  breaking the page. Once the reporting pipeline is healthy, this button returns the live styled export
-                  directly from Aether.
+                  The download action stays live. If the backend feed is down, the workbook or CSV request fails without
+                  breaking the page. Once the reporting pipeline is healthy, both buttons return the live styled export
+                  directly from Aether — the workbook keeps its 5 tabs, and the CSV mirrors the same data with
+                  section headers.
                 </p>
               </div>
 
@@ -281,9 +323,11 @@ export default function ReportsPage() {
   );
 }
 
-function parseFilename(contentDisposition: string | null) {
+function parseFilename(contentDisposition: string | null, format: ExportFormat) {
+  const fallback = format === "csv" ? "aether_report.csv" : "aether_report.xlsx";
+
   if (!contentDisposition) {
-    return "aether_report.xlsx";
+    return fallback;
   }
 
   const encodedMatch = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
@@ -300,7 +344,7 @@ function parseFilename(contentDisposition: string | null) {
     return filenameMatch[2];
   }
 
-  return "aether_report.xlsx";
+  return fallback;
 }
 
 async function readExportError(response: Response) {

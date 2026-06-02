@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from typing import Any
 
 from sqlalchemy import text
 
@@ -28,8 +29,9 @@ def main() -> None:
 
     init_db()
     with get_db_context() as db:
-        rows = list(
-            db.execute(
+        rows: list[dict[str, Any]] = [
+            dict(row)
+            for row in db.execute(
                 text(
                     """
                     SELECT id, ticket_id, title, description, status, date_opened
@@ -38,13 +40,13 @@ def main() -> None:
                     """
                 )
             ).mappings()
-        )
+        ]
 
         db.execute(text("DELETE FROM similar_case_links"))
 
         inserted = 0
         for source in rows:
-            scored_matches: list[tuple[float, dict]] = []
+            scored_matches: list[tuple[float, dict[str, Any]]] = []
             source_text = f"{source['title'] or ''} {source['description'] or ''}".strip()
             if not source_text:
                 continue

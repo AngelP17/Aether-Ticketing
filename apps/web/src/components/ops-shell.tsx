@@ -287,6 +287,7 @@ export function OpsShell({
                 width={32}
                 height={32}
                 priority
+                unoptimized
                 className="h-8 w-8 rounded-lg"
               />
             </span>

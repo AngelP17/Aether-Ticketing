@@ -93,6 +93,7 @@ def _ensure_legacy_compatibility() -> None:
         "site_id": "ALTER TABLE tickets ADD COLUMN site_id VARCHAR(100)",
         "asset_id": "ALTER TABLE tickets ADD COLUMN asset_id INTEGER",
         "category_id": "ALTER TABLE tickets ADD COLUMN category_id INTEGER REFERENCES categories(id)",
+        "root_cause_hypothesis": "ALTER TABLE tickets ADD COLUMN root_cause_hypothesis VARCHAR(100)",
         "resolved_at": "ALTER TABLE tickets ADD COLUMN resolved_at TIMESTAMP",
         "source_system": "ALTER TABLE tickets ADD COLUMN source_system VARCHAR(50) DEFAULT 'legacy'",
         "is_active": "ALTER TABLE tickets ADD COLUMN is_active BOOLEAN DEFAULT TRUE",

@@ -50,7 +50,7 @@ class ActionService:
         if row is None:
             return None
 
-        action_type = (action_type_override or row["action_type"]).lower()
+        action_type = _normalize_action_type(action_type_override or row["action_type"])
         ticket = self._load_ticket(row["ticket_pk"])
         if ticket is None:
             return None
@@ -678,7 +678,7 @@ class _ActionRunner:
         rollback_available: int,
         rollback_payload: dict[str, Any],
     ) -> int:
-        risk_level = (self.recommendation.get("risk_level") or "low").lower()
+        risk_level = _normalize_enum_value(self.recommendation.get("risk_level") or "low")
         requires_approval = bool(self.recommendation.get("requires_approval"))
         approved_by = self.operator_id if (not requires_approval or status == "pending_review") else None
         return int(
@@ -726,7 +726,7 @@ class _ActionRunner:
                     "approved_by": approved_by,
                     "status": status,
                     "result_json": json.dumps({**result_json, "ticket_state_after": ticket_state}),
-                    "rollback_available": rollback_available,
+                    "rollback_available": 1 if rollback_available else 0,
                     "rollback_metadata": json.dumps(
                         {
                             "previous_state": ticket_state,
@@ -819,6 +819,19 @@ def _ticket_state_snapshot(ticket: dict[str, Any]) -> dict[str, Any]:
         "priority_score_cache": ticket.get("priority_score_cache"),
         "snapshot_ts": datetime.now(timezone.utc).isoformat(),
     }
+
+
+def _normalize_action_type(value: object) -> str:
+    if isinstance(value, ActionType):
+        return value.value
+    return _normalize_enum_value(value)
+
+
+def _normalize_enum_value(value: object) -> str:
+    raw = str(value or "").strip()
+    if "." in raw:
+        raw = raw.rsplit(".", 1)[-1]
+    return raw.lower()
 
 
 def _serialize_feedback(row: dict[str, Any]) -> dict[str, Any]:

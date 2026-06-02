@@ -263,10 +263,10 @@ def compute_live_decision(
         recommendations = [
             {
                 "rank": rec.rank,
-                "action_type": str(rec.action_type),
+                "action_type": getattr(rec.action_type, "value", str(rec.action_type)),
                 "action_label": rec.action_label,
                 "rationale": rec.rationale,
-                "risk_level": str(rec.risk_level),
+                "risk_level": getattr(rec.risk_level, "value", str(rec.risk_level)),
                 "confidence": round(rec.confidence, 2),
                 "expected_benefit": rec.expected_benefit,
                 "recommended_runbook_id": rec.recommended_runbook_id,

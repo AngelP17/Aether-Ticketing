@@ -25,6 +25,7 @@ class Ticket(Base):
     source_hash = Column(String(64), nullable=True)
     priority_score_cache = Column(Integer, nullable=True)
     confidence_score_cache = Column(Integer, nullable=True)
+    root_cause_hypothesis = Column(String(100), nullable=True)
     site_id = Column(String(100))
     asset_id = Column(Integer, ForeignKey("assets.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)

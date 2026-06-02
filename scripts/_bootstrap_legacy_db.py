@@ -125,7 +125,7 @@ def main() -> None:
             raise SystemExit("tickets.xlsx is empty")
 
         header_row = next(openpyxl.load_workbook("tickets.xlsx", data_only=True, read_only=True)["IT Service Tickets"].iter_rows(min_row=1, max_row=1, values_only=True))
-        idx = {name.strip(): i for i, name in enumerate(header_row) if name}
+        idx = {str(name).strip(): i for i, name in enumerate(header_row) if name}
 
         title_col = idx.get("Ticket Title", idx.get("Title", 1))
         status_col = idx.get("Status", 2)

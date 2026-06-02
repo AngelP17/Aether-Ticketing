@@ -5,18 +5,18 @@ import path from "node:path";
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require(path.resolve(process.cwd(), "apps/web/node_modules/playwright"));
 
-const BASE_URL = process.env.BASE_URL ?? "http://127.0.0.1:3001";
-const API_BASE_URL = process.env.API_BASE_URL ?? "http://127.0.0.1:8002/api";
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
+const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:8002/api";
 const DEMO_USERNAME = process.env.DEMO_USERNAME ?? "admin";
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "admin123";
 const SCREENSHOT_DIR = path.resolve(process.cwd(), ".snapshots/mobile-verify");
 
 const PROTECTED_ROUTES = [
   { path: "/command-center", name: "command-center", waitFor: "text=Aether OpsCenter" },
-  { path: "/board", name: "board", waitFor: "text=Workflow Tracking" },
+  { path: "/board", name: "board", waitFor: "text=Live ticket board" },
   { path: "/incidents", name: "incidents", waitFor: "text=Incident Intelligence" },
   { path: "/reports", name: "reports", waitFor: "text=Reports & Export" },
-  { path: "/admin", name: "admin", waitFor: "text=Admin Console" },
+  { path: "/admin", name: "admin", waitFor: "text=User management" },
   { path: "/tickets/new", name: "ticket-new", waitFor: "text=New Ticket" },
 ];
 

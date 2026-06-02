@@ -492,6 +492,7 @@ export default function LoginPage() {
                 width={40}
                 height={40}
                 priority
+                unoptimized
                 className="h-10 w-10 rounded-xl border border-amber-500/20 bg-amber-500/10 p-1"
               />
               <span className="text-lg font-semibold tracking-tight">Aether</span>
@@ -560,6 +561,7 @@ export default function LoginPage() {
               width={32}
               height={32}
               priority
+              unoptimized
               className="h-8 w-8 rounded-lg border border-amber-500/20 bg-amber-500/10 p-1"
             />
             <span className="text-sm font-semibold">Aether</span>

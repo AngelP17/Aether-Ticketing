@@ -1,4 +1,4 @@
-from typing import Any  # noqa: F401
+from typing import Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from openpyxl import Workbook
@@ -6,7 +6,8 @@ from openpyxl import Workbook
 from apps.api.services.incident_service import IncidentService
 from apps.api.services.operational_intelligence import (
     build_ticket_snapshot,
-    build_live_decision_map,
+    compute_live_decision,
+    count_similar_cases,
     synthesize_incidents,
 )
 
@@ -15,15 +16,13 @@ class ReportService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def generate_workbook(
+    def _load_report_payload(
         self,
         report_type: str,
         date_from: str | None,
         date_to: str | None,
-        incident_id: str | None = None,
-    ) -> Workbook:
-        from pipelines.reports.excel_report import generate_workbook
-
+        incident_id: str | None,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         rows = self.db.execute(
             text(
                 """
@@ -44,6 +43,7 @@ class ReportService:
                     t.resolved_at,
                     t.clean_summary,
                     t.site_id,
+                    t.asset_id,
                     c.name AS category_name
                 FROM tickets t
                 LEFT JOIN categories c ON c.id = t.category_id
@@ -53,19 +53,7 @@ class ReportService:
         ).mappings()
 
         tickets = [dict(row) for row in rows]
-        decision_map = build_live_decision_map(tickets)
-        snapshots = []
-        for ticket in tickets:
-            decision = decision_map.get(ticket["ticket_id"])
-            snapshot = build_ticket_snapshot(ticket, decision)
-            snapshot["category"] = ticket.get("category_name") or ticket.get("request_type")
-            snapshot["recommendation"] = (
-                decision["recommendations"][0]["action_label"]
-                if decision and decision.get("recommendations")
-                else ""
-            )
-            snapshot["sla_risk"] = decision.get("sla_risk_score", 0) if decision else 0
-            snapshots.append(snapshot)
+        snapshots = [_build_export_snapshot(ticket, self.db) for ticket in tickets]
 
         incidents = IncidentService(self.db).list_incidents()
         if incident_id is not None:
@@ -98,4 +86,52 @@ class ReportService:
                 }
             ]
 
+        return snapshots, incidents
+
+    def generate_workbook(
+        self,
+        report_type: str,
+        date_from: str | None,
+        date_to: str | None,
+        incident_id: str | None = None,
+    ) -> Workbook:
+        from pipelines.reports.excel_report import generate_workbook
+
+        snapshots, incidents = self._load_report_payload(
+            report_type, date_from, date_to, incident_id
+        )
         return generate_workbook(report_type, tickets=snapshots, incidents=incidents)
+
+    def generate_csv(
+        self,
+        report_type: str,
+        date_from: str | None,
+        date_to: str | None,
+        incident_id: str | None = None,
+    ) -> str:
+        from pipelines.reports.csv_report import generate_csv
+
+        snapshots, incidents = self._load_report_payload(
+            report_type, date_from, date_to, incident_id
+        )
+        return generate_csv(report_type, tickets=snapshots, incidents=incidents)
+
+
+def _build_export_snapshot(ticket: dict[str, Any], db: Session) -> dict[str, Any]:
+    decision = compute_live_decision(
+        ticket,
+        similar_cases_count=count_similar_cases(db, ticket),
+        include_recommendations=True,
+        include_artifacts=False,
+    )
+    snapshot = build_ticket_snapshot(ticket, decision)
+    snapshot["category"] = ticket.get("category_name") or ticket.get("request_type")
+    recommendations = decision.get("recommendations") or []
+    snapshot["recommendation"] = (
+        recommendations[0]["action_label"] if recommendations else ""
+    )
+    snapshot["recommendation_risk"] = (
+        recommendations[0]["risk_level"] if recommendations else ""
+    )
+    snapshot["sla_risk"] = decision.get("sla_risk_score", 0) or 0
+    return snapshot
