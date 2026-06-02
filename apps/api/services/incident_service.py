@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy import text
@@ -17,16 +18,30 @@ from apps.api.services.operational_intelligence import (
 )
 from apps.api.services.schema_compat import category_join_sql, column_expr
 
+logger = logging.getLogger(__name__)
+
 
 class IncidentService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def list_incidents(self) -> list[dict[str, Any]]:
-        clusters = self._build_clusters()
+        try:
+            clusters = self._build_clusters()
+        except Exception:
+            logger.exception("incident cluster synthesis failed")
+            clusters = []
         if clusters:
-            persist_synthesized_incidents(self.db, clusters)
-        return list_persisted_incidents(self.db)
+            try:
+                persist_synthesized_incidents(self.db, clusters)
+            except Exception:
+                logger.exception("incident persistence failed; returning synthesized clusters")
+                return _incident_list_from_clusters(clusters)
+        try:
+            return list_persisted_incidents(self.db)
+        except Exception:
+            logger.exception("persisted incident list failed; returning synthesized clusters")
+            return _incident_list_from_clusters(clusters)
 
     def get_incident_detail(self, incident_id: int) -> dict[str, Any] | None:
         clusters = self._build_clusters()
@@ -71,9 +86,40 @@ class IncidentService:
             ).mappings()
         )
         tickets = [dict(row) for row in rows]
-        decision_map = build_live_decision_map(tickets)
-        snapshots = [
-            build_ticket_snapshot(ticket, decision_map.get(ticket["ticket_id"]))
-            for ticket in tickets
-        ]
+        try:
+            decision_map = build_live_decision_map(tickets)
+        except Exception:
+            logger.exception("incident decision enrichment failed")
+            decision_map = {}
+        snapshots = []
+        for ticket in tickets:
+            try:
+                snapshots.append(build_ticket_snapshot(ticket, decision_map.get(ticket["ticket_id"])))
+            except Exception:
+                logger.exception(
+                    "incident ticket snapshot failed",
+                    extra={"ticket_id": ticket.get("ticket_id")},
+                )
         return synthesize_incidents(snapshots)
+
+
+def _incident_list_from_clusters(clusters: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    incidents: list[dict[str, Any]] = []
+    for index, cluster in enumerate(clusters, start=1):
+        incidents.append(
+            {
+                "id": int(cluster.get("id") or index),
+                "incident_key": cluster.get("incident_key") or f"INC-LIVE-{index:04d}",
+                "title": cluster.get("title") or "Live incident cluster",
+                "status": cluster.get("status") or "open",
+                "root_cause_hypothesis": cluster.get("root_cause_hypothesis"),
+                "site_scope": cluster.get("site_scope"),
+                "ticket_count": int(cluster.get("ticket_count") or len(cluster.get("tickets", []))),
+                "confidence": float(cluster.get("confidence") or 0.0),
+                "business_impact_score": float(cluster.get("business_impact_score") or 0.0),
+                "opened_at": cluster.get("opened_at"),
+                "last_updated_at": cluster.get("last_updated_at") or cluster.get("opened_at"),
+                "graph_evidence": cluster.get("graph_evidence"),
+            }
+        )
+    return incidents
