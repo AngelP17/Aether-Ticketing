@@ -131,6 +131,15 @@ function formatSync(seconds: number) {
   return `${hours}h ago`;
 }
 
+function mobileLabel(href: string) {
+  if (href === "/command-center") return "Home";
+  if (href === "/board") return "Board";
+  if (href === "/incidents") return "Incidents";
+  if (href === "/reports") return "Reports";
+  if (href === "/admin") return "Admin";
+  return href.replace(/^\//, "");
+}
+
 function userInitials(user: AuthUser | null) {
   if (!user) {
     return "OP";
@@ -273,7 +282,7 @@ export function OpsShell({
         </button>
       ) : null}
 
-      <div className="relative z-10 grid min-h-[100dvh] lg:grid-cols-[260px,minmax(0,1fr)]">
+      <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[260px,minmax(0,1fr)]">
         <aside className="ops-rail ops-shell z-20 hidden border-r border-zinc-800/50 px-4 py-4 lg:sticky lg:top-0 lg:flex lg:h-[100dvh] lg:flex-col">
           <Link
             href="/command-center"
@@ -465,7 +474,7 @@ export function OpsShell({
               aria-current={isActive ? "page" : undefined}
             >
               <Icon className="h-5 w-5" aria-hidden="true" />
-              <span>{item.label}</span>
+              <span>{mobileLabel(item.href)}</span>
             </Link>
           );
         })}

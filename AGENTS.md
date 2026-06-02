@@ -91,6 +91,64 @@ must not drift from `origin/main`.
 - Frontend is a dense B2B operations UI. Preserve the dark operations theme, existing routes, and Lucide icon family.
 - Keep motion restrained and respect reduced-motion behavior. Prefer stable app UI over landing-page flourish.
 
+## Frontend Design Principles (OpsCenter-specific)
+
+These are the rules every frontend change in `apps/web/` must follow. They
+are derived from the `design-taste-frontend` skill, scoped to a B2B operations
+console (Cockpit mode: `VARIANCE 6 / MOTION 3 / DENSITY 8`). Landing-page rules
+do not apply; do not use them as a justification for redesigning chrome.
+
+- **One accent, locked.** Amber `#f59e0b` is the only accent. Status colors
+  (rose/cyan/emerald) are functional, not decorative. No random purple/cyan
+  glows, no gradient text, no neon shadows. The home page's multi-accent
+  quick-access cards (amber/cyan/emerald/violet) violate this — collapse to
+  amber or zebra to neutral.
+- **One radius scale, locked project-wide.** Documented in `globals.css`
+  (8 / 12 / 16 / 22 / 32px). Audit every new component against this scale —
+  do not introduce new arbitrary radius values.
+- **Shape rule for data surfaces.** For high-density data (metrics, counts,
+  scores) prefer hairline dividers and mono numbers over generic card
+  containers. The command-center metric grid is a known offender.
+- **Typography.** Mono for IDs (`IT-20250007`), timestamps, counts, scores,
+  IPs. Sans for prose. No serif anywhere. No Inter as the default.
+- **Eyebrow ban translated to panels.** Do not stamp an
+  `uppercase tracking-[0.18em]` micro-label above every panel header. The
+  section's location is the label. Strip the existing offenders
+  (incident detail, decision detail, recommendations, ticket workspace,
+  command-center, reports, replay, admin).
+- **No AI-fluff copy.** Audit every visible string before ship. No cute
+  metaphors, no fake-precise numbers (`92%`, `4.1×`), no passive-aggressive
+  humility, no mock-poetic micro-meta. Plain ops register.
+- **Full UI state cycles on every list/detail.** Skeleton matching the final
+  shape, composed empty state, inline error, tactile `:active` press.
+- **Contrast.** WCAG AA on every status badge, button, input, table cell.
+- **Motion restraint.** Animated only where it communicates (status pulse on
+  live feeds, row enter/exit on board DnD). Spring physics, transform +
+  opacity only, honor `prefers-reduced-motion`. No `window.addEventListener(
+  scroll)`, no `useState` for pointer/scroll physics.
+- **Layout variety.** The board, command center, incidents, reports, admin,
+  ticket workspace should not all be the same panel grid. Vary the surface —
+  table, kanban, graph, density table, split-pane.
+- **Z-index restraint.** Documented scale: `z-0` (decorations) → `z-10`
+  (content) → `z-20` (rail) → `z-40/45/46` (nav/sheet/export) → `z-50`
+  (modals/errors) → `z-[100]` (toasts). No off-scale values without a
+  comment.
+- **Mobile grid discipline.** `ops-shell` root must set `grid-cols-1` so
+  single-column mobile layout is constrained to the viewport. The previous
+  build was 633–956px wide on a 390px viewport because the grid defaulted
+  to `auto` columns. Do not remove `grid-cols-1` from `ops-shell`.
+
+## Mobile (390×844) Layout Discipline
+
+- Bottom mobile nav uses **short labels** (`Home / Board / Incidents /
+  Reports / More`) and the bell — full-width labels wrap on 390px.
+- `ops-floating-export` shrinks to `scale(0.82)` below `md` so it does not
+  dominate the right edge of the viewport.
+- The topbar route shortcut nav uses `overflow-x-auto` and is the only
+  horizontally scrollable surface. Do not wrap.
+- The eyebrow / status / sync row in the topbar is `flex-wrap`; pill rows
+  drop to the next line cleanly at 390px.
+
 ## Files To Avoid Unless Asked
 
 - Do not edit generated or local cache output: `.next/`, `node_modules/`, `.pytest_cache/`, `__pycache__/`, coverage artifacts, or temporary report outputs.

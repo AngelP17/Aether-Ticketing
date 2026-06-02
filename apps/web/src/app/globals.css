@@ -535,6 +535,7 @@ body {
   right: 1rem;
   bottom: calc(5.75rem + env(safe-area-inset-bottom));
   z-index: 45;
+  transition: transform var(--dur) var(--ease-out);
 }
 
 .rise {
@@ -611,8 +612,13 @@ body {
   }
 
   .ops-floating-export {
-    right: 0.9rem;
+    right: 0.75rem;
     bottom: calc(5.35rem + env(safe-area-inset-bottom));
+    transform: scale(0.82);
+  }
+
+  .ops-floating-export:active {
+    transform: scale(0.78);
   }
 
   .ops-ticket-table {
