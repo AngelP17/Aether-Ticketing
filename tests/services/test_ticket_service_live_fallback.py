@@ -3,6 +3,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
+from apps.api.services import ticket_service as ticket_service_module
 from apps.api.services.ticket_service import TicketService
 
 
@@ -65,3 +68,20 @@ def test_list_tickets_uses_base_query_when_schema_introspection_fails() -> None:
     assert tickets[0]["priority_raw"] == "High"
     assert tickets[0]["category"] == "Printer"
     assert session.executed_sql
+
+
+def test_list_tickets_keeps_feed_alive_when_one_snapshot_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _LegacySchemaSession()
+
+    def _raise_snapshot(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError("bad production row")
+
+    monkeypatch.setattr(ticket_service_module, "build_ticket_snapshot", _raise_snapshot)
+
+    tickets = TicketService(session).list_tickets(limit=10)  # type: ignore[arg-type]
+
+    assert tickets[0]["ticket_id"] == "IT-LEGACY"
+    assert tickets[0]["title"] == "Printer queue blocked"
+    assert tickets[0]["priority_score"] is None

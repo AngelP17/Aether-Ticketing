@@ -103,9 +103,16 @@ class TicketService:
             decision_map = {}
         snapshots = []
         for ticket in tickets:
-            snapshots.append(
-                build_ticket_snapshot(ticket, decision=decision_map.get(ticket["ticket_id"]))
-            )
+            try:
+                snapshots.append(
+                    build_ticket_snapshot(ticket, decision=decision_map.get(ticket["ticket_id"]))
+                )
+            except Exception:
+                logger.exception(
+                    "ticket snapshot failed; returning minimal live snapshot",
+                    extra={"ticket_id": ticket.get("ticket_id")},
+                )
+                snapshots.append(_fallback_ticket_snapshot(ticket))
 
         try:
             incidents = synthesize_incidents(snapshots)
@@ -498,3 +505,44 @@ def _base_ticket_list_sql(*, where_clause: str = "", limit_clause: str = "") -> 
         ORDER BY t.date_opened DESC NULLS LAST, t.id DESC
         {limit_clause}
     """
+
+
+def _fallback_ticket_snapshot(ticket: dict[str, Any]) -> dict[str, Any]:
+    priority = _safe_text(ticket.get("priority"), default="Low")
+    request_type = _safe_text(ticket.get("category_name") or ticket.get("request_type"))
+    return {
+        "ticket_id": _safe_text(ticket.get("ticket_id"), default="UNKNOWN"),
+        "title": _safe_text(ticket.get("title"), default="Untitled ticket"),
+        "status": _safe_text(ticket.get("status"), default="Open"),
+        "priority_raw": priority,
+        "priority_score": None,
+        "root_cause_hypothesis": None,
+        "confidence_score": None,
+        "site": _safe_text(ticket.get("site_id")) or None,
+        "assignee": _safe_text(ticket.get("staff_assigned")) or None,
+        "category": request_type or None,
+        "created_at": _safe_datetime_text(ticket.get("created_at") or ticket.get("date_opened")),
+        "days_open": 0,
+        "incident_id": None,
+        "description": _safe_text(ticket.get("description")) or None,
+        "resolution_notes": _safe_text(ticket.get("resolution_notes")) or None,
+        "requester": _safe_text(ticket.get("requester")) or None,
+    }
+
+
+def _safe_text(value: object, *, default: str = "") -> str:
+    if value is None:
+        return default
+    try:
+        text_value = str(value).strip()
+    except Exception:
+        return default
+    return text_value or default
+
+
+def _safe_datetime_text(value: object) -> str:
+    if value is None:
+        return datetime.now(UTC).isoformat()
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return _safe_text(value, default=datetime.now(UTC).isoformat())
