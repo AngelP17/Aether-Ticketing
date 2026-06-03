@@ -15,6 +15,7 @@ import {
 
 import { OpsShell } from "@/components/ops-shell";
 import { useToast } from "@/components/notifications";
+import { reportsApi } from "@/lib/api";
 import { parseFilename, readExportError } from "@/lib/export-utils";
 
 const workbookTabs = [
@@ -81,22 +82,21 @@ export default function ReportsPage() {
       setActiveFormat(format);
 
       try {
-        const response = await fetch(`/api/reports/${format}`, {
-          method: "GET",
-          cache: "no-store",
-        });
+        const response = await reportsApi.excel({ report_type: format });
 
-        if (!response.ok) {
-          throw new Error(await readExportError(response));
+        if (response.status !== 200) {
+          const data = response.data as any;
+          const msg = data?.detail || data?.message || `Export failed with status ${response.status}`;
+          throw new Error(msg);
         }
 
-        const blob = await response.blob();
+        const blob = response.data as Blob;
         if (blob.size === 0) {
           throw new Error("The export was empty.");
         }
 
         const filename = parseFilename(
-          response.headers.get("content-disposition"),
+          response.headers["content-disposition"] as string | null,
           format === "csv" ? "aether_report.csv" : "aether_report.xlsx",
         );
         const url = URL.createObjectURL(blob);

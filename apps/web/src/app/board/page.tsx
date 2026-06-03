@@ -12,11 +12,14 @@ import {
 } from "react";
 import {
   AlertTriangle,
+  ArrowUpRight,
   Columns3,
+  Hash,
   Plus,
   RefreshCw,
   ShieldAlert,
   Sparkles,
+  X,
 } from "lucide-react";
 
 import { OpsShell } from "@/components/ops-shell";
@@ -531,6 +534,99 @@ export default function BoardPage() {
                 </BoardColumn>
               );
             })}
+          </div>
+        )}
+
+        {selectedBoardTicket && (
+          <div
+            className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-zinc-800/70 bg-zinc-950/95 backdrop-blur-sm sm:max-w-md"
+            role="dialog"
+            aria-label={`Ticket ${selectedBoardTicket.ticket_id}`}
+          >
+            <div className="flex items-center justify-between border-b border-zinc-800/70 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="mono-data text-xs text-zinc-400">{selectedBoardTicket.ticket_id}</span>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                    selectedBoardTicket.status === "Open"
+                      ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
+                      : selectedBoardTicket.status === "In Progress"
+                        ? "border-cyan-400/30 bg-cyan-500/10 text-cyan-200"
+                        : "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                  }`}
+                >
+                  {selectedBoardTicket.status}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={closeBoardDrawer}
+                className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
+                aria-label="Close drawer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              <h3 className="text-sm font-medium text-zinc-100 leading-snug">{selectedBoardTicket.title}</h3>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-zinc-500">Priority</span>
+                  <div className="mt-0.5 font-medium text-zinc-200">{selectedBoardTicket.priority_raw}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-500">Assignee</span>
+                  <div className="mt-0.5 font-medium text-zinc-200">{selectedBoardTicket.assignee || "--"}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-500">Site</span>
+                  <div className="mt-0.5 font-medium text-zinc-200">{selectedBoardTicket.site || "--"}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-500">Category</span>
+                  <div className="mt-0.5 font-medium text-zinc-200">{selectedBoardTicket.category || "--"}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-500">Days open</span>
+                  <div className="mt-0.5 font-medium text-zinc-200">{selectedBoardTicket.days_open}</div>
+                </div>
+                <div>
+                  <span className="text-zinc-500">Created</span>
+                  <div className="mt-0.5 font-medium text-zinc-200">
+                    {selectedBoardTicket.created_at
+                      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(selectedBoardTicket.created_at))
+                      : "--"}
+                  </div>
+                </div>
+              </div>
+
+              {selectedBoardTicket.description && (
+                <div>
+                  <span className="text-xs text-zinc-500">Description</span>
+                  <p className="mt-1 text-xs leading-5 text-zinc-400 line-clamp-6">{selectedBoardTicket.description}</p>
+                </div>
+              )}
+
+              {selectedBoardTicket.root_cause_hypothesis && (
+                <div className="rounded-xl border border-amber-500/15 bg-amber-500/5 p-3">
+                  <span className="text-[10px] text-amber-400">Root cause</span>
+                  <p className="mt-1 text-xs leading-5 text-zinc-300">{selectedBoardTicket.root_cause_hypothesis}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-zinc-800/70 px-4 py-3">
+              <Link
+                href={`/tickets/${selectedBoardTicket.ticket_id}`}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-100 transition hover:bg-amber-500/15"
+              >
+                <Hash className="h-3.5 w-3.5" />
+                Full workspace
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         )}
       </div>

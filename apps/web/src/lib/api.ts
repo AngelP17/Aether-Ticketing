@@ -93,6 +93,10 @@ export const governanceApi = {
   card: () => api.get("/governance/card"),
 };
 
+export const replayApi = {
+  get: (ticketId: string) => api.get(`/replay/${ticketId}`),
+};
+
 export const reportsApi = {
   excel: (params?: Record<string, string>) =>
     api.get("/reports/excel", { params, responseType: "blob" }),

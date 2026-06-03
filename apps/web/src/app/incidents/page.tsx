@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -10,37 +13,13 @@ import {
 } from "lucide-react";
 
 import { OpsShell } from "@/components/ops-shell";
-import { getServerApiUrl } from "@/lib/server-api";
+import { incidentsApi } from "@/lib/api";
 import type { Incident } from "@/types";
 
-export const dynamic = "force-dynamic";
-
 type IncidentsFeed =
+  | { status: "loading" }
   | { status: "ready"; incidents: Incident[] }
   | { status: "error"; message: string };
-
-async function getIncidents(): Promise<IncidentsFeed> {
-  try {
-    const response = await fetch(getServerApiUrl("/api/incidents"), {
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      return {
-        status: "error",
-        message: `Incidents API returned ${response.status} ${response.statusText || "without a status message"}.`,
-      };
-    }
-    return {
-      status: "ready",
-      incidents: (await response.json()) as Incident[],
-    };
-  } catch (error) {
-    return {
-      status: "error",
-      message: error instanceof Error ? error.message : "Unable to reach the incidents API.",
-    };
-  }
-}
 
 type Severity = "critical" | "high" | "medium" | "low";
 
@@ -192,7 +171,7 @@ function EmptyState() {
   );
 }
 
-function ErrorState({ message }: { message: string }) {
+function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="ops-card rounded-[22px] border border-rose-500/25 px-6 py-10">
       <div className="flex items-start gap-4">
@@ -203,13 +182,14 @@ function ErrorState({ message }: { message: string }) {
           <h2 className="text-xl font-semibold text-white">Incident feed failed to load</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">{message}</p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/incidents"
+            <button
+              type="button"
+              onClick={onRetry}
               className="inline-flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-rose-100 transition hover:border-rose-400/50 hover:bg-rose-500/15"
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Retry load
-            </Link>
+            </button>
             <Link
               href="/command-center"
               className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm font-medium text-zinc-100 transition hover:border-amber-500/30 hover:bg-amber-500/10"
@@ -287,21 +267,50 @@ function IncidentCard({ incident }: { incident: Incident }) {
   );
 }
 
-export default async function IncidentsPage() {
-  const feed = await getIncidents();
+export default function IncidentsPage() {
+  const [feed, setFeed] = useState<IncidentsFeed>({ status: "loading" });
+
+  const loadIncidents = async (notifyOnError = false) => {
+    try {
+      const data = (await incidentsApi.list()).data as Incident[];
+      setFeed({ status: "ready", incidents: data });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Incidents API returned an unexpected error.";
+      setFeed({ status: "error", message });
+      if (notifyOnError) {
+        // Could use toast here if wanted, but ErrorState handles UI
+      }
+    }
+  };
+
+  useEffect(() => {
+    void loadIncidents();
+  }, []);
+
   const isReady = feed.status === "ready";
   const incidents = isReady ? sortIncidents(feed.incidents) : [];
+
+  const statusPill =
+    feed.status === "loading"
+      ? { kind: "loading" as const, label: "Loading" }
+      : feed.status === "ready"
+      ? { kind: "ready" as const, label: "Live" }
+      : { kind: "error" as const, label: "Disconnected" };
+
+  const handleRetry = () => {
+    setFeed({ status: "loading" });
+    void loadIncidents(true);
+  };
 
   return (
     <OpsShell
       eyebrow="Aether OpsCenter"
       title="Incidents"
       subtitle="Incidents grouped by common cause with links to ticket and replay detail."
-      statusPill={
-        isReady
-          ? { kind: "ready", label: "Live" }
-          : { kind: "error", label: "Disconnected" }
-      }
+      statusPill={statusPill}
       headerActions={<HeaderActions />}
       showNotificationBell
     >
@@ -309,7 +318,11 @@ export default async function IncidentsPage() {
         <PageHeader count={incidents.length} />
 
         {feed.status === "error" ? (
-          <ErrorState message={feed.message} />
+          <ErrorState message={feed.message} onRetry={handleRetry} />
+        ) : feed.status === "loading" ? (
+          <div className="ops-card rounded-[22px] px-6 py-12 text-center text-sm text-zinc-400">
+            Loading incidents…
+          </div>
         ) : incidents.length === 0 ? (
           <EmptyState />
         ) : (

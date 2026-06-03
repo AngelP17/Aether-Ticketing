@@ -58,32 +58,17 @@ def mark_read(
     return {"status": "ok"}
 
 
-@router.get("/stream")
-async def notifications_stream(
+@router.get("/unread-count")
+def unread_count(
     db: Session = Depends(get_db),
     current_user: dict[str, str] = Depends(get_current_user),
-):
-    """Simple SSE stub for push notifications (Phase 5/7). In real: use Redis pubsub or similar."""
-    from fastapi.responses import StreamingResponse
-    import asyncio
-    import json
-
-    async def event_generator():
-        user = current_user.get("username", "unknown")
-        # Poll last 5s for demo; in prod use proper push.
-        while True:
-            rows = db.execute(
-                text(
-                    """
-                    SELECT id, title, type FROM notifications
-                    WHERE user_id = :user AND is_read = FALSE
-                    ORDER BY created_at DESC LIMIT 5
-                    """
-                ),
-                {"user": user},
-            ).mappings()
-            data = [dict(r) for r in rows]
-            yield f"data: {json.dumps({'unread': len(data), 'recent': data})}\n\n"
-            await asyncio.sleep(5)
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+) -> Any:
+    """Quick unread count for bell/polling. Lightweight alternative to full list."""
+    user = current_user.get("username", "unknown")
+    row = db.execute(
+        text(
+            "SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = :user AND is_read = FALSE"
+        ),
+        {"user": user},
+    ).mappings().fetchone()
+    return {"unread": row["cnt"] if row else 0}

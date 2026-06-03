@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 import { IncidentDetailView } from "@/components/incidents/incident-detail-view";
-import { getServerApiUrl } from "@/lib/server-api";
-
-export const dynamic = "force-dynamic";
+import { incidentsApi } from "@/lib/api";
 
 type LoadState<T> =
   | { kind: "ok"; data: T }
@@ -29,39 +30,46 @@ type IncidentDetailPayload = {
   }>;
 };
 
-async function getIncident(id: string): Promise<LoadState<IncidentDetailPayload>> {
-  try {
-    const response = await fetch(getServerApiUrl(`/api/incidents/${id}`), {
-      cache: "no-store",
-    });
-    if (response.status === 404) {
-      return { kind: "not_found" };
-    }
-    if (!response.ok) {
-      return {
-        kind: "error",
-        message: `Incident API returned ${response.status} ${response.statusText || "without a status message"}.`,
-      };
-    }
-    return { kind: "ok", data: (await response.json()) as IncidentDetailPayload };
-  } catch (error) {
-    return {
-      kind: "error",
-      message: error instanceof Error ? error.message : "Unable to reach the incident API.",
-    };
-  }
-}
+export default function IncidentDetailPage() {
+  const params = useParams<{ id: string }>();
+  const id = params?.id || "";
 
-export default async function IncidentDetailPage({ params }: { params: { id: string } }) {
-  const result = await getIncident(params.id);
+  const [result, setResult] = useState<LoadState<IncidentDetailPayload> | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const load = async () => {
+      try {
+        const response = await incidentsApi.get(id);
+        if (response.status === 404) {
+          setResult({ kind: "not_found" });
+          return;
+        }
+        setResult({ kind: "ok", data: response.data as IncidentDetailPayload });
+      } catch (error) {
+        setResult({
+          kind: "error",
+          message: error instanceof Error ? error.message : "Unable to reach the incident API.",
+        });
+      }
+    };
+
+    void load();
+  }, [id]);
+
+  if (!result) {
+    return <IncidentDetailView id={id} error={undefined} />;
+  }
 
   if (result.kind === "not_found") {
-    notFound();
+    // For client, we can show a not found UI or redirect, but component handles error
+    return <IncidentDetailView id={id} error="Incident not found" />;
   }
 
   if (result.kind === "error") {
-    return <IncidentDetailView id={params.id} error={result.message} />;
+    return <IncidentDetailView id={id} error={result.message} />;
   }
 
-  return <IncidentDetailView id={params.id} payload={result.data} />;
+  return <IncidentDetailView id={id} payload={result.data} />;
 }

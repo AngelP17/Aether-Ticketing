@@ -36,7 +36,7 @@ import { DecisionDetailPanel } from "@/components/command-center/decision-detail
 import { priorityPalette } from "@/components/command-center/palettes";
 import type { IncidentCard, QueueTicket } from "@/components/command-center/types";
 import { NotificationBell, useToast } from "@/components/notifications";
-import { governanceApi, intelligenceApi, metricsApi, ticketsApi, incidentsApi } from "@/lib/api";
+import { governanceApi, intelligenceApi, metricsApi, ticketsApi, incidentsApi, reportsApi } from "@/lib/api";
 import { clearStoredSession } from "@/lib/auth";
 import { parseFilename, readExportError } from "@/lib/export-utils";
 import type { GovernanceSummaryResponse, Incident, IntelligenceHealthResponse, Ticket } from "@/types";
@@ -451,21 +451,20 @@ export default function CommandCenterPage() {
     setIsExporting(true);
 
     try {
-      const response = await fetch("/api/reports/excel", {
-        method: "GET",
-        cache: "no-store",
-      });
+      const response = await reportsApi.excel();
 
-      if (!response.ok) {
-        throw new Error(await readExportError(response));
+      if (response.status !== 200) {
+        const data = response.data as any;
+        const msg = data?.detail || data?.message || `Export failed with status ${response.status}`;
+        throw new Error(msg);
       }
 
-      const blob = await response.blob();
+      const blob = response.data as Blob;
       if (blob.size === 0) {
         throw new Error("The workbook export was empty.");
       }
 
-      const filename = parseFilename(response.headers.get("content-disposition"));
+      const filename = parseFilename(response.headers["content-disposition"] as string | null);
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
 
@@ -756,7 +755,7 @@ export default function CommandCenterPage() {
             {feed.tickets.length > 0 && (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div className="ops-card rounded-[22px] p-4">
-                  <div className="text-[11px] mono-data uppercase tracking-[0.18em] text-zinc-400 mb-2">Top categories (live)</div>
+                  <h3 className="text-xs font-medium text-zinc-300 mb-2">Top categories</h3>
                   <div style={{ width: "100%", height: 160 }}>
                     <ResponsiveContainer>
                       <PieChart>
@@ -775,7 +774,7 @@ export default function CommandCenterPage() {
                 </div>
 
                 <div className="ops-card rounded-[22px] p-4">
-                  <div className="text-[11px] mono-data uppercase tracking-[0.18em] text-zinc-400 mb-2">Assignee load</div>
+                  <h3 className="text-xs font-medium text-zinc-300 mb-2">Assignee load</h3>
                   <div style={{ width: "100%", height: 160 }}>
                     <ResponsiveContainer>
                       <BarChart data={assigneeData}>

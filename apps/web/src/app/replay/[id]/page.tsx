@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 import { ReplayView } from "@/components/replay/replay-view";
-import { getServerApiUrl } from "@/lib/server-api";
-
-export const dynamic = "force-dynamic";
+import { replayApi } from "@/lib/api";  // assuming it will be added or use direct; we'll use fetch with token via api if possible
 
 type LoadState<T> =
   | { kind: "ok"; data: T }
@@ -33,39 +34,45 @@ type ReplayPayload = {
   similar_cases: Array<{ ticket_id: string; title: string; status: string }>;
 };
 
-async function getReplay(id: string): Promise<LoadState<ReplayPayload>> {
-  try {
-    const response = await fetch(getServerApiUrl(`/api/replay/${id}`), {
-      cache: "no-store",
-    });
-    if (response.status === 404) {
-      return { kind: "not_found" };
-    }
-    if (!response.ok) {
-      return {
-        kind: "error",
-        message: `Replay API returned ${response.status} ${response.statusText || "without a status message"}.`,
-      };
-    }
-    return { kind: "ok", data: (await response.json()) as ReplayPayload };
-  } catch (error) {
-    return {
-      kind: "error",
-      message: error instanceof Error ? error.message : "Unable to reach the replay API.",
-    };
-  }
-}
+export default function ReplayPage() {
+  const params = useParams<{ id: string }>();
+  const id = params?.id || "";
 
-export default async function ReplayPage({ params }: { params: { id: string } }) {
-  const result = await getReplay(params.id);
+  const [result, setResult] = useState<LoadState<ReplayPayload> | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const load = async () => {
+      try {
+        const response = await replayApi.get(id);
+        if (response.status === 404) {
+          setResult({ kind: "not_found" });
+          return;
+        }
+        setResult({ kind: "ok", data: response.data as ReplayPayload });
+      } catch (error) {
+        setResult({
+          kind: "error",
+          message: error instanceof Error ? error.message : "Unable to reach the replay API.",
+        });
+      }
+    };
+
+    void load();
+  }, [id]);
+
+  if (!result) {
+    return <ReplayView id={id} error={undefined} />;
+  }
 
   if (result.kind === "not_found") {
-    notFound();
+    return <ReplayView id={id} error="Replay not found" />;
   }
 
   if (result.kind === "error") {
-    return <ReplayView id={params.id} error={result.message} />;
+    return <ReplayView id={id} error={result.message} />;
   }
 
-  return <ReplayView id={params.id} payload={result.data} />;
+  return <ReplayView id={id} payload={result.data} />;
 }
