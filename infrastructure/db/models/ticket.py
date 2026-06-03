@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, JSON
 from sqlalchemy.orm import relationship
 
 from infrastructure.db.base import Base
@@ -33,6 +33,9 @@ class Ticket(Base):
     resolved_at = Column(DateTime, nullable=True)
     source_system = Column(String(50), default="import")
     is_active = Column(Boolean, default=True, index=True)
+    # Phase for OSS hybrid: custom fields for forms, integrations (device attrs, Jira parity, etc.)
+    # JSON for flexibility; can evolve to dedicated table for indexing/search later.
+    custom_fields = Column(JSON, default=dict, nullable=True)
 
     events = relationship("TicketEvent", back_populates="ticket", cascade="all, delete-orphan")
     decisions = relationship(

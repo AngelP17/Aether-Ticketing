@@ -369,7 +369,8 @@ class TicketService:
                     created_at,
                     updated_at,
                     resolved_at,
-                    site_id
+                    site_id,
+                    custom_fields
                 )
                 VALUES (
                     :ticket_id,
@@ -386,7 +387,8 @@ class TicketService:
                     CURRENT_TIMESTAMP,
                     CURRENT_TIMESTAMP,
                     :resolved_at,
-                    :site_id
+                    :site_id,
+                    :custom_fields
                 )
                 RETURNING id, ticket_id
                 """
@@ -404,6 +406,7 @@ class TicketService:
                 "resolution_notes": payload.get("resolution_notes") or None,
                 "resolved_at": resolved_at,
                 "site_id": payload.get("site_id") or None,
+                "custom_fields": payload.get("custom_fields") or payload.get("customFields") or None,
             },
         ).mappings().one()
 
@@ -437,6 +440,7 @@ class TicketService:
             "resolution_notes": "resolution_notes",
             "site_id": "site_id",
             "category_id": "category_id",
+            "custom_fields": "custom_fields",
         }
         for payload_key, column_name in field_map.items():
             if payload_key not in payload:

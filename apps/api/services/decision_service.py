@@ -16,6 +16,7 @@ from apps.api.services.operational_intelligence import (
 )
 from pipelines.decisions.decision_hash import compute_decision_hash
 from pipelines.decisions.uncertainty_bands import band_payload
+from apps.api.services.webhook_service import WebhookService  # for OSS hybrid integrations (Activepieces etc.)
 
 
 def _compute_anomaly_zscore(priority_score: float, category_scores: list[float]) -> float:

@@ -55,6 +55,7 @@ class TicketCreateRequest(BaseModel):
     resolution_notes: str | None = None
     site_id: str | None = None
     label_ids: list[int] = Field(default_factory=list)
+    custom_fields: dict | None = None  # for OSS hybrid forms/integrations (Jira parity, device attrs, etc.)
 
 
 class TicketUpdateRequest(BaseModel):
@@ -69,6 +70,7 @@ class TicketUpdateRequest(BaseModel):
     resolution_notes: str | None = None
     site_id: str | None = None
     label_ids: list[int] | None = None
+    custom_fields: dict | None = None  # for OSS hybrid forms/integrations (Jira parity, device attrs, etc.)
 
 
 class TicketLabelsRequest(BaseModel):

@@ -26,6 +26,7 @@ def public_create_ticket(payload: dict[str, Any], db: Session = Depends(get_db))
         "requester": payload.get("requester") or payload.get("email") or "portal@customer",
         "priority": "Low",
         "status": "Open",
+        "custom_fields": payload.get("custom_fields") or payload.get("customFields"),
     }
     tid = None
     try:
