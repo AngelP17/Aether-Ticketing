@@ -11,7 +11,11 @@ from apps.api.security import get_current_user, require_admin
 router = APIRouter()
 
 @router.get("")
-def list_articles(db: Session = Depends(get_db), q: str = Query(""), _user: dict = Depends(get_current_user)) -> Any:
+def list_articles(
+    db: Session = Depends(get_db),
+    q: str = Query(""),
+    _user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
     rows = db.execute(text("SELECT id, title, root_cause_class FROM articles WHERE title ILIKE :q ORDER BY created_at DESC LIMIT 50"), {"q": f"%{q}%"}).mappings()
     return [dict(r) for r in rows]
 

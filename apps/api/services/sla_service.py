@@ -5,14 +5,12 @@ Business hours support (simplified).
 Wired to ticket events and decision for auto tracking.
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from infrastructure.db.models.sla_policy import SlaPolicy
-from infrastructure.db.models.ticket_sla_tracking import TicketSlaTracking
 from apps.api.services.webhook_service import WebhookService
 
 logger = logging.getLogger(__name__)
