@@ -83,6 +83,32 @@ def update_ticket(
     return ticket
 
 
+@router.post("/bulk")
+def bulk_action(
+    body: dict[str, Any],
+    db: Session = Depends(get_db),
+    actor: dict[str, Any] = Depends(require_ticket_write),
+) -> Any:
+    """Bulk operations stub (close/assign/priority). Full Phase 2/5 feature."""
+    ids: list[str] = body.get("ticket_ids", []) or []
+    action = (body.get("action") or "").lower()
+    value = body.get("value")
+    svc = TicketService(db)
+    results: list[dict[str, Any]] = []
+    for tid in ids[:100]:  # safety cap
+        try:
+            if action in ("close", "resolve"):
+                svc.update_ticket(tid, {"status": "Closed"}, actor)
+            elif action == "assign" and value:
+                svc.update_ticket(tid, {"staff_assigned": value}, actor)
+            elif action == "priority" and value:
+                svc.update_ticket(tid, {"priority": value}, actor)
+            results.append({"id": tid, "ok": True})
+        except Exception as exc:
+            results.append({"id": tid, "ok": False, "error": str(exc)})
+    return {"count": len(results), "results": results}
+
+
 @router.delete("/{ticket_id}")
 def delete_ticket(
     ticket_id: str,

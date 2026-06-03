@@ -68,6 +68,8 @@ app.include_router(actions_router, prefix="/api/actions", tags=["actions"])
 app.include_router(intelligence_router, prefix="/api/intelligence", tags=["intelligence"])
 app.include_router(governance_router, prefix="/api/governance", tags=["governance"])
 app.include_router(diagnostics_router, prefix="/api/diagnostics", tags=["diagnostics"])
+app.include_router(__import__("apps.api.routes.notifications", fromlist=["router"]).router, prefix="/api/notifications", tags=["notifications"])
+app.include_router(__import__("apps.api.routes.audit", fromlist=["router"]).router, prefix="/api/audit", tags=["audit"])
 
 
 @app.get("/health")
