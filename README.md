@@ -58,12 +58,16 @@ flowchart TB
     Graph --> Gov[Governance\ndrift + card]
     Decisions --> Gov
     Web --> Feedback[Operator Feedback]
+    Web --> Portal[Customer Portal (Phase 8)]
     Feedback --> FeedbackLog[(operator_feedback)]
     FeedbackLog --> Apply[ActionService.apply_runbook]
     Apply --> TicketMutation[Safe ticket mutation]
     TicketMutation --> Current
     TicketMutation --> Events
     FeedbackLog --> DE
+    DE --> Email[Email Notifications (Phase 8)]
+    Events --> WS[WebSocket Realtime (Phase 8)]
+    DE --> KB[Knowledge Base (Phase 8)]
 ```
 
 ## Tech Stack

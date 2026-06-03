@@ -83,10 +83,12 @@ flowchart LR
     CC --> Replay[Replay / Audit]
     CC --> Reports[Reports / Export]
     CC --> Settings[Settings\nadmin only]
+    CC --> Portal[Customer Portal]
     Board --> Detail
     Detail --> Replay
     Detail --> Inc
     Reports --> CC
     Settings --> Users[User Management\nadmin only]
     Settings --> Catalog[Catalog\nadmin only]
+    Portal --> CC
 ```

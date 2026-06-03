@@ -688,7 +688,7 @@ export default function AdminPage() {
           {governance ? (
             <div className="mt-6 grid gap-4 lg:grid-cols-3">
               <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
-                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                <div className="text-sm font-medium text-zinc-300">
                   Drift status
                 </div>
                 <div
@@ -724,7 +724,7 @@ export default function AdminPage() {
                 ) : null}
               </div>
               <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
-                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                <div className="text-sm font-medium text-zinc-300">
                   Graph health
                 </div>
                 <div className="mt-3 text-2xl font-semibold text-zinc-50">
@@ -746,7 +746,7 @@ export default function AdminPage() {
                 ) : null}
               </div>
               <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
-                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                <div className="text-sm font-medium text-zinc-300">
                   Engine card
                 </div>
                 <div className="mt-3 text-base font-semibold text-zinc-50">
@@ -778,7 +778,7 @@ export default function AdminPage() {
            {intelligenceHealth ? (
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
-                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                <div className="text-sm font-medium text-zinc-300">
                   Engine health
                 </div>
                 <div className="mt-3 text-2xl font-semibold text-emerald-200">
@@ -794,7 +794,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
-                <div className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                <div className="text-sm font-medium text-zinc-300">
                   Feedback loop
                 </div>
                 <div className="mt-3 text-sm text-zinc-200">

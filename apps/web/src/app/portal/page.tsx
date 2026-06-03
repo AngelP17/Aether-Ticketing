@@ -33,10 +33,10 @@ export default function PortalPage() {
       <div className="mx-auto max-w-xl ops-card rounded-[22px] p-6">
         <h2 className="text-xl font-semibold">Submit a request</h2>
         <form onSubmit={submit} className="mt-4 space-y-3">
-          <input className="w-full rounded border p-2" placeholder="Title" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required />
-          <textarea className="w-full rounded border p-2" placeholder="Description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={4} required />
-          <input className="w-full rounded border p-2" placeholder="Your email or name" value={form.requester} onChange={e=>setForm({...form,requester:e.target.value})} />
-          <button disabled={loading} className="rounded bg-amber-500 px-4 py-2 text-black disabled:opacity-50">{loading ? "Sending..." : "Submit"}</button>
+          <input className="w-full rounded-[12px] border border-zinc-800 bg-black/20 p-3 text-sm mono-data" placeholder="Title" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required />
+          <textarea className="w-full rounded-[12px] border border-zinc-800 bg-black/20 p-3 text-sm" placeholder="Description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={4} required />
+          <input className="w-full rounded-[12px] border border-zinc-800 bg-black/20 p-3 text-sm mono-data" placeholder="Your email or name" value={form.requester} onChange={e=>setForm({...form,requester:e.target.value})} />
+          <button disabled={loading} className="w-full rounded-[12px] bg-amber-500 px-4 py-2 text-sm font-medium text-black disabled:opacity-50 active:scale-[0.98] transition">{loading ? "Sending..." : "Submit request"}</button>
         </form>
 
         {result && (
