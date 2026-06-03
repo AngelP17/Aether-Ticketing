@@ -300,6 +300,19 @@ export function DecisionDetailPanel({
                 {decision.graph_weighted_degree?.toFixed(2) ?? "0.00"}
               </span>
             </div>
+            {/* All 8 sub-scores + z-score + anomaly for honest intelligence (Phase 3/4) */}
+            <div className="sm:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1 text-[10px] mono-data pt-1 border-t border-white/5">
+              <div>sev <span className={tone.text}>{decision.severity_score?.toFixed(0) ?? "—"}</span></div>
+              <div>urg <span className={tone.text}>{decision.urgency_score?.toFixed(0) ?? "—"}</span></div>
+              <div>biz <span className={tone.text}>{decision.business_impact_score?.toFixed(0) ?? "—"}</span></div>
+              <div>sla <span className={tone.text}>{decision.sla_risk_score?.toFixed(0) ?? "—"}</span></div>
+              <div>rec <span className={tone.text}>{decision.recurrence_score?.toFixed(0) ?? "—"}</span></div>
+              <div>dep <span className={tone.text}>{decision.dependency_criticality_score?.toFixed(0) ?? "—"}</span></div>
+              <div>act <span className={tone.text}>{decision.actionability_score?.toFixed(0) ?? "—"}</span></div>
+              <div>unc <span className={tone.text}>{decision.uncertainty_penalty?.toFixed(0) ?? "—"}</span></div>
+              <div>z <span className={tone.text}>{(decision as any).anomaly_zscore?.toFixed(2) ?? "—"}</span></div>
+              <div>graph <span className={tone.text}>{(decision as any).graph_centrality_score?.toFixed(1) ?? "—"}</span></div>
+            </div>
             {decision.band_rationale ? (
               <div className="sm:col-span-2">
                 <span className={`mono-data uppercase tracking-[0.18em] ${tone.label}`}>
