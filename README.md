@@ -6,19 +6,45 @@ Aether OpsCenter turns live service tickets into ranked, explainable actions acr
 
 ## Screenshots
 
+Dense B2B ops UI with deterministic graph + rules intelligence (PageRank centrality, 7 edge types, sigmoid urgency, entropy uncertainty, decision bands, fingerprints, graph-aware incidents, real action runs) and Phase 8 surfaces. Single locked amber accent, mono IDs/scores, hairline data, full UI cycles, mobile grid-cols-1 + short nav.
+
 ### Login
 
 ![Aether OpsCenter login](docs/screenshots/login.png)
 
 ### Command Center
 
+Full queue + graph centrality bar, subscores, bands, Snapshot Analytics (drift signals, relation types).
+
 ![Aether OpsCenter command center](docs/screenshots/command-center.png)
 
 ### Workflow Board
 
+Kanban with inline detail drawer (graph features, root cause, priority interval, quick link), tactile press, Escape key.
+
 ![Aether OpsCenter workflow board](docs/screenshots/board.png)
 
+### Incidents
+
+Graph evidence (edge counts for asset/root_cause/site), shared actors, recommended action from clusters.
+
+![Aether OpsCenter incidents](docs/screenshots/incidents.png)
+
+### Replay
+
+Decision hash, band, interval, graph degree/weighted_degree, anomaly z-score, action runs from apply/feedback.
+
+![Aether OpsCenter replay](docs/screenshots/replay.png)
+
+### Customer Portal (Phase 8)
+
+Submit (title/desc/site/priority) flows to command/board with intel; status by key.
+
+![Aether OpsCenter customer portal](docs/screenshots/portal.png)
+
 ### Reports
+
+Styled Excel for queue/incidents/audit including current decision fields and graph data.
 
 ![Aether OpsCenter reports](docs/screenshots/reports.png)
 

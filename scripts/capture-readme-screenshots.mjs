@@ -30,6 +30,24 @@ const shots = [
     postWaitMs: 800,
   },
   {
+    name: "incidents.png",
+    url: "/incidents",
+    waitFor: "text=Incidents",
+    postWaitMs: 1200,
+  },
+  {
+    name: "replay.png",
+    url: "/replay/IT-20260005",
+    waitFor: "text=Replay",
+    postWaitMs: 1500,
+  },
+  {
+    name: "portal.png",
+    url: "/portal",
+    waitFor: "text=Submit",
+    postWaitMs: 800,
+  },
+  {
     name: "reports.png",
     url: "/reports",
     waitFor: "text=Reports & Export",
