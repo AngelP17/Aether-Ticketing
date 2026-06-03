@@ -40,7 +40,9 @@ import { governanceApi, intelligenceApi, metricsApi, ticketsApi, incidentsApi, r
 import { clearStoredSession } from "@/lib/auth";
 import { parseFilename, readExportError } from "@/lib/export-utils";
 import type { GovernanceSummaryResponse, Incident, IntelligenceHealthResponse, Ticket } from "@/types";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+// Recharts removed for the snapshot analytics — replaced with custom hairline + mono dense bars
+// to match design-taste-frontend OpsCenter rules (DENSITY 8, hairline data surfaces, one amber accent,
+// no generic lib defaults, mono for counts/scores). See AGENTS.md.
 
 type QueueMetrics = {
   total_open: number;
@@ -760,55 +762,76 @@ export default function CommandCenterPage() {
               searchTerm={searchTerm}
             />
 
-            {/* Dashboard charts (Phase 4 remaining, using existing Recharts) - category + assignee snapshot for density */}
+            {/* Snapshot density — custom hairline bars (not Recharts generic).
+                 Follows OpsCenter design-taste-frontend: DENSITY 8 cockpit data, hairline separators,
+                 mono counts, single amber accent for primary data viz, no rainbow, no default tooltips/cards for micro data.
+                 The "Graph relation types" is the live output of the deterministic 7-edge ticket_graph (PageRank input). */}
             {feed.tickets.length > 0 && (
               <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <div className="ops-card rounded-[22px] p-4">
-                  <h3 className="text-xs font-medium text-zinc-300 mb-2">Top categories</h3>
-                  <div style={{ width: "100%", height: 160 }}>
-                    <ResponsiveContainer>
-                      <PieChart>
-                        <Pie dataKey="value" data={categoryData} cx="50%" cy="50%" innerRadius={38} outerRadius={58} paddingAngle={2}>
-                          {categoryData.map((entry: { name: string; value: number }, idx: number) => (
-                            <Cell key={`c-${idx}`} fill={["#f59e0b", "#22b8cf", "#22c55e", "#f43f5e", "#64748b"][idx % 5]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-zinc-400">
-                    {categoryData.map((d: { name: string; value: number }, i: number) => <span key={i}>{d.name}: {d.value}</span>)}
-                  </div>
-                </div>
-
-                <div className="ops-card rounded-[22px] p-4">
-                  <h3 className="text-xs font-medium text-zinc-300 mb-2">Assignee load</h3>
-                  <div style={{ width: "100%", height: 160 }}>
-                    <ResponsiveContainer>
-                      <BarChart data={assigneeData}>
-                        <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 9 }} />
-                        <Tooltip />
-                        <Bar dataKey="value" fill="#f59e0b" radius={2} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                {/* Top categories — ranked dense bars, amber only, hairline */}
+                <div className="rounded-2xl border border-zinc-800/60 bg-black/10 p-3">
+                  <div className="text-[10px] mono-data text-zinc-500 mb-1.5">Top categories</div>
+                  <div className="space-y-1">
+                    {categoryData.length ? categoryData.map((d: { name: string; value: number }, i: number) => {
+                      const max = Math.max(...categoryData.map((x: any) => x.value));
+                      const w = max > 0 ? (d.value / max) * 100 : 0;
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-[11px]">
+                          <span className="w-20 truncate text-zinc-400 shrink-0">{d.name}</span>
+                          <div className="h-[3px] flex-1 bg-zinc-900/70 rounded overflow-hidden">
+                            <div className="h-full bg-amber-500 transition-all" style={{ width: `${w}%` }} />
+                          </div>
+                          <span className="mono-data w-6 text-right text-zinc-300 shrink-0">{d.value}</span>
+                        </div>
+                      );
+                    }) : <div className="text-[10px] text-zinc-500">—</div>}
                   </div>
                 </div>
 
-                <div className="ops-card rounded-[22px] p-4">
-                  <h3 className="text-xs font-medium text-zinc-300 mb-2">Graph relation types</h3>
-                  <div style={{ width: "100%", height: 160 }}>
-                    <ResponsiveContainer>
-                      <BarChart data={edgeData.length ? edgeData : [{name:"(no graph)", value:0}]}>
-                        <XAxis dataKey="name" tick={{ fontSize: 8 }} />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 9 }} />
-                        <Tooltip />
-                        <Bar dataKey="value" fill="#f59e0b" radius={2} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                {/* Assignee load — same dense treatment */}
+                <div className="rounded-2xl border border-zinc-800/60 bg-black/10 p-3">
+                  <div className="text-[10px] mono-data text-zinc-500 mb-1.5">Assignee load</div>
+                  <div className="space-y-1">
+                    {assigneeData.length ? assigneeData.map((d: { name: string; value: number }, i: number) => {
+                      const max = Math.max(...assigneeData.map((x: any) => x.value));
+                      const w = max > 0 ? (d.value / max) * 100 : 0;
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-[11px]">
+                          <span className="w-20 truncate text-zinc-400 shrink-0">{d.name}</span>
+                          <div className="h-[3px] flex-1 bg-zinc-900/70 rounded overflow-hidden">
+                            <div className="h-full bg-amber-500 transition-all" style={{ width: `${w}%` }} />
+                          </div>
+                          <span className="mono-data w-6 text-right text-zinc-300 shrink-0">{d.value}</span>
+                        </div>
+                      );
+                    }) : <div className="text-[10px] text-zinc-500">—</div>}
                   </div>
-                  <div className="mt-1 text-[10px] text-zinc-400">from live ticket graph (deterministic)</div>
+                </div>
+
+                {/* Graph relation types — the real one. Enhanced for the Rift graph intelligence.
+                    Shows the 7 edge types from ticket_graph.build_ticket_graph that feed PageRank + centrality scoring.
+                    Hairline bars + mono + total from governance for density. */}
+                <div className="rounded-2xl border border-amber-500/20 bg-black/10 p-3">
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <div className="text-[10px] mono-data text-amber-400">Graph relation types</div>
+                    <div className="text-[10px] mono-data text-zinc-500">live deterministic</div>
+                  </div>
+                  <div className="space-y-1">
+                    {edgeData.length ? edgeData.map((d: { name: string; value: number }, i: number) => {
+                      const max = Math.max(...edgeData.map((x: any) => x.value));
+                      const w = max > 0 ? (d.value / max) * 100 : 0;
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-[11px]">
+                          <span className="w-[92px] truncate text-zinc-400 shrink-0 font-mono text-[10px]">{d.name}</span>
+                          <div className="h-[3px] flex-1 bg-zinc-900/70 rounded overflow-hidden">
+                            <div className="h-full bg-amber-500 transition-all" style={{ width: `${w}%` }} />
+                          </div>
+                          <span className="mono-data w-7 text-right text-amber-300 shrink-0 font-medium">{d.value}</span>
+                        </div>
+                      );
+                    }) : <div className="text-[10px] text-zinc-500">no graph edges yet</div>}
+                  </div>
+                  <div className="mt-1.5 text-[9px] mono-data text-zinc-600">7 edge types • PageRank input • centrality 0.10 weight</div>
                 </div>
               </div>
             )}
@@ -942,34 +965,70 @@ function DecisionIntelligencePanel({
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <IntelStat label="Graph nodes" value={graphUnavailable ? "unavailable" : String(graph?.node_count ?? 0)} />
-        <IntelStat label="Graph edges" value={graphUnavailable ? "unavailable" : String(graph?.edge_count ?? 0)} />
-        <IntelStat label="Drift status" value={formatStatus(driftStatus)} />
-        <IntelStat label="Similar links" value={String(similarLinks)} />
-        <IntelStat label="Recommendations" value={String(recommendationCount)} />
-        <IntelStat label="Feedback / runs" value={`${feedbackCount} / ${actionRuns}`} />
+      {/* High-density intel stats: hairline + mono numbers, minimal containers (per AGENTS "shape rule for data surfaces").
+          No generic rounded cards for counts; tight grid with subtle separators. */}
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm border-t border-zinc-800/50 pt-3">
+        <div><span className="text-[10px] text-zinc-500">Graph nodes</span><div className="mono-data text-base font-semibold text-zinc-100 mt-0.5">{graphUnavailable ? "—" : (graph?.node_count ?? 0)}</div></div>
+        <div><span className="text-[10px] text-zinc-500">Graph edges</span><div className="mono-data text-base font-semibold text-zinc-100 mt-0.5">{graphUnavailable ? "—" : (graph?.edge_count ?? 0)}</div></div>
+        <div><span className="text-[10px] text-zinc-500">Drift status</span><div className="mono-data text-base font-semibold text-amber-300 mt-0.5">{formatStatus(driftStatus)}</div></div>
+        <div><span className="text-[10px] text-zinc-500">Similar links</span><div className="mono-data text-base font-semibold text-zinc-100 mt-0.5">{similarLinks}</div></div>
+        <div><span className="text-[10px] text-zinc-500">Recommendations</span><div className="mono-data text-base font-semibold text-zinc-100 mt-0.5">{recommendationCount}</div></div>
+        <div><span className="text-[10px] text-zinc-500">Feedback / runs</span><div className="mono-data text-base font-semibold text-zinc-100 mt-0.5">{feedbackCount} / {actionRuns}</div></div>
       </div>
 
-      {/* More graph intel: edges breakdown + drift signals for visibility (no new deps, dense mono) */}
+      {/* Graph + drift — enhanced dense visuals (hairline, mono, amber primary for graph data).
+          Matches the custom snapshot bars above and the "deterministic rules, graph links, drift checks" truth. */}
       {graph && !graphUnavailable && graph.edges_by_type && Object.keys(graph.edges_by_type).length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-zinc-800/70 bg-black/20 p-3">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Relation types (ticket graph)</div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {Object.entries(graph.edges_by_type as Record<string, number>).map(([k, v]) => (
-              <span key={k} className="rounded border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 text-[10px] font-mono text-amber-100">{k.replace(/_/g, " ")}: {v}</span>
-            ))}
+        <div className="mt-4 rounded-xl border border-zinc-800/60 bg-black/10 p-3">
+          <div className="text-[10px] mono-data text-amber-400 mb-1.5">Relation types (ticket graph)</div>
+          <div className="space-y-0.5">
+            {Object.entries(graph.edges_by_type as Record<string, number>)
+              .sort((a, b) => b[1] - a[1])
+              .map(([k, v]) => {
+                const vals = Object.values(graph.edges_by_type as Record<string, number>);
+                const max = Math.max(...vals);
+                const w = max > 0 ? (v / max) * 100 : 0;
+                return (
+                  <div key={k} className="flex items-center gap-2 text-[11px]">
+                    <span className="w-28 truncate text-zinc-400 shrink-0 font-mono text-[10px]">{k.replace(/_/g, " ")}</span>
+                    <div className="h-[2px] flex-1 bg-zinc-900/70 rounded overflow-hidden">
+                      <div className="h-full bg-amber-500 transition-all" style={{ width: `${w}%` }} />
+                    </div>
+                    <span className="mono-data w-8 text-right text-amber-300 shrink-0">{v}</span>
+                  </div>
+                );
+              })}
           </div>
+          <div className="mt-1 text-[9px] mono-data text-zinc-600">feeds PageRank centrality • 0.10 score weight</div>
         </div>
       ) : null}
 
-      {drift && driftStatus !== "unavailable" && (drift.priority_shift || drift.uncertainty_shift || (drift.root_cause_spikes && drift.root_cause_spikes.length)) ? (
-        <div className="mt-3 rounded-2xl border border-zinc-800/70 bg-black/20 p-3 text-xs">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 mb-1">Drift signals (weekly)</div>
-          {drift.priority_shift ? <div>priority Δ {drift.priority_shift.delta} ({drift.priority_shift.pct_change}%)</div> : null}
-          {drift.uncertainty_shift ? <div>uncertainty Δ {drift.uncertainty_shift.delta} ({drift.uncertainty_shift.pct_change}%)</div> : null}
-          {drift.review_needed_rate_shift ? <div>review-needed rate Δ {drift.review_needed_rate_shift.delta}</div> : null}
-          {drift.root_cause_spikes && drift.root_cause_spikes.length ? <div>root spikes: {drift.root_cause_spikes.map((s: any) => s.root_cause).slice(0,2).join(", ")}</div> : null}
+      {drift && driftStatus !== "unavailable" && (drift.priority_shift || drift.uncertainty_shift) ? (
+        <div className="mt-3 rounded-xl border border-zinc-800/60 bg-black/10 p-3 text-[11px]">
+          <div className="text-[10px] mono-data text-zinc-500 mb-1.5">Drift signals (weekly)</div>
+          <div className="space-y-1">
+            {drift.priority_shift ? (
+              <div className="flex items-center gap-2">
+                <span className="w-16 text-zinc-400">priority</span>
+                <div className="flex-1 h-1.5 bg-zinc-900/70 rounded overflow-hidden">
+                  <div className="h-full bg-rose-500" style={{ width: `${Math.min(Math.abs(drift.priority_shift.pct_change || 0) / 5, 100)}%` }} />
+                </div>
+                <span className="mono-data text-rose-300 tabular-nums">Δ {drift.priority_shift.delta} ({drift.priority_shift.pct_change}%)</span>
+              </div>
+            ) : null}
+            {drift.uncertainty_shift ? (
+              <div className="flex items-center gap-2">
+                <span className="w-16 text-zinc-400">uncertainty</span>
+                <div className="flex-1 h-1.5 bg-zinc-900/70 rounded overflow-hidden">
+                  <div className="h-full bg-amber-500" style={{ width: `${Math.min(Math.abs(drift.uncertainty_shift.pct_change || 0) / 5, 100)}%` }} />
+                </div>
+                <span className="mono-data text-amber-300 tabular-nums">Δ {drift.uncertainty_shift.delta} ({drift.uncertainty_shift.pct_change}%)</span>
+              </div>
+            ) : null}
+          </div>
+          {drift.root_cause_spikes?.length ? (
+            <div className="mt-1 text-[10px] text-zinc-500">root spikes: {drift.root_cause_spikes.slice(0,2).map((s: any) => s.root_cause).join(", ")}</div>
+          ) : null}
         </div>
       ) : null}
 
@@ -983,11 +1042,4 @@ function DecisionIntelligencePanel({
   );
 }
 
-function IntelStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-zinc-800/70 bg-black/20 p-3">
-      <div className="text-xs text-zinc-500">{label}</div>
-      <div className="mono-data mt-2 truncate text-sm font-semibold text-zinc-100">{value}</div>
-    </div>
-  );
-}
+// IntelStat component removed — inlined as hairline dense grid above for data-surface rules.

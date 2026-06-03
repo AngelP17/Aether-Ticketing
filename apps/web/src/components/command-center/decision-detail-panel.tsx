@@ -300,18 +300,34 @@ export function DecisionDetailPanel({
                 {decision.graph_weighted_degree?.toFixed(2) ?? "0.00"}
               </span>
             </div>
-            {/* All 8 sub-scores + z-score + anomaly for honest intelligence (Phase 3/4) */}
-            <div className="sm:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1 text-[10px] mono-data pt-1 border-t border-white/5">
-              <div>sev <span className={tone.text}>{decision.severity_score?.toFixed(0) ?? "—"}</span></div>
-              <div>urg <span className={tone.text}>{decision.urgency_score?.toFixed(0) ?? "—"}</span></div>
-              <div>biz <span className={tone.text}>{decision.business_impact_score?.toFixed(0) ?? "—"}</span></div>
-              <div>sla <span className={tone.text}>{decision.sla_risk_score?.toFixed(0) ?? "—"}</span></div>
-              <div>rec <span className={tone.text}>{decision.recurrence_score?.toFixed(0) ?? "—"}</span></div>
-              <div>dep <span className={tone.text}>{decision.dependency_criticality_score?.toFixed(0) ?? "—"}</span></div>
-              <div>act <span className={tone.text}>{decision.actionability_score?.toFixed(0) ?? "—"}</span></div>
-              <div>unc <span className={tone.text}>{decision.uncertainty_penalty?.toFixed(0) ?? "—"}</span></div>
-              <div>z <span className={tone.text}>{(decision as any).anomaly_zscore?.toFixed(2) ?? "—"}</span></div>
-              <div>graph <span className={tone.text}>{(decision as any).graph_centrality_score?.toFixed(1) ?? "—"}</span></div>
+            {/* All sub-scores + graph_centrality + z — now with tiny hairline bars for visual weight (still mono dense, no card clutter). */}
+            <div className="sm:col-span-2 grid grid-cols-2 md:grid-cols-5 gap-x-3 gap-y-1 text-[10px] mono-data pt-1 border-t border-white/5">
+              {[
+                ["sev", decision.severity_score],
+                ["urg", decision.urgency_score],
+                ["biz", decision.business_impact_score],
+                ["sla", decision.sla_risk_score],
+                ["rec", decision.recurrence_score],
+                ["dep", decision.dependency_criticality_score],
+                ["act", decision.actionability_score],
+                ["unc", decision.uncertainty_penalty],
+                ["z", (decision as any).anomaly_zscore],
+                ["graph", (decision as any).graph_centrality_score],
+              ].map(([k, v]) => {
+                const num = typeof v === "number" ? v : 0;
+                const isZ = k === "z";
+                const maxRef = isZ ? 3 : 100;
+                const w = Math.max(2, Math.min(100, (Math.abs(num) / maxRef) * 100));
+                return (
+                  <div key={k as string} className="flex items-center gap-1">
+                    <span className="text-zinc-500 w-8">{k}</span>
+                    <span className={tone.text + " w-8 text-right"}>{isZ ? num.toFixed(2) : (num as number).toFixed(0)}</span>
+                    <div className="h-[2px] flex-1 bg-zinc-800/70 rounded overflow-hidden">
+                      <div className={`h-full ${k === "graph" ? "bg-amber-500" : "bg-zinc-500"}`} style={{ width: `${w}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             {decision.band_rationale ? (
               <div className="sm:col-span-2">
@@ -343,12 +359,21 @@ export function DecisionDetailPanel({
                   explanation
                 </span>
                 <div className={`mt-2 space-y-1 ${tone.text}`}>
-                  {Object.entries(decision.explanation_json as Record<string, unknown>).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between gap-2 text-[11px]">
-                      <span className="text-zinc-400">{key}</span>
-                      <span className="mono-data">{typeof value === "number" ? value.toFixed(2) : String(value)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(decision.explanation_json as Record<string, unknown>).map(([key, value]) => {
+                    const num = typeof value === "number" ? value : null;
+                    const w = num != null ? Math.max(4, Math.min(100, Math.abs(num) * 50)) : 0; // scale for viz
+                    return (
+                      <div key={key} className="flex items-center gap-2 text-[11px]">
+                        <span className="text-zinc-400 w-20 truncate">{key}</span>
+                        <span className="mono-data w-10 text-right">{num != null ? num.toFixed(2) : String(value)}</span>
+                        {num != null && (
+                          <div className="h-[2px] flex-1 bg-zinc-800/70 rounded overflow-hidden">
+                            <div className="h-full bg-amber-400/80" style={{ width: `${w}%` }} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
