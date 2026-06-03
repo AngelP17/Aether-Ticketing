@@ -6,7 +6,7 @@ import type { IncidentCard } from "./types";
 
 export function IncidentList({ incidents }: { incidents: IncidentCard[] }) {
   return (
-    <div className="ops-card rounded-[22px] p-5 sm:p-6">
+    <div className="ops-card max-h-[520px] overflow-y-auto rounded-[22px] p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-zinc-50">Incident clusters</h2>

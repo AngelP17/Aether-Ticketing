@@ -673,7 +673,7 @@ export default function CommandCenterPage() {
               onSelect={setSelectedTicketId}
               searchTerm={searchTerm}
             />
-            <div className="space-y-6">
+            <div className="min-h-0 space-y-6 2xl:max-h-[760px] 2xl:overflow-y-auto 2xl:pr-1">
               <DecisionDetailPanel
                 selectedTicket={selectedTicket}
                 linkedIncident={linkedIncident}

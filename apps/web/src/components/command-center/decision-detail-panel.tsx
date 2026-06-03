@@ -145,7 +145,7 @@ export function DecisionDetailPanel({
   );
 
   return (
-    <div className="ops-card rounded-[22px] p-5 sm:p-6">
+    <div className="ops-card max-h-[72vh] overflow-y-auto rounded-[22px] p-5 sm:p-6 lg:max-h-[760px]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold text-zinc-50">

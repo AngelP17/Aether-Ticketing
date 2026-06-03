@@ -6,7 +6,7 @@ import { SectionEmptyState } from "./section-empty-state";
 import { priorityPalette, statusPalette } from "./palettes";
 import type { QueueTicket } from "./types";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 8;
 
 export function QueueTable({
   tickets,
@@ -24,7 +24,7 @@ export function QueueTable({
   const hasMore = tickets.length > visibleCount;
 
   return (
-    <div className="ops-card rounded-[22px] p-5 sm:p-6">
+    <div className="ops-card flex max-h-[72vh] flex-col rounded-[22px] p-5 sm:p-6 lg:max-h-[760px]">
       <div className="flex flex-col gap-3 border-b border-zinc-800/50 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-zinc-50">Ranked Queue</h2>
@@ -37,7 +37,7 @@ export function QueueTable({
         </span>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 min-h-0 space-y-3 overflow-y-auto pr-1">
         {visibleTickets.length ? visibleTickets.map((ticket, index) => (
           <button
             key={ticket.ticketId}
