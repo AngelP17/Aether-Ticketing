@@ -94,6 +94,10 @@ def _ensure_legacy_compatibility() -> None:
         "asset_id": "ALTER TABLE tickets ADD COLUMN asset_id INTEGER",
         "category_id": "ALTER TABLE tickets ADD COLUMN category_id INTEGER REFERENCES categories(id)",
         "root_cause_hypothesis": "ALTER TABLE tickets ADD COLUMN root_cause_hypothesis VARCHAR(100)",
+        "priority_score_cache": "ALTER TABLE tickets ADD COLUMN priority_score_cache INTEGER",
+        "confidence_score_cache": "ALTER TABLE tickets ADD COLUMN confidence_score_cache INTEGER",
+        "created_at": "ALTER TABLE tickets ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "updated_at": "ALTER TABLE tickets ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         "resolved_at": "ALTER TABLE tickets ADD COLUMN resolved_at TIMESTAMP",
         "source_system": "ALTER TABLE tickets ADD COLUMN source_system VARCHAR(50) DEFAULT 'legacy'",
         "is_active": "ALTER TABLE tickets ADD COLUMN is_active BOOLEAN DEFAULT TRUE",
@@ -109,8 +113,30 @@ def _ensure_legacy_compatibility() -> None:
         "explanation_json": "ALTER TABLE decision_records ADD COLUMN explanation_json JSONB",
     }
 
+    incident_statements = {
+        "last_updated_at": "ALTER TABLE incidents ADD COLUMN last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "closed_at": "ALTER TABLE incidents ADD COLUMN closed_at TIMESTAMP",
+        "asset_scope": "ALTER TABLE incidents ADD COLUMN asset_scope VARCHAR(255)",
+    }
+
+    recommendation_statements = {
+        "created_at": "ALTER TABLE recommendations ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+    }
+
+    action_run_statements = {
+        "operator_note": "ALTER TABLE action_runs ADD COLUMN operator_note VARCHAR(500)",
+        "rollback_payload_json": "ALTER TABLE action_runs ADD COLUMN rollback_payload_json JSON",
+        "ticket_event_id": "ALTER TABLE action_runs ADD COLUMN ticket_event_id BIGINT",
+    }
+
     with engine.begin() as connection:
-        for table_name, statements in [("tickets", ticket_statements), ("decision_records", decision_statements)]:
+        for table_name, statements in [
+            ("tickets", ticket_statements),
+            ("decision_records", decision_statements),
+            ("incidents", incident_statements),
+            ("recommendations", recommendation_statements),
+            ("action_runs", action_run_statements),
+        ]:
             existing_columns = {
                 row[0]
                 for row in connection.execute(
