@@ -35,6 +35,7 @@ class DecisionRecord(Base):
     decision_hash = Column(String(64), nullable=True, index=True)
     graph_degree = Column(Integer, default=0)
     graph_weighted_degree = Column(Float, default=0.0)
+    anomaly_zscore = Column(Float, nullable=True)
     explanation_json = Column(JSON)
 
     ticket = relationship("Ticket", back_populates="decisions")

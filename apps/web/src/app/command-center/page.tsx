@@ -17,9 +17,11 @@ import {
   Clock3,
   Columns3,
   FileSpreadsheet,
+  Filter,
   Gauge,
   LogOut,
   Plus,
+  Radar,
   Shield,
   ShieldAlert,
 } from "lucide-react";
@@ -58,6 +60,14 @@ type FeedState = {
   errorMessage: string | null;
   warnings: string[];
 };
+
+type TicketFilter = "all" | "active" | "closed";
+
+const ticketFilterOptions: Array<{ key: TicketFilter; label: string }> = [
+  { key: "all", label: "Full Queue" },
+  { key: "active", label: "Active" },
+  { key: "closed", label: "Closed" },
+];
 
 type MetricCard = {
   label: string;
@@ -156,6 +166,13 @@ function statusPillFor(status: FeedStatus) {
   return { kind: "error" as const, label: "Live data unavailable" };
 }
 
+function scrollToSection(id: string) {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export default function CommandCenterPage() {
   const router = useRouter();
   const toast = useToast();
@@ -163,6 +180,7 @@ export default function CommandCenterPage() {
   const [feed, setFeed] = useState<FeedState>(initialFeed);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [ticketFilter, setTicketFilter] = useState<TicketFilter>("all");
   const [lastSyncSeconds, setLastSyncSeconds] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -187,7 +205,7 @@ export default function CommandCenterPage() {
 
       try {
         const [ticketsResult, metricsResult, incidentsResult, intelligenceResult, governanceResult] = await Promise.allSettled([
-          apiData<Ticket[]>(ticketsApi.list({ limit: 160 })),
+          apiData<Ticket[]>(ticketsApi.list({ limit: 250 })),
           apiData<QueueMetrics>(metricsApi.get()),
           apiData<Incident[]>(incidentsApi.list()),
           apiData<IntelligenceHealthResponse>(intelligenceApi.health()),
@@ -356,6 +374,30 @@ export default function CommandCenterPage() {
       .includes(searchTerm);
   });
 
+  const ticketRows = [...feed.tickets]
+    .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+    .map(toQueueTicketFromLive)
+    .filter((ticket) => {
+    const matchesSearch =
+      !searchTerm ||
+      [ticket.ticketId, ticket.title, ticket.assignee, ticket.category, ticket.priority, ticket.status]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm);
+
+    if (!matchesSearch) {
+      return false;
+    }
+
+    if (ticketFilter === "all") {
+      return true;
+    }
+    if (ticketFilter === "active") {
+      return !isClosedStatus(ticket.status);
+    }
+    return isClosedStatus(ticket.status);
+  });
+
   useEffect(() => {
     if (!filteredQueue.length) {
       setSelectedTicketId(null);
@@ -437,6 +479,14 @@ export default function CommandCenterPage() {
     }
   }
 
+  const railItems = [
+    { kind: "action" as const, label: "Queue", onClick: () => scrollToSection("decision"), icon: Radar },
+    { kind: "action" as const, label: "Full Queue", onClick: () => scrollToSection("tickets"), icon: Columns3 },
+    { kind: "link" as const, href: "/board", label: "Board", icon: Columns3 },
+    { kind: "link" as const, href: "/reports", label: "Reports", icon: FileSpreadsheet },
+    { kind: "link" as const, href: "/admin", label: "Admin", icon: Shield },
+  ];
+
   const sheetItems = [
     { kind: "link" as const, href: "/tickets/new", label: "New ticket", icon: Plus, tone: "amber" as const },
     { kind: "link" as const, href: "/board", label: "Workflow board", icon: Columns3, tone: "default" as const },
@@ -470,6 +520,7 @@ export default function CommandCenterPage() {
         onChange: setSearch,
         placeholder: "Search queue, owner, category, or ticket",
       }}
+      railItems={railItems}
       sheetItems={sheetItems}
       exportButton={{ isExporting, onClick: handleWorkbookDownload, label: "Export workbook" }}
       showNotificationBell
@@ -683,6 +734,80 @@ export default function CommandCenterPage() {
                 governance={feed.governance}
               />
               <IncidentList incidents={incidentCards} />
+            </div>
+          </section>
+
+          <section id="tickets" className="mt-6 ops-card rounded-[22px] p-5 sm:p-6">
+            <div className="flex flex-col gap-4 border-b border-zinc-800/50 pb-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-zinc-50">Full Ticket List</h2>
+                <p className="mt-1 text-sm text-zinc-400">
+                  {ticketRows.length} of {feed.tickets.length} tickets
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ticketFilterOptions.map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setTicketFilter(option.key)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${
+                      ticketFilter === option.key
+                        ? "border-amber-400/25 bg-amber-500/10 text-amber-100"
+                        : "border-zinc-800/70 bg-black/20 text-zinc-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    <Filter className="h-3.5 w-3.5" />
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {ticketRows.length ? ticketRows.slice(0, 30).map((ticket) => (
+                <Link
+                  key={ticket.ticketId}
+                  href={`/tickets/${ticket.ticketId}`}
+                  className="flex items-center gap-4 rounded-2xl border border-zinc-800/60 bg-black/20 px-4 py-3 text-sm transition hover:border-amber-400/20 hover:bg-amber-500/[0.03]"
+                >
+                  <div className="mono-data shrink-0 text-[11px] text-zinc-500">{ticket.ticketId}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-zinc-100">{ticket.title}</span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-500">
+                      <span>{ticket.category}</span>
+                      <span>{ticket.assignee}</span>
+                      <span className="mono-data">{ticket.daysOpen}d</span>
+                    </div>
+                  </div>
+                  <span
+                    className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    style={{
+                      color: priorityPalette[ticket.priority] ?? "#d4d4d8",
+                      backgroundColor: `${priorityPalette[ticket.priority] ?? "#71717a"}18`,
+                    }}
+                  >
+                    {ticket.priority}
+                  </span>
+                  <span className="mono-data shrink-0 text-xs text-zinc-400">{ticket.score.toFixed(0)}</span>
+                </Link>
+              )) : (
+                <SectionEmptyState
+                  title="No tickets visible"
+                  message={
+                    searchTerm
+                      ? "No tickets matched the current search and filter combination."
+                      : "The live ticket stream is currently empty."
+                  }
+                />
+              )}
+              {ticketRows.length > 30 && (
+                <div className="py-2 text-center text-sm text-zinc-500">
+                  Showing 30 of {ticketRows.length}. Use search to narrow results.
+                </div>
+              )}
             </div>
           </section>
         </>

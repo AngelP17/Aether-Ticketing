@@ -137,9 +137,9 @@ def intelligence_health(
             "decision_schema_version": "v2",
             "model_version": None,
             "description": (
-                "Deterministic weighted rules engine plus a 7-edge ticket relationship graph. "
-                "No external LLM, no trained ML model in this pass. Decision lineage is "
-                "reproducible from feature_snapshot_json + decision_hash + rule_version."
+                "Deterministic weighted rules engine plus an 8-edge ticket relationship graph "
+                "with PageRank centrality. No external LLM, no trained ML model in this pass. "
+                "Decision lineage is reproducible from feature_snapshot_json + decision_hash + rule_version."
             ),
         },
         "scoring_weights": {
@@ -150,6 +150,7 @@ def intelligence_health(
             "sla_risk": SCORING_WEIGHTS.SLA_RISK,
             "recurrence": SCORING_WEIGHTS.RECURRENCE,
             "dependency_criticality": SCORING_WEIGHTS.DEPENDENCY_CRITICALITY,
+            "graph_centrality": SCORING_WEIGHTS.GRAPH_CENTRALITY,
             "actionability": SCORING_WEIGHTS.ACTIONABILITY,
             "uncertainty_penalty": SCORING_WEIGHTS.UNCERTAINTY_PENALTY,
         },

@@ -9,10 +9,11 @@ from domain.policies import ROOT_CAUSE_CLASSES
 
 def classify_root_cause(
     title: str, description: str = "", request_type: str = ""
-) -> tuple[RootCauseClass, float]:
+) -> tuple[RootCauseClass, float, dict[str, float]]:
     """
     Classify a ticket into a root cause class using keyword matching.
-    Returns (class, confidence) where confidence is 0.0–1.0.
+    Returns (class, confidence, scores_dict) where confidence is 0.0-1.0
+    and scores_dict maps root cause class names to their raw scores.
     """
     text = f"{title} {description} {request_type}".lower()
 
@@ -26,10 +27,11 @@ def classify_root_cause(
             scores[RootCauseClass(cause_class)] = min(score / len(keywords), 1.0)
 
     if not scores:
-        return RootCauseClass.UNKNOWN, 0.0
+        return RootCauseClass.UNKNOWN, 0.0, {}
 
     best_class = max(scores, key=lambda k: scores[k])
-    return best_class, scores[best_class]
+    # return str keys for downstream (uncertainty entropy, json) compatibility
+    return best_class, scores[best_class], {getattr(k, "value", str(k)): v for k, v in scores.items()}
 
 
 def classify_severity_from_keywords(title: str, description: str = "") -> float:

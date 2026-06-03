@@ -84,11 +84,26 @@ def fetch_ticket_row(db: Session, ticket_id: str) -> dict[str, Any] | None:
 
 
 def build_live_decision_map(tickets: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build live decisions for a list of tickets, now with real graph PageRank centrality
+    wired into every score (previously defaulted to 0.0 for list views).
+    """
     request_counts = Counter(
         (ticket.get("request_type") or ticket.get("category_name") or "").strip()
         for ticket in tickets
     )
     priority_counts = Counter((ticket.get("priority") or "").strip() for ticket in tickets)
+
+    # Build deterministic graph + PageRank once for the batch so graph_centrality
+    # actually affects list scores (command center, board metrics, incidents, etc).
+    graph_centralities: dict[str, float] = {}
+    if tickets:
+        try:
+            graph = build_ticket_graph(tickets)
+            pageranks = graph.compute_pagerank()
+            graph_centralities = {tid: float(pageranks.get(tid, 0.0)) for tid in pageranks}
+        except Exception:
+            # Fallback to zero centrality on any graph failure (keeps list live)
+            graph_centralities = {}
 
     decision_map: dict[str, Any] = {}
     for ticket in tickets:
@@ -99,11 +114,13 @@ def build_live_decision_map(tickets: list[dict[str, Any]]) -> dict[str, Any]:
             similar_cases_count = max(similar_cases_count, request_counts[request_type] - 1)
         if priority:
             similar_cases_count = max(similar_cases_count, priority_counts[priority] - 1)
+        centrality = graph_centralities.get(ticket.get("ticket_id", ""), 0.0)
         decision_map[ticket["ticket_id"]] = compute_live_decision(
             ticket,
             max(similar_cases_count, 0),
             include_recommendations=False,
             include_artifacts=False,
+            graph_centrality=centrality,
         )
     return decision_map
 
@@ -221,6 +238,7 @@ def compute_live_decision(
     include_recommendations: bool = True,
     include_artifacts: bool = True,
     db: Session | None = None,
+    graph_centrality: float = 0.0,
 ) -> dict[str, Any]:
     title = ticket.get("title") or ""
     description = ticket.get("description") or ""
@@ -237,6 +255,7 @@ def compute_live_decision(
     recurrence = compute_recurrence(
         same_asset_count=1 if ticket.get("asset_id") else 0,
         same_category_count=similar_cases_count,
+        avg_recency_days=max(0.5, days_open / 1.8),  # proxy: similar cases weighted toward more recent
     )
     dependency_criticality = _dependency_criticality(ticket)
     actionability = compute_actionability(
@@ -244,10 +263,11 @@ def compute_live_decision(
         has_category=bool(request_type.strip()),
         similar_cases_count=similar_cases_count,
     )
+    root_cause, root_confidence, root_cause_scores = classify_root_cause(title, description, request_type)
     uncertainty = compute_uncertainty(
-        description_empty=not bool(description.strip()),
-        site_missing=not bool(ticket.get("site_id")),
+        ticket=ticket,
         similar_cases_count=similar_cases_count,
+        root_cause_scores=root_cause_scores,
     )
     score = compute_priority_score(
         severity=severity,
@@ -258,10 +278,10 @@ def compute_live_decision(
         dependency_criticality=dependency_criticality,
         actionability=actionability,
         uncertainty=uncertainty,
+        graph_centrality=graph_centrality,
     )
 
-    root_cause, root_confidence = classify_root_cause(title, description, request_type)
-    confidence = _confidence_score(root_confidence, similar_cases_count, bool(description.strip()), db=db, root_cause=root_cause.value)
+    confidence = _confidence_score(root_confidence, similar_cases_count, bool(description.strip()), db=db)
     clean_summary = ""
     if include_artifacts:
         clean_summary = ticket.get("clean_summary") or extract_clean_summary(description)
@@ -314,6 +334,7 @@ def compute_live_decision(
         "sla_risk_score": round(score.sla_risk_score, 2),
         "recurrence_score": round(score.recurrence_score, 2),
         "dependency_criticality_score": round(score.dependency_criticality_score, 2),
+        "graph_centrality_score": round(score.graph_centrality_score, 2),
         "actionability_score": round(score.actionability_score, 2),
         "uncertainty_penalty": round(score.uncertainty_penalty, 2),
         "priority_score": round(score.priority_score, 2),
@@ -601,21 +622,33 @@ def _dependency_criticality(ticket: dict[str, Any]) -> float:
 
 
 def _confidence_score(
-    root_confidence: float, similar_cases_count: int, has_description: bool,
-    db: Session | None = None, root_cause: str | None = None,
+    root_match: float, similar_cases_count: int, has_description: bool,
+    db: Session | None = None,
 ) -> float:
-    confidence = root_confidence * 100.0
-    confidence += min(similar_cases_count * 4.0, 20.0)
-    if has_description:
-        confidence += 10.0
-    if db is not None and root_cause:
-        try:
-            from infrastructure.logging.feedback_learner import FeedbackLearner
-            learner = FeedbackLearner(db)
-            confidence = learner.get_adjusted_confidence(root_cause, confidence)
-        except Exception:
-            pass
-    return min(confidence, 99.0)
+    prior_rate = _feedback_prior_rate(db)
+    alpha_prior = 2.0 + prior_rate * 10.0
+    beta_prior = 2.0 + (1.0 - prior_rate) * 10.0
+    hits = similar_cases_count * max(root_match, 0.1)
+    misses = similar_cases_count * (1.0 - max(root_match, 0.1))
+    alpha_post = alpha_prior + hits
+    beta_post = beta_prior + misses
+    expected = alpha_post / (alpha_post + beta_post)
+    description_bonus = 0.05 if has_description else 0.0
+    return min((expected + description_bonus) * 100.0, 99.0)
+
+
+def _feedback_prior_rate(db: Session | None) -> float:
+    if db is None:
+        return 0.5
+    try:
+        from infrastructure.logging.feedback_learner import FeedbackLearner
+        learner = FeedbackLearner(db)
+        adjusted = learner.get_adjusted_confidence("unknown", 50.0)
+        if adjusted > 0:
+            return max(0.1, min(0.95, adjusted / 100.0))
+    except Exception:
+        pass
+    return 0.5
 
 
 def _iso_datetime(value: Any) -> str:

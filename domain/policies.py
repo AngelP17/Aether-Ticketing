@@ -3,15 +3,16 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ScoringWeights:
-    SEVERITY: float = 0.22
-    URGENCY: float = 0.18
-    BUSINESS_IMPACT: float = 0.20
-    SLA_RISK: float = 0.14
+    SEVERITY: float = 0.20
+    URGENCY: float = 0.16
+    BUSINESS_IMPACT: float = 0.18
+    SLA_RISK: float = 0.12
     RECURRENCE: float = 0.10
     DEPENDENCY_CRITICALITY: float = 0.08
-    ACTIONABILITY: float = 0.08
+    GRAPH_CENTRALITY: float = 0.10
+    ACTIONABILITY: float = 0.06
     UNCERTAINTY_PENALTY: float = 0.10
-    version_tag: str = "rules-2026-graph"
+    version_tag: str = "rules-2026-graph-v2"
 
 
 SCORING_WEIGHTS = ScoringWeights()

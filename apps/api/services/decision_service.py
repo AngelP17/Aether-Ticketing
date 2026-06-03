@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime
 from typing import Any
 
@@ -15,6 +16,15 @@ from apps.api.services.operational_intelligence import (
 )
 from pipelines.decisions.decision_hash import compute_decision_hash
 from pipelines.decisions.uncertainty_bands import band_payload
+
+
+def _compute_anomaly_zscore(priority_score: float, category_scores: list[float]) -> float:
+    if len(category_scores) < 5:
+        return 0.0
+    mean = sum(category_scores) / len(category_scores)
+    variance = sum((s - mean) ** 2 for s in category_scores) / len(category_scores)
+    std = math.sqrt(variance) or 1.0
+    return round((priority_score - mean) / std, 2)
 
 
 class DecisionService:
@@ -49,6 +59,7 @@ class DecisionService:
                     dr.decision_hash,
                     dr.graph_degree,
                     dr.graph_weighted_degree,
+                    dr.anomaly_zscore,
                     dr.feature_snapshot_json,
                     dr.explanation_json
                 FROM decision_records dr
@@ -68,7 +79,13 @@ class DecisionService:
             ticket = fetch_ticket_row(self.db, ticket_id)
             if ticket is None:
                 return None
-            return compute_live_decision(ticket, count_similar_cases(self.db, ticket))
+            # Use graph even in fallback path so centrality affects score
+            try:
+                gfeat = features_for_ticket(self.db, ticket_id)
+                gcent = float(gfeat.get("graph_centrality", 0.0) or 0.0)
+            except Exception:
+                gcent = 0.0
+            return compute_live_decision(ticket, count_similar_cases(self.db, ticket), graph_centrality=gcent)
         return self.recompute_decision(ticket_id)
 
     def recompute_decision(self, ticket_id: str) -> Any:
@@ -78,8 +95,11 @@ class DecisionService:
 
         graph_features = features_for_ticket(self.db, ticket_id)
         graph_degree = int(graph_features.get("graph_degree", 0) or 0)
+        graph_centrality = float(graph_features.get("graph_centrality", 0.0) or 0.0)
         similar_cases_count = max(count_similar_cases(self.db, ticket), graph_degree)
-        decision = compute_live_decision(ticket, similar_cases_count, db=self.db)
+        decision = compute_live_decision(
+            ticket, similar_cases_count, db=self.db, graph_centrality=graph_centrality,
+        )
 
         feature_snapshot_json = dict(decision["feature_snapshot_json"])
         feature_snapshot_json["graph_features"] = graph_features
@@ -98,8 +118,13 @@ class DecisionService:
             uncertainty_penalty=decision["uncertainty_penalty"],
             graph_signal_density=graph_features.get("signal_density", 0.0),
         )
-        rule_version = "rules-2026-graph"
+        rule_version = "rules-2026-graph-v2"
         decision_version = "v2"
+        model_version = "rules-2026-graph-v2"
+
+        category_scores = self._fetch_category_scores(ticket)
+        anomaly_zscore = _compute_anomaly_zscore(decision["priority_score"], category_scores)
+
         decision_hash = compute_decision_hash(
             ticket_id=ticket_id,
             priority_score=decision["priority_score"],
@@ -138,6 +163,7 @@ class DecisionService:
                     decision_hash,
                     graph_degree,
                     graph_weighted_degree,
+                    anomaly_zscore,
                     explanation_json
                 )
                 VALUES (
@@ -157,13 +183,14 @@ class DecisionService:
                     :confidence_score,
                     :decision_version,
                     :rule_version,
-                    NULL,
+                    :model_version,
                     :decision_band,
                     :priority_interval_low,
                     :priority_interval_high,
                     :decision_hash,
                     :graph_degree,
                     :graph_weighted_degree,
+                    :anomaly_zscore,
                     CAST(:explanation_json AS JSONB)
                 )
                 RETURNING id, decision_ts
@@ -176,12 +203,14 @@ class DecisionService:
                 "explanation_json": json.dumps(explanation_json),
                 "decision_version": decision_version,
                 "rule_version": rule_version,
+                "model_version": model_version,
                 "decision_band": band_info["decision_band"],
                 "priority_interval_low": band_info["priority_interval_low"],
                 "priority_interval_high": band_info["priority_interval_high"],
                 "decision_hash": decision_hash,
                 "graph_degree": graph_features.get("graph_degree", 0),
                 "graph_weighted_degree": graph_features.get("graph_weighted_degree", 0.0),
+                "anomaly_zscore": anomaly_zscore,
             },
         ).mappings().first()
 
@@ -264,10 +293,11 @@ class DecisionService:
                         "root_cause_hypothesis": decision["root_cause_hypothesis"],
                         "decision_version": decision_version,
                         "rule_version": rule_version,
-                        "model_version": None,
+                        "model_version": model_version,
                         "decision_band": band_info["decision_band"],
                         "decision_hash": decision_hash,
                         "graph_degree": graph_degree,
+                        "anomaly_zscore": anomaly_zscore,
                     }
                 ),
                 "source_hash": ticket.get("source_hash"),
@@ -306,6 +336,7 @@ class DecisionService:
             "sla_risk_score": decision["sla_risk_score"],
             "recurrence_score": decision["recurrence_score"],
             "dependency_criticality_score": decision["dependency_criticality_score"],
+            "graph_centrality_score": decision.get("graph_centrality_score", 0.0),
             "actionability_score": decision["actionability_score"],
             "uncertainty_penalty": decision["uncertainty_penalty"],
             "root_cause_hypothesis": decision["root_cause_hypothesis"],
@@ -313,13 +344,15 @@ class DecisionService:
             "decision_ts": decision_ts,
             "decision_version": decision_version,
             "rule_version": rule_version,
-            "model_version": None,
+            "model_version": model_version,
             "decision_band": band_info["decision_band"],
             "priority_interval_low": band_info["priority_interval_low"],
             "priority_interval_high": band_info["priority_interval_high"],
             "decision_hash": decision_hash,
             "graph_degree": graph_features.get("graph_degree", 0),
             "graph_weighted_degree": graph_features.get("graph_weighted_degree", 0.0),
+            "graph_centrality": graph_centrality,
+            "anomaly_zscore": anomaly_zscore,
             "graph_signal_density": graph_features.get("signal_density", 0.0),
             "graph_reasoning": graph_features.get("graph_reasoning", ""),
             "band_rationale": band_info["band_rationale"],
@@ -360,6 +393,43 @@ class DecisionService:
             if rec.get("created_at") is not None:
                 rec["created_at"] = _iso(rec["created_at"])
         return recommendations
+
+    def _fetch_category_scores(self, ticket: dict[str, Any]) -> list[float]:
+        request_type = ticket.get("request_type") or ticket.get("category_name")
+        try:
+            if request_type:
+                rows = self.db.execute(
+                    text(
+                        """
+                        SELECT dr.priority_score
+                        FROM decision_records dr
+                        JOIN tickets t ON t.id = dr.ticket_id
+                        WHERE COALESCE(t.request_type, '') = :rt
+                        ORDER BY dr.decision_ts DESC
+                        LIMIT 20
+                        """
+                    ),
+                    {"rt": request_type},
+                ).scalars().all()
+            else:
+                rows = []
+            scores = [float(s) for s in rows if s is not None]
+            if len(scores) < 5:
+                rows = self.db.execute(
+                    text(
+                        """
+                        SELECT priority_score
+                        FROM decision_records
+                        WHERE priority_score IS NOT NULL
+                        ORDER BY decision_ts DESC
+                        LIMIT 50
+                        """
+                    )
+                ).scalars().all()
+                scores = [float(s) for s in rows if s is not None]
+            return scores
+        except Exception:
+            return []
 
     def _load_last_feedback(self, recommendation_id: int) -> dict[str, Any] | None:
         row = self.db.execute(

@@ -124,11 +124,19 @@ class ReportService:
 
 
 def _build_export_snapshot(ticket: dict[str, Any], db: Session) -> dict[str, Any]:
+    try:
+        from apps.api.services.graph_intelligence_service import features_for_ticket
+
+        gfeat = features_for_ticket(db, ticket.get("ticket_id", ""))
+        gcent = float(gfeat.get("graph_centrality", 0.0) or 0.0)
+    except Exception:
+        gcent = 0.0
     decision = compute_live_decision(
         ticket,
         similar_cases_count=count_similar_cases(db, ticket),
         include_recommendations=True,
         include_artifacts=False,
+        graph_centrality=gcent,
     )
     snapshot = build_ticket_snapshot(ticket, decision)
     snapshot["category"] = ticket.get("category_name") or ticket.get("request_type")

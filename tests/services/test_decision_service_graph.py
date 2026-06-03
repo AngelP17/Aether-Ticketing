@@ -20,27 +20,27 @@ from apps.api.services.decision_service import DecisionService
 class _StubSession:
     """Records every execute() call and returns scripted responses.
 
-    The default script returns ``respond_with`` for the first execute
-    (the ``INSERT ... RETURNING`` for the new decision record) and an
-    empty mapping result for subsequent executes (the recommendations
-    / feedback / action_run lookups).
+    The default script returns ``respond_with`` for the INSERT INTO
+    decision_records call and generic empty results for everything else
+    (category score queries, recommendation lookups, etc.).
     """
 
     def __init__(self) -> None:
         self.executes: list[tuple[str, dict[str, Any]]] = []
         self.respond_with: Any = None
         self.committed = False
-        self._call_index = 0
 
     def execute(self, statement: Any, params: dict[str, Any] | None = None) -> Any:
         text = getattr(statement, "text", str(statement))
         self.executes.append((text, params or {}))
-        idx = self._call_index
-        self._call_index += 1
-        if idx == 0 and self.respond_with is not None:
+
+        if "INSERT INTO decision_records" in text and self.respond_with is not None:
             return self.respond_with
-        # Subsequent calls: return an empty list of rows (iterable).
-        return SimpleNamespace(mappings=lambda: [])
+
+        return SimpleNamespace(
+            mappings=lambda: [],
+            scalars=lambda: SimpleNamespace(all=lambda: []),
+        )
 
     def commit(self) -> None:
         self.committed = True
@@ -112,7 +112,7 @@ def test_recompute_uses_max_of_legacy_similar_count_and_graph_degree(
     assert payload["graph_weighted_degree"] == 2.5
     assert payload["decision_band"] in {"high_confidence_action", "review_needed", "standard_queue"}
     assert payload["decision_version"] == "v2"
-    assert payload["rule_version"] == "rules-2026-graph"
+    assert payload["rule_version"] == "rules-2026-graph-v2"
     assert payload["decision_hash"]
     assert len(payload["decision_hash"]) == 64
     assert payload["feature_snapshot_json"]["graph_features"]["graph_degree"] == 5

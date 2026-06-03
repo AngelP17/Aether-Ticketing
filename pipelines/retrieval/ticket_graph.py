@@ -92,6 +92,27 @@ class TicketGraph:
             if edge.edge_type == edge_type
         ]
 
+    def compute_pagerank(self, alpha: float = 0.85, iterations: int = 20) -> dict[str, float]:
+        """Compute PageRank centrality over the ticket graph.
+
+        Returns scores normalised to 0-100 where the top-ranked node is 100.
+        """
+        if not self.nodes:
+            return {}
+        N = len(self.nodes)
+        ranks: dict[str, float] = {tid: 1.0 / N for tid in self.nodes}
+        for _ in range(iterations):
+            new_ranks: dict[str, float] = {}
+            for tid in self.nodes:
+                incoming = sum(
+                    edge.weight * ranks[neighbor] / max(1, len(self.adjacency.get(neighbor, [])))
+                    for neighbor, edge in self.adjacency.get(tid, [])
+                )
+                new_ranks[tid] = (1 - alpha) / N + alpha * incoming
+            ranks = new_ranks
+        max_rank = max(ranks.values()) or 1.0
+        return {tid: round(100.0 * r / max_rank, 2) for tid, r in ranks.items()}
+
 
 def _coerce_str(value: Any) -> str | None:
     if value is None:

@@ -77,9 +77,12 @@ def build_graph_for_recent_tickets(
     features keyed by ticket_id."""
     rows = fetch_recent_ticket_rows(db, lookback_days=lookback_days, max_tickets=max_tickets)
     graph = build_ticket_graph(rows)
+    pagerank = graph.compute_pagerank()
     features: dict[str, dict[str, Any]] = {}
     for ticket_id in graph.nodes:
-        features[ticket_id] = compute_graph_features(graph, ticket_id)
+        feat = compute_graph_features(graph, ticket_id)
+        feat["graph_centrality"] = pagerank.get(ticket_id, 0.0)
+        features[ticket_id] = feat
     return graph, features
 
 

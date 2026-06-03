@@ -81,7 +81,7 @@ def test_governance_summary_rolls_back_after_drift_failure(agent_client: Any) ->
         monkeypatch.setattr(governance_routes, "summarize_graph", lambda db: {"status": "ok"})
         monkeypatch.setattr(governance_routes, "build_decision_card", lambda: {})
         body = governance_routes.governance_summary(
-            db=session, current_user={"username": "agent", "role": "agent"}
+            db=session, current_user={"username": "agent", "role": "agent"}  # type: ignore[arg-type]
         )
     assert body["graph"] == {"status": "ok"}
     assert session.rollback_count == 1
