@@ -145,13 +145,10 @@ export function DecisionDetailPanel({
   );
 
   return (
-    <div className="ops-card rounded-[26px] p-5 sm:p-6">
+    <div className="ops-card rounded-[22px] p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-amber-300">
-            Case Inspector
-          </div>
-          <h2 className="mt-2 text-2xl font-semibold text-zinc-50">
+          <h2 className="text-2xl font-semibold text-zinc-50">
             {selectedTicket?.ticketId || "No active ticket"}
           </h2>
           <p className="mt-2 text-sm leading-6 text-zinc-300">
@@ -195,18 +192,12 @@ export function DecisionDetailPanel({
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
-          <div className="mono-data text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-            Decision Score
-          </div>
-          <div className="mono-data mt-3 text-3xl font-bold text-zinc-50">
+          <div className="mono-data text-3xl font-bold text-zinc-50">
             {selectedTicket ? selectedTicket.score.toFixed(0) : "--"}
           </div>
         </div>
         <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
-          <div className="mono-data text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-            Linked Incident
-          </div>
-          <div className="mt-3 text-sm font-medium text-zinc-100">
+          <div className="text-sm font-medium text-zinc-100">
             {linkedIncident?.title || "Standalone case"}
           </div>
           <div className="mono-data mt-1 text-[11px] text-zinc-500">
@@ -254,7 +245,7 @@ export function DecisionDetailPanel({
                 engine
               </span>
               <span className={tone.text}>
-                {decision.decision_version ?? "v1"} / {decision.rule_version ?? "rules-2024-Q1"}
+                {decision.decision_version ?? "v1"} / {decision.rule_version ?? "rules-2026-graph"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -333,15 +324,27 @@ export function DecisionDetailPanel({
                 <span className={`ml-2 ${tone.text}`}>{decision.graph_reasoning}</span>
               </div>
             ) : null}
+            {decision.explanation_json ? (
+              <div className="sm:col-span-2">
+                <span className={`mono-data uppercase tracking-[0.18em] ${tone.label}`}>
+                  explanation
+                </span>
+                <div className={`mt-2 space-y-1 ${tone.text}`}>
+                  {Object.entries(decision.explanation_json as Record<string, unknown>).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-zinc-400">{key}</span>
+                      <span className="mono-data">{typeof value === "number" ? value.toFixed(2) : String(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
 
       {detail?.recommendations?.length ? (
         <div className="mt-5 space-y-2">
-          <div className="mono-data text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-            Recommendations
-          </div>
           {detail.recommendations.slice(0, 3).map((rec) => (
             <div
               key={rec.id}

@@ -110,8 +110,12 @@ export function TrendChart({ tickets }: { tickets: Ticket[] }) {
 
   if (!hasMeaningfulData) {
     return (
-      <div className="ops-card rounded-[24px] p-5 sm:p-6" role="img" aria-label="14-day trend chart. No ticket activity in the last 14 days.">
+      <div className="ops-card rounded-[22px] p-5 sm:p-6" role="img" aria-label="14-day trend chart. No ticket activity in the last 14 days.">
         <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-zinc-50">14-day trend</h2>
+            <p className="mt-1 text-sm text-zinc-400">Created and resolved tickets by day.</p>
+          </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
               <span className="h-[2px] w-3 rounded-full bg-amber-500" />
@@ -124,7 +128,7 @@ export function TrendChart({ tickets }: { tickets: Ticket[] }) {
           </div>
         </div>
 
-        <div className="mt-3 flex h-[168px] items-center justify-center rounded-[20px] border border-dashed border-zinc-800/70 bg-black/15 px-4 text-center">
+        <div className="mt-3 flex h-[168px] items-center justify-center rounded-[22px] border border-dashed border-zinc-800/70 bg-black/15 px-4 text-center">
           <SectionEmptyState
             title="No ticket activity"
             message="The last 14 days are empty, so there is no trend line to draw yet."
@@ -160,9 +164,12 @@ export function TrendChart({ tickets }: { tickets: Ticket[] }) {
   }
 
   return (
-    <div className="ops-card rounded-[24px] p-5 sm:p-6">
+    <div className="ops-card rounded-[22px] p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">14-Day Trend</div>
+        <div>
+          <h2 className="text-xl font-semibold text-zinc-50">14-day trend</h2>
+          <p className="mt-1 text-sm text-zinc-400">Created and resolved tickets by day.</p>
+        </div>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-[2px] rounded-full bg-amber-500" />

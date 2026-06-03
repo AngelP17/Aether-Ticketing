@@ -451,7 +451,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
     return (
       <div className="mx-auto max-w-7xl text-white">
         <div className="ops-card rounded-[2rem] p-8">
-          <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-amber-300">Loading workspace</div>
+          <div className="text-lg font-semibold text-white">Loading workspace</div>
           <div className="mt-4 text-sm text-zinc-400">Pulling ticket state, operators, categories, labels, and comments.</div>
         </div>
       </div>
@@ -464,7 +464,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
         <div className="ops-card rounded-[2rem] border-rose-500/20 p-8">
           <div className="flex items-center gap-3 text-rose-300">
             <AlertTriangle className="h-5 w-5" />
-            <span className="mono-data text-[11px] uppercase tracking-[0.28em]">Workspace unavailable</span>
+            <span className="text-lg font-semibold">Workspace unavailable</span>
           </div>
           <div className="mt-4 text-sm leading-7 text-zinc-300">{error || "The ticket workspace could not load."}</div>
         </div>
@@ -480,15 +480,11 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
         <div className="ops-hero-panel rounded-[2rem] px-5 py-5 sm:px-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-amber-300">
-                {ticketId ? "Ticket Workspace" : "New Ticket"}
-              </div>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+              <h1 className="text-3xl font-semibold tracking-tight text-white">
                 {ticketId ? detail?.ticket.title || ticketId : "Create a new operational ticket"}
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-400">
-                This is the transactional workspace for the new Aether design: create, edit, attach files, discuss work,
-                and move the ticket through its actual lifecycle.
+                Create or edit a ticket, attach files, add comments, and track status changes.
               </p>
               <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-400">
                 {user ? (
@@ -542,12 +538,12 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
 
         <div className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr]">
           <section className="space-y-6">
-            <div className="ops-card rounded-[1.75rem] p-6">
+            <div className="ops-card rounded-[22px] p-6">
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-amber-300" />
                 <div>
                   <div className="text-lg font-semibold text-white">Ticket record</div>
-                  <div className="mt-1 text-sm text-zinc-500">Create or update the operational facts that drive the queue.</div>
+                  <div className="mt-1 text-sm text-zinc-500">Edit the ticket fields that determine queue placement and priority.</div>
                 </div>
               </div>
 
@@ -748,7 +744,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
               </div>
             </div>
 
-            <div className="ops-card rounded-[1.75rem] p-6">
+            <div className="ops-card rounded-[22px] p-6">
               <div className="flex items-center gap-3">
                 <Paperclip className="h-5 w-5 text-amber-300" />
                 <div>
@@ -764,7 +760,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
               {attachments.length ? (
                 <div className="mt-6 grid gap-3">
                   {attachments.map((attachment) => (
-                    <div key={attachment.id} className="rounded-[1.25rem] border border-zinc-800 bg-zinc-950/60 p-4">
+                    <div key={attachment.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <a
@@ -815,12 +811,12 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
                 canMutate={writable}
               />
             ) : null}
-            <div className="ops-card rounded-[1.75rem] p-6">
+            <div className="ops-card rounded-[22px] p-6">
               <div className="flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-amber-300" />
                 <div>
                   <div className="text-lg font-semibold text-white">Comments and worklog</div>
-                  <div className="mt-1 text-sm text-zinc-500">Use comments as the collaborative timeline for the ticket.</div>
+                  <div className="mt-1 text-sm text-zinc-500">Comments are shown in chronological order on the ticket.</div>
                 </div>
               </div>
 
@@ -829,7 +825,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
                   value={commentBody}
                   onChange={(event) => setCommentBody(event.target.value)}
                   className="min-h-[120px] w-full rounded-2xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-amber-400/50"
-                  placeholder="Add a meaningful update, next step, diagnostic note, or customer-facing summary."
+                  placeholder="Add a comment or update"
                 />
                 <FileDropzone files={commentFiles} onChange={setCommentFiles} label="Attach files to this comment" />
                 <button
@@ -846,7 +842,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
               <div className="mt-6 space-y-4">
                 {comments.length ? (
                   comments.map((comment) => (
-                    <div key={comment.id} className="rounded-[1.25rem] border border-zinc-800 bg-zinc-950/60 p-4">
+                    <div key={comment.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <div className="text-sm font-semibold text-white">{comment.author_display_name}</div>
@@ -949,29 +945,29 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-[1.25rem] border border-dashed border-zinc-700 bg-zinc-950/50 px-4 py-5 text-sm leading-7 text-zinc-500">
-                    No comments yet. This ticket still needs its collaborative worklog.
+                  <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-950/50 px-4 py-5 text-sm leading-7 text-zinc-500">
+                    No comments yet.
                   </div>
                 )}
               </div>
             </div>
 
             {detail ? (
-              <div className="ops-card rounded-[1.75rem] p-6">
+              <div className="ops-card rounded-[22px] p-6">
                 <div className="flex items-center gap-3">
                   <Shield className="h-5 w-5 text-amber-300" />
                   <div>
-                    <div className="text-lg font-semibold text-white">Timeline and intelligence</div>
-                    <div className="mt-1 text-sm text-zinc-500">Operational context stays visible beside the transactional workflow.</div>
+                    <div className="text-lg font-semibold text-white">Timeline and decision history</div>
+                    <div className="mt-1 text-sm text-zinc-500">Decision history and event log for this ticket.</div>
                   </div>
                 </div>
 
                 {detail.decision ? (
-                  <div className="mt-4 grid gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-[11px] font-mono uppercase tracking-[0.18em] text-amber-200 sm:grid-cols-2">
+                  <div className="mt-4 grid gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-[11px] font-mono text-amber-200 sm:grid-cols-2">
                     <div>
                       <div className="text-amber-300/70">engine</div>
                       <div className="mt-1 text-amber-50 normal-case tracking-normal">
-                        {detail.decision.decision_version ?? "v1"} / {detail.decision.rule_version ?? "rules-2024-Q1"}
+                        {detail.decision.decision_version ?? "v1"} / {detail.decision.rule_version ?? "rules-2026-graph"}
                       </div>
                     </div>
                     <div>

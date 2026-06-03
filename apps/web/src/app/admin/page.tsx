@@ -319,8 +319,7 @@ export default function AdminPage() {
         showNotificationBell
       >
         <div className="mx-auto max-w-4xl rounded-[2rem] border border-rose-500/20 bg-black/20 p-8">
-          <div className="mono-data text-[11px] uppercase tracking-[0.28em] text-rose-300">Admin access required</div>
-          <h1 className="mt-3 text-3xl font-semibold text-white">This console is restricted to administrators</h1>
+          <h1 className="text-3xl font-semibold text-white">This console is restricted to administrators</h1>
           <p className="mt-4 text-sm leading-7 text-zinc-400">
             Your current role does not allow user, category, or label administration.
           </p>
@@ -356,13 +355,13 @@ export default function AdminPage() {
     >
       <div className="mx-auto max-w-7xl space-y-6">
         {isLoading ? (
-          <div className="rounded-[1.5rem] border border-zinc-800 bg-black/20 p-6 text-sm text-zinc-400">
+          <div className="rounded-[22px] border border-zinc-800 bg-black/20 p-6 text-sm text-zinc-400">
             Loading admin data...
           </div>
         ) : null}
 
         <div className="grid gap-6 xl:grid-cols-2">
-          <section className="ops-card rounded-[1.75rem] p-6">
+          <section className="ops-card rounded-[22px] p-6">
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-amber-300" />
               <div>
@@ -413,7 +412,7 @@ export default function AdminPage() {
 
             <div className="mt-6 space-y-3">
               {users.map((entry) => (
-                <div key={entry.username} className="rounded-[1.25rem] border border-zinc-800 bg-zinc-950/60 p-4">
+                <div key={entry.username} className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
                   <div className="grid gap-3 md:grid-cols-2">
                     <input
                       value={entry.display_name}
@@ -466,12 +465,12 @@ export default function AdminPage() {
           </section>
 
           <section className="space-y-6">
-            <div className="ops-card rounded-[1.75rem] p-6">
+            <div className="ops-card rounded-[22px] p-6">
               <div className="flex items-center gap-3">
                 <Settings2 className="h-5 w-5 text-amber-300" />
                 <div>
                   <div className="text-lg font-semibold text-white">Category management</div>
-                  <div className="mt-1 text-sm text-zinc-500">Control ticket taxonomy without leaving the product.</div>
+                  <div className="mt-1 text-sm text-zinc-500">Add, edit, and disable ticket categories.</div>
                 </div>
               </div>
 
@@ -505,7 +504,7 @@ export default function AdminPage() {
 
               <div className="mt-6 space-y-3">
                 {categories.map((category) => (
-                  <div key={category.id} className="rounded-[1.25rem] border border-zinc-800 bg-zinc-950/60 p-4">
+                  <div key={category.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <span
@@ -539,7 +538,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="ops-card rounded-[1.75rem] p-6">
+            <div className="ops-card rounded-[22px] p-6">
               <div className="flex items-center gap-3">
                 <Users className="h-5 w-5 text-amber-300" />
                 <div>
@@ -580,7 +579,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="ops-card rounded-[1.75rem] p-6">
+            <div className="ops-card rounded-[22px] p-6">
               <div className="flex items-center gap-3">
                 <Tag className="h-5 w-5 text-amber-300" />
                 <div>
@@ -628,12 +627,12 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="ops-card rounded-[1.75rem] p-6">
+            <div className="ops-card rounded-[22px] p-6">
               <div className="flex items-center gap-3">
                 <KeyRound className="h-5 w-5 text-amber-300" />
                 <div>
                   <div className="text-lg font-semibold text-white">Change your password</div>
-                  <div className="mt-1 text-sm text-zinc-500">Keep your own account secure without leaving the console.</div>
+                  <div className="mt-1 text-sm text-zinc-500">Change your account password.</div>
                 </div>
               </div>
 
@@ -671,13 +670,13 @@ export default function AdminPage() {
           </section>
         </div>
 
-        <section className="ops-card rounded-[1.75rem] p-6">
+        <section className="ops-card rounded-[22px] p-6">
           <div className="flex items-center gap-3">
             <Shield className="h-5 w-5 text-amber-300" />
             <div>
               <div className="text-lg font-semibold text-white">Decision engine governance</div>
               <div className="mt-1 text-sm text-zinc-500">
-                Live drift, graph health, and the engine card that documents what powers the recommendations.
+                Decision engine drift status, graph health, and engine metadata.
               </div>
             </div>
           </div>

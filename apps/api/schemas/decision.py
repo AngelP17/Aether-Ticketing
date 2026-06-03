@@ -70,7 +70,7 @@ class DecisionResponse(BaseModel):
     confidence_score: float
     decision_ts: datetime | str
     decision_version: str = "v1"
-    rule_version: str = "rules-2024-Q1"
+    rule_version: str = "rules-2026-graph"
     model_version: str | None = None
     decision_band: str | None = None
     priority_interval_low: float | None = None

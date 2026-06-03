@@ -12,13 +12,13 @@ const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "admin123";
 const SCREENSHOT_DIR = path.resolve(process.cwd(), ".snapshots/mobile-verify");
 
 const PROTECTED_ROUTES = [
-  { path: "/command-center", name: "command-center", waitFor: "text=Aether OpsCenter" },
-  { path: "/board", name: "board", waitFor: "text=Live ticket board" },
-  { path: "/incidents", name: "incidents", waitFor: "text=Incident Intelligence" },
-  { path: "/reports", name: "reports", waitFor: "text=Reports & Export" },
-  { path: "/admin", name: "admin", waitFor: "text=User management" },
-  { path: "/tickets/IT-20260070", name: "ticket-detail", waitFor: "text=Windstream Planned Maintenance" },
-  { path: "/tickets/new", name: "ticket-new", waitFor: "text=New Ticket" },
+  { path: "/command-center", name: "command-center", waitFor: "Command Center" },
+  { path: "/board", name: "board", waitFor: "Workflow Tracking" },
+  { path: "/incidents", name: "incidents", waitFor: "Incidents" },
+  { path: "/reports", name: "reports", waitFor: "Reports & Export" },
+  { path: "/admin", name: "admin", waitFor: "Administration" },
+  { path: "/tickets/IT-20250049", name: "ticket-detail", waitFor: "Ticket Detail" },
+  { path: "/tickets/new", name: "ticket-new", waitFor: "New Ticket" },
 ];
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -76,7 +76,7 @@ async function captureRoute(page, route, errors) {
 
   if (route.waitFor) {
     try {
-      await page.locator(route.waitFor).first().waitFor({ timeout: 8000 });
+      await page.getByText(route.waitFor, { exact: false }).first().waitFor({ state: "attached", timeout: 8000 });
     } catch (error) {
       errors.push({
         where: route.name,

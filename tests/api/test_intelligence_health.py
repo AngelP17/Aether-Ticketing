@@ -128,7 +128,7 @@ def test_intelligence_health_returns_truthful_disclosure() -> None:
     assert body["engine"]["name"] == "rules"
     assert body["engine"]["kind"] == "deterministic graph + rules"
     assert body["engine"]["model_version"] is None
-    assert body["engine"]["version"] == "rules-2024-Q1"
+    assert body["engine"]["version"] == "rules-2026-graph"
     assert body["engine"]["decision_schema_version"] == "v2"
     assert body["truthful_disclosure"] == {
         "no_external_llm": True,

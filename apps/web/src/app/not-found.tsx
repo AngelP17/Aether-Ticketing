@@ -4,15 +4,12 @@ export default function NotFound() {
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--bg-deep)] px-4">
       <div className="ops-card w-full max-w-md rounded-2xl border border-zinc-800 p-6 shadow-2xl shadow-black/30 sm:p-8 text-center">
-        <p className="mono-data text-[10px] uppercase tracking-[0.32em] text-amber-300">
-          404 · Route not found
-        </p>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-          Nothing lives at this URL
+        <p className="mono-data text-sm text-amber-300">404</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          Page not found
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-400">
-          The route you tried to reach is not part of the Aether OpsCenter. Head back to the command center to keep
-          working.
+          This URL is not a valid OpsCenter route. Return to the command center.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link

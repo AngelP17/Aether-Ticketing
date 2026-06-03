@@ -19,14 +19,11 @@ export default function GlobalError({
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--bg-deep)] px-4">
       <div className="ops-card w-full max-w-md rounded-2xl border border-rose-500/20 p-6 shadow-2xl shadow-black/30 sm:p-8">
-        <p className="text-xs uppercase tracking-[0.28em] text-rose-300">
-          Route error
-        </p>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-          Something broke rendering this page
+        <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          Page failed to render
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-400">
-          {error.message || "An unexpected error occurred. The data backing this view is unchanged."}
+          {error.message || "An unexpected error occurred. Your data is not affected."}
         </p>
         {error.digest ? (
           <p className="mt-2 mono-data text-[11px] text-slate-500">

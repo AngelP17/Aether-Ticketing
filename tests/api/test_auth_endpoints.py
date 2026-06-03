@@ -98,6 +98,20 @@ def test_me_401_when_header_missing(anon_client: Any) -> None:
     assert response.status_code == 401
 
 
+def test_me_503_when_user_store_unavailable(anon_client: Any) -> None:
+    def _raise(self: Any, token: str) -> None:  # noqa: ARG001
+        raise OSError("users file unavailable")
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        _patch(monkeypatch, current_user=None)
+        monkeypatch.setattr(auth_routes.AuthService, "current_user", _raise)
+        response = anon_client.get(
+            "/api/auth/me", headers={"Authorization": "Bearer valid-shape"}
+        )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Auth user store unavailable"
+
+
 def test_list_users_requires_admin(agent_client: Any) -> None:
     with pytest.MonkeyPatch.context() as monkeypatch:
         _patch(monkeypatch, list_users=[{"username": "admin", "role": "admin"}])

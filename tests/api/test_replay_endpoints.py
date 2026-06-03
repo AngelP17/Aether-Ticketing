@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from apps.api.routes import replay as replay_routes
 
@@ -46,3 +47,14 @@ def test_replay_does_not_require_authentication(anon_client: Any) -> None:
             replay_routes.ReplayService, "get_replay", lambda self, ticket_id: None
         )
         assert anon_client.get("/api/replay/IT-1").status_code == 404
+
+
+def test_get_replay_returns_503_when_storage_unavailable(admin_client: Any) -> None:
+    def _raise(self: Any, ticket_id: str) -> None:  # noqa: ARG001
+        raise SQLAlchemyError("transaction aborted")
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(replay_routes.ReplayService, "get_replay", _raise)
+        response = admin_client.get("/api/replay/IT-1")
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Replay data is temporarily unavailable"

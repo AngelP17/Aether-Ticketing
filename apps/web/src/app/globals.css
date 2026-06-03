@@ -84,13 +84,7 @@
  * App surface    : rounded-xl   (12px)  buttons, inputs, inline tags
  * Card surface   : rounded-2xl  (16px)  standard ops cards
  * Hero / shell   : rounded-[2rem] (32px) page shell, command-center frame
- * Login input    : 10px          isolated surface, set in <style jsx> in
- *                                apps/web/src/app/login/page.tsx. This is
- *                                an intentional exception: the login page
- *                                is the only place in the app that uses a
- *                                one-off radius value. The exception is
- *                                documented at the rule below to keep the
- *                                rest of the system on the four-step scale.
+ * Pills/circles  : rounded-full  (999px) badges, round icons, avatar dots
  */
 * {
   box-sizing: border-box;
@@ -228,7 +222,7 @@ body {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(245, 158, 11, 0.18);
-  border-radius: 24px;
+  border-radius: 22px;
   background:
     linear-gradient(90deg, rgba(245, 158, 11, 0.11), rgba(18, 19, 23, 0.94) 32%, rgba(8, 9, 12, 0.97)),
     var(--surface-solid);
@@ -386,7 +380,7 @@ body {
   gap: 6px;
   height: 22px;
   padding: 0 9px;
-  border-radius: 7px;
+  border-radius: 8px;
   font-size: 11px;
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
@@ -516,7 +510,7 @@ body {
   bottom: 0;
   transform: translateY(100%);
   border-top: 1px solid var(--border-subtle);
-  border-radius: 1.5rem 1.5rem 0 0;
+  border-radius: 22px 22px 0 0;
   background: rgba(18, 18, 22, 0.98);
   backdrop-filter: blur(24px);
   transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
@@ -577,24 +571,24 @@ body {
   }
 
   .ops-topbar {
-    border-radius: 1.35rem;
+    border-radius: 22px;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.05),
       0 18px 56px rgba(0, 0, 0, 0.34);
   }
 
   .ops-hero-panel {
-    border-radius: 1.6rem;
+    border-radius: 22px;
   }
 
   .ops-command-strip {
-    border-radius: 1.35rem;
+    border-radius: 22px;
     padding: 14px;
   }
 
   .ops-command-meter {
     min-height: 58px;
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 10px;
   }
 

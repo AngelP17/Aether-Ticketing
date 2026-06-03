@@ -8,10 +8,7 @@ export function PriorityStackChart({ data }: { data: BreakdownItem[] }) {
   const mounted = useMountedFlag();
   if (!data.length) {
     return (
-      <div className="ops-card rounded-[24px] p-5 sm:p-6">
-        <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-          Priority Breakdown
-        </div>
+      <div className="ops-card rounded-[22px] p-5 sm:p-6">
         <div className="mt-4">
           <SectionEmptyState
             title="No priority mix"
@@ -30,11 +27,12 @@ export function PriorityStackChart({ data }: { data: BreakdownItem[] }) {
     : "Priority breakdown chart with no data.";
 
   return (
-    <div className="ops-card rounded-[24px] p-5 sm:p-6" role="img" aria-label={ariaLabel}>
-      <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-        Priority Breakdown
+    <div className="ops-card rounded-[22px] p-5 sm:p-6" role="img" aria-label={ariaLabel}>
+      <div>
+        <h2 className="text-xl font-semibold text-zinc-50">Priority mix</h2>
+        <p className="mt-1 text-sm text-zinc-400">Tickets grouped by current priority.</p>
       </div>
-      <div className="mt-5 flex h-3 rounded-md overflow-hidden">
+      <div className="mt-5 flex h-3 rounded-lg overflow-hidden">
         {data.map((slice) => (
           <div
             key={slice.label}
@@ -74,7 +72,7 @@ export function PriorityStackChart({ data }: { data: BreakdownItem[] }) {
         <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span className="text-[10px] text-zinc-500">{lowPercent}% low priority, healthy distribution</span>
+        <span className="text-[10px] text-zinc-500">{lowPercent}% low priority</span>
       </div>
     </div>
   );

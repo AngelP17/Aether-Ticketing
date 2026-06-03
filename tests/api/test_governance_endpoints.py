@@ -63,6 +63,30 @@ def test_governance_summary_handles_drift_failure(agent_client: Any) -> None:
     assert body["card"] == card
 
 
+def test_governance_summary_rolls_back_after_drift_failure(agent_client: Any) -> None:
+    class _Session:
+        def __init__(self) -> None:
+            self.rollback_count = 0
+
+        def rollback(self) -> None:
+            self.rollback_count += 1
+
+    session = _Session()
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            governance_routes,
+            "run_drift_detection",
+            lambda db: (_ for _ in ()).throw(RuntimeError("missing decision_band")),
+        )
+        monkeypatch.setattr(governance_routes, "summarize_graph", lambda db: {"status": "ok"})
+        monkeypatch.setattr(governance_routes, "build_decision_card", lambda: {})
+        body = governance_routes.governance_summary(
+            db=session, current_user={"username": "agent", "role": "agent"}
+        )
+    assert body["graph"] == {"status": "ok"}
+    assert session.rollback_count == 1
+
+
 def test_governance_summary_handles_graph_failure(agent_client: Any) -> None:
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(governance_routes, "run_drift_detection", lambda db: {"status": "ok"})

@@ -39,7 +39,7 @@ function AuthErrorShell({
       aria-live="polite"
     >
       <div className="max-w-md rounded-2xl border border-red-500/20 bg-black/60 px-6 py-5 shadow-2xl">
-        <div className="text-xs uppercase tracking-[0.28em] text-red-300">
+        <div className="text-base font-semibold text-red-100">
           Session verification failed
         </div>
         <p className="mt-3 text-sm leading-6 text-zinc-300">{message}</p>

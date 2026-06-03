@@ -53,8 +53,7 @@ export function ReplayView({
       >
         <div className="mx-auto max-w-5xl">
           <div className="ops-card w-full rounded-2xl border border-rose-500/20 p-6 shadow-xl sm:p-8">
-            <div className="text-xs uppercase tracking-[0.3em] text-rose-300">Replay API error</div>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Audit replay could not load</h1>
+            <h1 className="text-2xl font-semibold text-white">Audit replay could not load</h1>
             <p className="mt-4 text-sm leading-7 text-slate-400">{error}</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
@@ -108,8 +107,7 @@ export function ReplayView({
         <div className="ops-card rounded-2xl border border-slate-800 p-5 shadow-xl sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">Replay & Audit</p>
-              <h1 className="mt-2 text-2xl font-semibold">Audit Replay {id}</h1>
+              <h1 className="text-2xl font-semibold">Audit Replay {id}</h1>
             </div>
           </div>
 

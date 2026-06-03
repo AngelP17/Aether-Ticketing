@@ -154,15 +154,11 @@ function PageHeader({ count }: { count: number }) {
   return (
     <header className="mb-5 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="mono-data text-[10px] uppercase tracking-[0.32em] text-cyan-300">
-          Cluster intelligence
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
           Incidents
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
-          Correlated ticket clusters synthesized from live triage. Cards are sorted by start time
-          with the most recent incidents first.
+          Incidents grouped by common cause. Sorted by most recent.
         </p>
       </div>
       <div className="inline-flex items-center gap-2 self-start rounded-full border border-zinc-800/70 bg-black/30 px-3 py-1.5 text-xs text-zinc-400 sm:self-end">
@@ -175,14 +171,13 @@ function PageHeader({ count }: { count: number }) {
 
 function EmptyState() {
   return (
-    <div className="ops-card rounded-[1.5rem] px-6 py-12 text-center">
+    <div className="ops-card rounded-[22px] px-6 py-12 text-center">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800/70 bg-black/30 text-zinc-400">
         <Sparkles className="h-5 w-5" aria-hidden="true" />
       </div>
       <h2 className="mt-4 text-lg font-semibold text-white">No incidents yet</h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
-        Nothing has been clustered into an incident. Synthesized incidents will appear here as soon
-        as confidence thresholds are met.
+        No incidents yet. Incidents are created when enough related tickets are detected.
       </p>
       <div className="mt-5 flex flex-wrap justify-center gap-3">
         <Link
@@ -199,16 +194,13 @@ function EmptyState() {
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="ops-card rounded-[1.5rem] border border-rose-500/25 px-6 py-10">
+    <div className="ops-card rounded-[22px] border border-rose-500/25 px-6 py-10">
       <div className="flex items-start gap-4">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200">
           <AlertTriangle className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="min-w-0">
-          <p className="mono-data text-[11px] uppercase tracking-[0.28em] text-rose-300">
-            Incidents unavailable
-          </p>
-          <h2 className="mt-2 text-xl font-semibold text-white">Incident feed failed to load</h2>
+          <h2 className="text-xl font-semibold text-white">Incident feed failed to load</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">{message}</p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
@@ -239,7 +231,7 @@ function IncidentCard({ incident }: { incident: Incident }) {
   return (
     <Link
       href={`/incidents/${incident.id}`}
-      className={`ops-card group block rounded-[1.5rem] border-l-4 ${palette.accent} px-5 py-5 transition hover:border-amber-500/30 hover:shadow-[0_22px_60px_rgba(0,0,0,0.32)] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40 sm:px-6`}
+      className={`ops-card group block rounded-[22px] border-l-4 ${palette.accent} px-5 py-5 transition hover:border-amber-500/30 hover:shadow-[0_22px_60px_rgba(0,0,0,0.32)] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40 sm:px-6`}
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -304,7 +296,7 @@ export default async function IncidentsPage() {
     <OpsShell
       eyebrow="Aether OpsCenter"
       title="Incidents"
-      subtitle="Correlated incident clusters from the live ticket stream with links into ticket and replay detail."
+      subtitle="Incidents grouped by common cause with links to ticket and replay detail."
       statusPill={
         isReady
           ? { kind: "ready", label: "Live" }

@@ -103,7 +103,7 @@ function defaultSheetItems(onExport: (() => void) | undefined, isExporting: bool
   const items: SheetItem[] = [
     { kind: "link", href: "/tickets/new", label: "New ticket", icon: Plus, tone: "amber" },
     { kind: "link", href: "/command-center", label: "Queue overview", icon: TicketIcon },
-    { kind: "link", href: "/incidents", label: "Incident intelligence", icon: ShieldAlert, tone: "rose" },
+    { kind: "link", href: "/incidents", label: "Incidents", icon: ShieldAlert, tone: "rose" },
     { kind: "link", href: "/board", label: "Workflow board", icon: Columns3 },
     { kind: "link", href: "/reports", label: "Reports", icon: Activity, tone: "cyan" },
   ];
@@ -188,7 +188,7 @@ function routeTitle(pathname: string | null) {
     return "Workflow Tracking";
   }
   if (pathname === "/incidents") {
-    return "Incident Intelligence";
+    return "Incidents";
   }
   if (pathname.startsWith("/incidents/")) {
     return "Incident Detail";
@@ -365,7 +365,7 @@ export function OpsShell({
         </aside>
 
         <main className="ops-safe-bottom px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-          <div className="ops-topbar mb-5 rounded-[28px] px-4 py-4 sm:px-6 sm:py-5">
+          <div className="ops-topbar mb-5 rounded-[2rem] px-4 py-4 sm:px-6 sm:py-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-3">

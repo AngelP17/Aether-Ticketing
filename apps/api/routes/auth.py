@@ -49,7 +49,10 @@ def get_me(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     if authorization is None or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = authorization.replace("Bearer ", "", 1)
-    user = AuthService().current_user(token)
+    try:
+        user = AuthService().current_user(token)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail="Auth user store unavailable") from exc
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid token")
     return user

@@ -29,7 +29,7 @@ export function BoardColumn({
 }) {
   return (
     <section
-      className={`ops-card flex w-full shrink-0 flex-col rounded-[1.5rem] border transition sm:p-5 ${
+      className={`ops-card flex w-full shrink-0 flex-col rounded-[22px] border transition sm:p-5 ${
         isDropTarget ? "border-amber-400/40 shadow-[0_18px_50px_rgba(245,158,11,0.18)]" : "border-transparent"
       }`}
       style={{ scrollSnapAlign: "start" }}
@@ -61,7 +61,7 @@ export function BoardColumn({
         onDragOver={(event) => onDragOver(event, column.key)}
         onDragLeave={() => onDragLeave(column.key)}
         onDrop={(event) => onDrop(event, column.key)}
-        className={`min-h-[180px] flex-1 space-y-3 p-4 sm:p-0 sm:pt-4 ${
+        className={`min-h-[180px] max-h-[600px] flex-1 space-y-3 overflow-y-auto p-4 sm:p-0 sm:pt-4 ${
           isDropTarget ? "bg-amber-500/[0.04]" : ""
         }`}
       >

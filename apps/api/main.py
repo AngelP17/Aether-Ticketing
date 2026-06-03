@@ -28,8 +28,7 @@ from apps.api.routes.tickets import router as tickets_router
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Any:
     validate_production_settings()
-    if settings.AUTO_INIT_DB:
-        init_db()
+    init_db()
     yield
 
 

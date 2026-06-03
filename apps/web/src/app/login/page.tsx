@@ -166,7 +166,7 @@ export default function LoginPage() {
         }
         .glow-orb {
           position: absolute;
-          border-radius: 50%;
+          border-radius: 999px;
           pointer-events: none;
           filter: blur(80px);
           opacity: 0;
@@ -239,7 +239,7 @@ export default function LoginPage() {
           content: "";
           position: absolute;
           inset: 0;
-          border-radius: 50%;
+          border-radius: 999px;
           background: inherit;
           animation: statusPulse 2s ease-out infinite;
           opacity: 0;
@@ -315,7 +315,7 @@ export default function LoginPage() {
           padding: 12px 16px 12px 44px;
           background: rgba(20, 20, 23, 0.7);
           border: 1px solid var(--border-subtle);
-          border-radius: 10px;
+          border-radius: 12px;
           color: var(--text-primary);
           font-size: 14px;
           font-family: var(--font-display), sans-serif;
@@ -342,7 +342,7 @@ export default function LoginPage() {
           width: 100%;
           padding: 13px 24px;
           border: none;
-          border-radius: 10px;
+          border-radius: 12px;
           background: var(--accent);
           color: #000;
           font-size: 15px;
@@ -395,7 +395,7 @@ export default function LoginPage() {
         .custom-check {
           width: 16px;
           height: 16px;
-          border-radius: 4px;
+          border-radius: 8px;
           background: rgba(20, 20, 23, 0.7);
           appearance: none;
           cursor: pointer;
@@ -504,15 +504,10 @@ export default function LoginPage() {
 
           <div className="relative z-10 max-w-md fade-up delay-2">
               <h2 className="text-3xl lg:text-4xl font-bold leading-tight tracking-tight mb-5 text-[#fafafa]">
-              Operational
-              <br />
-              <span style={{ color: "var(--accent)" }}>Intelligence</span>
-              <br />
-              at scale.
+              OpsCenter
             </h2>
             <p className="text-sm text-zinc-500 leading-relaxed">
-              Unified ticket management, incident response, and service monitoring backed by the
-              live API used across the command center, reports, and replay views.
+              Ticket management, incident response, and live reporting in one interface.
             </p>
           </div>
 
@@ -535,7 +530,7 @@ export default function LoginPage() {
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-sm">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600">
-                  Real authentication
+                  Authentication
                 </div>
                 <p className="mt-2 text-sm leading-6 text-zinc-400">
                   Sessions are stored in the browser after the backend issues a token.
@@ -543,10 +538,10 @@ export default function LoginPage() {
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-sm">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-600">
-                  Actionable routes
+                  Navigation
                 </div>
                 <p className="mt-2 text-sm leading-6 text-zinc-400">
-                  Every route on the dashboard should lead to a real record, export, or review flow.
+                  Each route opens a ticket, export, or review screen.
                 </p>
               </div>
             </div>

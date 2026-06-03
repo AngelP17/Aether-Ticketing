@@ -34,6 +34,28 @@ Use commands that are already defined in this repo:
 - Reset local auth user store: `make seed-auth`
 - Web typecheck: `cd apps/web && npm run typecheck`
 - Web production build: `cd apps/web && npm run build`
+- Mobile layout smoke check: `make verify-mobile` (requires API and web dev servers)
+
+### Render Verification
+
+Render deploys from `render.yaml` with `AUTO_INIT_DB=true`. When production
+shows schema-related intelligence errors (for example missing
+`decision_records.decision_band`), inspect the live service with the Render CLI
+if it is installed and authenticated, then run the repo migration command in
+the Render service shell/job context:
+
+```bash
+render --version
+render services
+alembic -c infrastructure/db/migrations/alembic.ini upgrade head
+python -c "from infrastructure.db.session import init_db; init_db()"
+```
+
+After a Render deploy or migration, verify with a fresh login and these live
+endpoints through the deployed host: `/api/auth/me`,
+`/api/intelligence/health`, `/api/governance/summary`, and
+`/api/replay/{ticket_id}`. Do not mark production fixed until unexpected 500s
+are gone in the browser network/console checks.
 
 ### Local Auth + Port Flexibility
 
@@ -104,8 +126,8 @@ do not apply; do not use them as a justification for redesigning chrome.
   quick-access cards (amber/cyan/emerald/violet) violate this — collapse to
   amber or zebra to neutral.
 - **One radius scale, locked project-wide.** Documented in `globals.css`
-  (8 / 12 / 16 / 22 / 32px). Audit every new component against this scale —
-  do not introduce new arbitrary radius values.
+  (8 / 12 / 16 / 22 / 32px, plus `999px` for pills/circles). Audit every new
+  component against this scale — do not introduce new arbitrary radius values.
 - **Shape rule for data surfaces.** For high-density data (metrics, counts,
   scores) prefer hairline dividers and mono numbers over generic card
   containers. The command-center metric grid is a known offender.
@@ -113,12 +135,16 @@ do not apply; do not use them as a justification for redesigning chrome.
   IPs. Sans for prose. No serif anywhere. No Inter as the default.
 - **Eyebrow ban translated to panels.** Do not stamp an
   `uppercase tracking-[0.18em]` micro-label above every panel header. The
-  section's location is the label. Strip the existing offenders
-  (incident detail, decision detail, recommendations, ticket workspace,
-  command-center, reports, replay, admin).
+  section's location is the label. Use plain headings for section topics.
+  Uppercase mono labels are allowed only for compact data labels, table
+  headers, IDs, timestamps, counts, hashes, status badges, and short metadata
+  fields where the casing improves scanability.
 - **No AI-fluff copy.** Audit every visible string before ship. No cute
   metaphors, no fake-precise numbers (`92%`, `4.1×`), no passive-aggressive
   humility, no mock-poetic micro-meta. Plain ops register.
+- **No fake ML claims.** The current decision layer is deterministic graph +
+  rules. Do not call it ML/RIFT unless a versioned model artifact and backend
+  contract exist. See `docs/implementation/rift-ml-integration.md`.
 - **Full UI state cycles on every list/detail.** Skeleton matching the final
   shape, composed empty state, inline error, tactile `:active` press.
 - **Contrast.** WCAG AA on every status badge, button, input, table cell.

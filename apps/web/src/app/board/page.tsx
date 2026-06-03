@@ -32,6 +32,7 @@ import { PRIORITIES } from "@/components/board/palette";
 
 const SLA_RISK_HOURS = 24;
 const SLA_RISK_WINDOW_MS = SLA_RISK_HOURS * 60 * 60 * 1000;
+const COLLAPSED_COLUMN_LIMIT = 8;
 
 type FeedStatus = "loading" | "ready" | "error";
 
@@ -53,7 +54,7 @@ const COLUMNS: BoardColumnDef[] = [
   {
     key: "RESOLVED",
     label: "Resolved",
-    description: "Closed or resolved work retained for throughput and historical context.",
+    description: "Completed tickets kept for reference.",
     accent: "#22c55e",
     pillTone: "border-emerald-500/20 bg-emerald-500/8 text-emerald-200",
   },
@@ -91,6 +92,7 @@ export default function BoardPage() {
   const [search, setSearch] = useState("");
   const [activePriorities, setActivePriorities] = useState<Set<string>>(new Set());
   const [slaRiskOnly, setSlaRiskOnly] = useState(false);
+  const [expandedColumns, setExpandedColumns] = useState<Set<string>>(new Set());
 
   const [dragTicketId, setDragTicketId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
@@ -231,6 +233,19 @@ export default function BoardPage() {
     setSearch("");
     setActivePriorities(new Set());
     setSlaRiskOnly(false);
+    setExpandedColumns(new Set());
+  }, []);
+
+  const toggleColumnExpansion = useCallback((columnKey: string) => {
+    setExpandedColumns((current) => {
+      const next = new Set(current);
+      if (next.has(columnKey)) {
+        next.delete(columnKey);
+      } else {
+        next.add(columnKey);
+      }
+      return next;
+    });
   }, []);
 
   const moveTicket = useCallback(
@@ -367,7 +382,7 @@ export default function BoardPage() {
       showNotificationBell
     >
       <div className="mx-auto w-full max-w-[1480px] space-y-5">
-        <div className="ops-glass rounded-[28px] px-4 py-4 sm:px-6 sm:py-5">
+        <div className="ops-glass rounded-[2rem] px-4 py-4 sm:px-6 sm:py-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
               <span className="mono-data rounded-full border border-zinc-800/70 bg-black/20 px-3 py-1.5 uppercase tracking-[0.24em]">
@@ -450,6 +465,11 @@ export default function BoardPage() {
           <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:pb-0">
             {COLUMNS.map((column) => {
               const tickets = grouped[column.key];
+              const expanded = expandedColumns.has(column.key);
+              const visibleTickets = expanded
+                ? tickets
+                : tickets.slice(0, COLLAPSED_COLUMN_LIMIT);
+              const hiddenCount = tickets.length - visibleTickets.length;
               return (
                 <BoardColumn
                   key={column.key}
@@ -461,21 +481,34 @@ export default function BoardPage() {
                   onDrop={handleDrop}
                 >
                   {tickets.length === 0 ? (
-                    <div className="rounded-[1.15rem] border border-dashed border-zinc-800 bg-zinc-950/45 px-4 py-10 text-center text-sm text-zinc-600">
+                    <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/45 px-4 py-10 text-center text-sm text-zinc-600">
                       No tickets in this lane.
                     </div>
                   ) : (
-                    tickets.map((ticket) => (
-                      <BoardCard
-                        key={ticket.ticket_id}
-                        ticket={ticket}
-                        isDragging={dragTicketId === ticket.ticket_id}
-                        isMoving={movingTicketId === ticket.ticket_id}
-                        onDragStart={handleDragStart}
-                        onDragEnd={handleDragEnd}
-                        onMove={moveTicket}
-                      />
-                    ))
+                    <>
+                      {visibleTickets.map((ticket) => (
+                        <BoardCard
+                          key={ticket.ticket_id}
+                          ticket={ticket}
+                          isDragging={dragTicketId === ticket.ticket_id}
+                          isMoving={movingTicketId === ticket.ticket_id}
+                          onDragStart={handleDragStart}
+                          onDragEnd={handleDragEnd}
+                          onMove={moveTicket}
+                        />
+                      ))}
+                      {hiddenCount > 0 || expanded ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleColumnExpansion(column.key)}
+                          className="w-full rounded-2xl border border-amber-400/20 bg-amber-500/10 px-3 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-500/15 active:scale-[0.99]"
+                        >
+                          {expanded
+                            ? "Show fewer"
+                            : `Show ${hiddenCount} more in ${column.label}`}
+                        </button>
+                      ) : null}
+                    </>
                   )}
                 </BoardColumn>
               );
@@ -491,7 +524,7 @@ function BoardSkeleton() {
   return (
     <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
       {COLUMNS.map((column) => (
-        <div key={column.key} className="ops-card rounded-[1.5rem] p-4 sm:p-5">
+        <div key={column.key} className="ops-card rounded-[22px] p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3 border-b border-zinc-800/70 pb-4">
             <div className="space-y-2">
               <div className="h-3 w-24 rounded-full bg-zinc-800/80" />
@@ -501,7 +534,7 @@ function BoardSkeleton() {
           </div>
           <div className="mt-4 space-y-3">
             {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="rounded-[1.15rem] border border-zinc-800/60 bg-zinc-950/60 p-4">
+              <div key={index} className="rounded-2xl border border-zinc-800/60 bg-zinc-950/60 p-4">
                 <div className="h-3 w-20 rounded-full bg-zinc-800/80" />
                 <div className="mt-3 h-3 w-full rounded-full bg-zinc-900/80" />
                 <div className="mt-2 h-3 w-2/3 rounded-full bg-zinc-900/80" />
@@ -520,17 +553,14 @@ function BoardSkeleton() {
 
 function BoardError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="ops-card rounded-[26px] border border-rose-500/25 p-6">
+    <div className="ops-card rounded-[22px] border border-rose-500/25 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200">
             <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           </div>
           <div>
-            <p className="mono-data text-[10px] uppercase tracking-[0.28em] text-rose-300">
-              Workflow board offline
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-white">The live board could not load</h2>
+            <h2 className="text-xl font-semibold text-white">The live board could not load</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">{message}</p>
           </div>
         </div>
@@ -558,7 +588,7 @@ function BoardError({ message, onRetry }: { message: string; onRetry: () => void
 
 function BoardEmpty({ hasFilters, onReset }: { hasFilters: boolean; onReset: () => void }) {
   return (
-    <div className="ops-card rounded-[26px] p-6">
+    <div className="ops-card rounded-[22px] p-6">
       <SectionEmptyState
         title="No tickets visible"
         message={

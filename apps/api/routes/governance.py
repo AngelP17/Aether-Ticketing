@@ -23,6 +23,13 @@ from pipelines.governance.decision_drift import run_drift_detection
 router = APIRouter()
 
 
+def _rollback_after_handled_error(db: Session) -> None:
+    try:
+        db.rollback()
+    except Exception:
+        pass
+
+
 @router.get("/summary")
 def governance_summary(
     db: Session = Depends(get_db),
@@ -31,11 +38,13 @@ def governance_summary(
     try:
         drift = run_drift_detection(db)
     except Exception as exc:  # noqa: BLE001
+        _rollback_after_handled_error(db)
         drift = {"status": "unavailable", "error": str(exc)}
 
     try:
         graph_summary = summarize_graph(db)
     except Exception as exc:  # noqa: BLE001
+        _rollback_after_handled_error(db)
         graph_summary = {"status": "unavailable", "error": str(exc)}
 
     return {

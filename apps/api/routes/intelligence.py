@@ -25,10 +25,18 @@ from pipelines.governance.decision_drift import run_drift_detection
 router = APIRouter()
 
 
+def _rollback_after_handled_error(db: Session) -> None:
+    try:
+        db.rollback()
+    except Exception:
+        pass
+
+
 def _safe_count(db: Session, sql: str, params: dict[str, Any] | None = None) -> int:
     try:
         row = db.execute(text(sql), params or {}).mappings().first()
     except Exception:
+        _rollback_after_handled_error(db)
         return 0
     if not row:
         return 0
@@ -54,46 +62,70 @@ def intelligence_health(
     incident_count = _safe_count(db, "SELECT COUNT(*) AS c FROM incidents")
     similar_link_count = _safe_count(db, "SELECT COUNT(*) AS c FROM similar_case_links")
 
-    last_decision = db.execute(
-        text("SELECT MAX(decision_ts) AS ts FROM decision_records")
-    ).mappings().first()
-    last_feedback = db.execute(
-        text("SELECT MAX(feedback_ts) AS ts FROM operator_feedback")
-    ).mappings().first()
-    last_action_run = db.execute(
-        text("SELECT MAX(started_at) AS ts FROM action_runs")
-    ).mappings().first()
+    try:
+        last_decision = db.execute(
+            text("SELECT MAX(decision_ts) AS ts FROM decision_records")
+        ).mappings().first()
+    except Exception:
+        _rollback_after_handled_error(db)
+        last_decision = None
 
-    feedback_by_type_rows = db.execute(
-        text(
-            """
-            SELECT feedback_type, COUNT(*) AS c
-            FROM operator_feedback
-            GROUP BY feedback_type
-            """
-        )
-    ).mappings()
-    feedback_by_type = {row["feedback_type"]: int(row["c"]) for row in feedback_by_type_rows}
+    try:
+        last_feedback = db.execute(
+            text("SELECT MAX(feedback_ts) AS ts FROM operator_feedback")
+        ).mappings().first()
+    except Exception:
+        _rollback_after_handled_error(db)
+        last_feedback = None
 
-    action_runs_by_status_rows = db.execute(
-        text(
-            """
-            SELECT status, COUNT(*) AS c
-            FROM action_runs
-            GROUP BY status
-            """
-        )
-    ).mappings()
-    action_runs_by_status = {row["status"]: int(row["c"]) for row in action_runs_by_status_rows}
+    try:
+        last_action_run = db.execute(
+            text("SELECT MAX(started_at) AS ts FROM action_runs")
+        ).mappings().first()
+    except Exception:
+        _rollback_after_handled_error(db)
+        last_action_run = None
+
+    try:
+        feedback_by_type_rows = db.execute(
+            text(
+                """
+                SELECT feedback_type, COUNT(*) AS c
+                FROM operator_feedback
+                GROUP BY feedback_type
+                """
+            )
+        ).mappings()
+        feedback_by_type = {row["feedback_type"]: int(row["c"]) for row in feedback_by_type_rows}
+    except Exception:
+        _rollback_after_handled_error(db)
+        feedback_by_type = {}
+
+    try:
+        action_runs_by_status_rows = db.execute(
+            text(
+                """
+                SELECT status, COUNT(*) AS c
+                FROM action_runs
+                GROUP BY status
+                """
+            )
+        ).mappings()
+        action_runs_by_status = {row["status"]: int(row["c"]) for row in action_runs_by_status_rows}
+    except Exception:
+        _rollback_after_handled_error(db)
+        action_runs_by_status = {}
 
     try:
         graph_summary = summarize_graph(db)
     except Exception as exc:  # noqa: BLE001
+        _rollback_after_handled_error(db)
         graph_summary = {"status": "unavailable", "error": str(exc)}
 
     try:
         drift = run_drift_detection(db)
     except Exception as exc:  # noqa: BLE001
+        _rollback_after_handled_error(db)
         drift = {"status": "unavailable", "error": str(exc)}
 
     return {

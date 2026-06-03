@@ -42,7 +42,7 @@ export default function Home() {
 
             {/* Left panel */}
             <section className="px-7 py-9 sm:px-10 sm:py-12 lg:px-12 lg:py-14">
-              <div className="aether-eyebrow text-amber-300">
+              <div className="text-sm font-medium text-amber-300">
                 Aether OpsCenter
               </div>
               <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-[2.6rem] lg:leading-[1.12]">
@@ -82,7 +82,7 @@ export default function Home() {
 
             {/* Right panel — one accent (amber) only, differentiate by icon + label + zebra surface */}
             <aside className="border-t border-zinc-800/60 bg-black/25 px-6 py-8 lg:border-l lg:border-t-0 lg:px-8 lg:py-10">
-              <p className="aether-eyebrow mb-5">
+              <p className="mb-5 text-sm font-medium text-zinc-300">
                 Quick access
               </p>
               <div className="grid gap-2.5">

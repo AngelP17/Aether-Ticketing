@@ -206,7 +206,7 @@ export function RecommendationsPanel({
   };
 
   return (
-    <div className="ops-card rounded-[1.75rem] p-6">
+    <div className="ops-card rounded-[22px] p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Sparkles className="h-5 w-5 text-amber-300" />
@@ -246,7 +246,7 @@ export function RecommendationsPanel({
 
       {recommendations.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/50 px-4 py-5 text-sm leading-7 text-zinc-500">
-          No recommendations proposed. Recompute the decision to surface them.
+          No recommendations yet. Click Recompute to generate them.
         </div>
       ) : (
         <ol className="mt-5 space-y-4">
@@ -525,7 +525,7 @@ function DecisionMetadata({ decision }: { decision: Decision }) {
         <div className="flex items-center gap-2">
           <Cpu className="h-3.5 w-3.5 opacity-80" />
           <span className="font-mono uppercase tracking-[0.18em] opacity-70">engine</span>
-          <span>{decision.decision_version ?? "v1"} / {decision.rule_version ?? "rules-2024-Q1"}</span>
+          <span>{decision.decision_version ?? "v1"} / {decision.rule_version ?? "rules-2026-graph"}</span>
         </div>
         <div className="flex items-center gap-2">
           <Brain className="h-3.5 w-3.5 opacity-80" />
@@ -593,5 +593,4 @@ function extractErrorMessage(error: unknown): string {
   }
   return "Unknown error";
 }
-
 

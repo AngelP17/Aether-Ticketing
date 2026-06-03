@@ -47,7 +47,7 @@ export function BoardCard({
       draggable
       onDragStart={(event) => onDragStart(event, ticket.ticket_id)}
       onDragEnd={onDragEnd}
-      className={`group relative rounded-[1.15rem] border border-zinc-800 bg-zinc-950/60 p-4 transition ${
+      className={`group relative rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 transition ${
         isDragging
           ? "cursor-grabbing border-amber-400/40 opacity-60 shadow-[0_18px_40px_rgba(0,0,0,0.35)]"
           : isMoving

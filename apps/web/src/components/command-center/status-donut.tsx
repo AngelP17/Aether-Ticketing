@@ -8,10 +8,7 @@ export function CompactStatusChart({ data }: { data: BreakdownItem[] }) {
   const mounted = useMountedFlag();
   if (!data.length) {
     return (
-      <div className="ops-card rounded-[24px] p-5 sm:p-6">
-        <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-          Status Distribution
-        </div>
+      <div className="ops-card rounded-[22px] p-5 sm:p-6">
         <div className="mt-4">
           <SectionEmptyState
             title="No ticket distribution"
@@ -41,9 +38,10 @@ export function CompactStatusChart({ data }: { data: BreakdownItem[] }) {
     : "Status distribution chart with no data.";
 
   return (
-    <div className="ops-card rounded-[24px] p-5 sm:p-6" role="img" aria-label={ariaLabel}>
-      <div className="mono-data text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-        Status Distribution
+    <div className="ops-card rounded-[22px] p-5 sm:p-6" role="img" aria-label={ariaLabel}>
+      <div>
+        <h2 className="text-xl font-semibold text-zinc-50">Status mix</h2>
+        <p className="mt-1 text-sm text-zinc-400">Tickets grouped by current status.</p>
       </div>
       <div className="mt-4 flex flex-col gap-5 md:flex-row md:items-center md:gap-6">
         <svg

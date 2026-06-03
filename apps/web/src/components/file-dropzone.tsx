@@ -65,7 +65,7 @@ export function FileDropzone({
           setIsOver(false);
           addFiles(event.dataTransfer.files);
         }}
-        className={`rounded-[1.25rem] border border-dashed px-4 py-5 transition ${
+        className={`rounded-2xl border border-dashed px-4 py-5 transition ${
           isOver
             ? "border-amber-400/50 bg-amber-500/10"
             : "border-zinc-700/70 bg-zinc-950/50 hover:border-zinc-500/80 hover:bg-zinc-900/60"

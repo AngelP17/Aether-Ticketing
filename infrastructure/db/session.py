@@ -87,7 +87,7 @@ def _import_models() -> None:
 
 
 def _ensure_legacy_compatibility() -> None:
-    statements_by_column = {
+    ticket_statements = {
         "clean_summary": "ALTER TABLE tickets ADD COLUMN clean_summary TEXT",
         "source_hash": "ALTER TABLE tickets ADD COLUMN source_hash VARCHAR(64)",
         "site_id": "ALTER TABLE tickets ADD COLUMN site_id VARCHAR(100)",
@@ -99,23 +99,35 @@ def _ensure_legacy_compatibility() -> None:
         "is_active": "ALTER TABLE tickets ADD COLUMN is_active BOOLEAN DEFAULT TRUE",
     }
 
+    decision_statements = {
+        "decision_band": "ALTER TABLE decision_records ADD COLUMN decision_band VARCHAR(40)",
+        "priority_interval_low": "ALTER TABLE decision_records ADD COLUMN priority_interval_low FLOAT",
+        "priority_interval_high": "ALTER TABLE decision_records ADD COLUMN priority_interval_high FLOAT",
+        "decision_hash": "ALTER TABLE decision_records ADD COLUMN decision_hash VARCHAR(64)",
+        "graph_degree": "ALTER TABLE decision_records ADD COLUMN graph_degree INTEGER DEFAULT 0",
+        "graph_weighted_degree": "ALTER TABLE decision_records ADD COLUMN graph_weighted_degree FLOAT DEFAULT 0.0",
+        "explanation_json": "ALTER TABLE decision_records ADD COLUMN explanation_json JSONB",
+    }
+
     with engine.begin() as connection:
-        existing_columns = {
-            row[0]
-            for row in connection.execute(
-                text(
-                    """
-                    SELECT column_name
-                    FROM information_schema.columns
-                    WHERE table_schema = 'public' AND table_name = 'tickets'
-                    """
+        for table_name, statements in [("tickets", ticket_statements), ("decision_records", decision_statements)]:
+            existing_columns = {
+                row[0]
+                for row in connection.execute(
+                    text(
+                        """
+                        SELECT column_name
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = :tbl
+                        """
+                    ),
+                    {"tbl": table_name},
                 )
-            )
-        }
-        for column_name, statement in statements_by_column.items():
-            if column_name in existing_columns:
-                continue
-            connection.execute(text(statement))
+            }
+            for column_name, statement in statements.items():
+                if column_name in existing_columns:
+                    continue
+                connection.execute(text(statement))
 
         compatibility_statements = [
             """
