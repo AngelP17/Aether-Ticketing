@@ -41,6 +41,8 @@ class Settings(BaseSettings):
 
     # Webhooks (signing etc)
     WEBHOOK_TIMEOUT_SEC: int = 10
+    # Service tokens for OSS integrations (comma sep, zero cost)
+    SERVICE_TOKENS: str = ""
 
 
     @property

@@ -57,4 +57,5 @@ def public_get_ticket(ticket_id: str, db: Session = Depends(get_db)) -> Any:
         "created_at": t.get("created_at"),
         "days_open": t.get("days_open"),
         "root_cause_hypothesis": (t.get("decision") or {}).get("root_cause_hypothesis"),
+        "custom_fields": t.get("custom_fields"),
     }

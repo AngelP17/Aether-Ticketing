@@ -18,6 +18,9 @@ from apps.api.services.operational_intelligence import (
 from apps.api.services.schema_compat import category_join_sql, column_expr
 from apps.api.services.decision_service import DecisionService
 from apps.api.services.event_service import EventService
+from apps.api.services.sla_service import SlaService
+from apps.api.services.automation_service import AutomationService
+from apps.api.services.webhook_service import WebhookService
 
 logger = logging.getLogger(__name__)
 
@@ -418,6 +421,22 @@ class TicketService:
             actor_id=actor["username"],
             payload={"ticket_id": ticket_id, "status": status, "priority": priority},
         )
+        # SLA
+        try:
+            SlaService(self.db).ensure_tracking(int(created["id"]))
+            SlaService(self.db).update_tracking_on_event({"id": int(created["id"]), "ticket_id": ticket_id, **payload, "status": status, "priority": priority, "days_open": 0}, "ticket_created")
+        except Exception:
+            logger.exception("SLA tracking on create failed (non-fatal)")
+        # Automation
+        try:
+            AutomationService(self.db).evaluate_and_execute("ticket_created", {"ticket_id": ticket_id, "id": int(created["id"]), **payload, "status": status, "priority": priority})
+        except Exception:
+            logger.exception("automation on create failed (non-fatal)")
+        # Webhook for OSS
+        try:
+            WebhookService(self.db).dispatch("ticket.created", {"ticket_id": ticket_id, "status": status, "priority": priority, "requester": payload.get("requester")})
+        except Exception:
+            logger.exception("webhook ticket.created failed (non-fatal)")
         self.db.commit()
         return self.get_ticket_detail(ticket_id)
 
@@ -489,6 +508,17 @@ class TicketService:
             actor_id=actor["username"],
             payload=change_set,
         )
+        # SLA update
+        try:
+            SlaService(self.db).update_tracking_on_event({"id": int(existing["id"]), "ticket_id": ticket_id, **existing, **payload, "status": next_status}, "status_changed" if "status" in payload else "field_updated")
+        except Exception:
+            logger.exception("SLA on update failed (non-fatal)")
+        # Automation + webhook
+        try:
+            AutomationService(self.db).evaluate_and_execute("ticket_updated", {"ticket_id": ticket_id, **existing, **payload, "status": next_status})
+            WebhookService(self.db).dispatch("ticket.updated", {"ticket_id": ticket_id, "changes": change_set})
+        except Exception:
+            logger.exception("automation/webhook on update failed (non-fatal)")
         self.db.commit()
         return self.get_ticket_detail(ticket_id)
 

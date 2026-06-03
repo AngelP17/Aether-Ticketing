@@ -37,7 +37,8 @@ export default function PortalTicketPage() {
             </div>
             <div><span className="text-zinc-400">Opened</span> {data.created_at}</div>
             {data.root_cause_hypothesis && <div className="rounded border-l-2 border-amber-500 pl-2 text-amber-100">{data.root_cause_hypothesis}</div>}
-            <div className="pt-2 text-[11px] text-zinc-500">For full details, actions, and intelligence, log in to the OpsCenter.</div>
+            {data.custom_fields && <div className="text-xs text-zinc-400">Custom: {JSON.stringify(data.custom_fields)}</div>}
+            <div className="pt-2 text-[11px] text-zinc-500">For full details, actions, and intelligence (graph, bands, recs), log in to the OpsCenter.</div>
           </div>
         )}
       </div>

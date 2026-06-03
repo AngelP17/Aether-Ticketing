@@ -6,7 +6,7 @@ import Link from "next/link";
 import { OpsShell } from "@/components/ops-shell";
 
 export default function PortalPage() {
-  const [form, setForm] = useState({ title: "", description: "", requester: "" });
+  const [form, setForm] = useState({ title: "", description: "", requester: "", custom_fields: { site: "", asset: "" } as any });
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -36,6 +36,7 @@ export default function PortalPage() {
           <input className="w-full rounded-[12px] border border-zinc-800 bg-black/20 p-3 text-sm mono-data" placeholder="Title" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required />
           <textarea className="w-full rounded-[12px] border border-zinc-800 bg-black/20 p-3 text-sm" placeholder="Description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={4} required />
           <input className="w-full rounded-[12px] border border-zinc-800 bg-black/20 p-3 text-sm mono-data" placeholder="Your email or name" value={form.requester} onChange={e=>setForm({...form,requester:e.target.value})} />
+          <input className="w-full rounded-[12px] border border-zinc-800 bg-black/20 p-3 text-sm mono-data" placeholder="Site / location (custom)" value={form.custom_fields?.site || ''} onChange={e=>setForm({...form, custom_fields: {...form.custom_fields, site: e.target.value}})} />
           <button disabled={loading} className="w-full rounded-[12px] bg-amber-500 px-4 py-2 text-sm font-medium text-black disabled:opacity-50 active:scale-[0.98] transition">{loading ? "Sending..." : "Submit request"}</button>
         </form>
 

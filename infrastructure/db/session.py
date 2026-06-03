@@ -84,6 +84,13 @@ def _import_models() -> None:
     import infrastructure.db.models.ticket_attachment  # noqa: F401
     import infrastructure.db.models.ticket_comment  # noqa: F401
     import infrastructure.db.models.ticket_event  # noqa: F401
+    import infrastructure.db.models.article  # noqa: F401
+    import infrastructure.db.models.sla_policy  # noqa: F401
+    import infrastructure.db.models.webhook  # noqa: F401
+    import infrastructure.db.models.ticket_sla_tracking  # noqa: F401
+    import infrastructure.db.models.dashboard_layout  # noqa: F401
+    import infrastructure.db.models.user_preference  # noqa: F401
+    import infrastructure.db.models.notification  # noqa: F401
 
 
 def _ensure_legacy_compatibility() -> None:

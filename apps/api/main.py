@@ -74,6 +74,9 @@ app.include_router(__import__("apps.api.routes.notifications", fromlist=["router
 app.include_router(__import__("apps.api.routes.audit", fromlist=["router"]).router, prefix="/api/audit", tags=["audit"])
 app.include_router(__import__("apps.api.routes.portal", fromlist=["router"]).router, prefix="/api/portal", tags=["portal"])  # Phase 8 public-ish
 app.include_router(__import__("apps.api.routes.kb", fromlist=["router"]).router, prefix="/api/kb", tags=["kb"])  # Phase 8
+app.include_router(__import__("apps.api.routes.sla", fromlist=["router"]).router, prefix="/api", tags=["sla"])  # SLA full
+app.include_router(__import__("apps.api.routes.automation", fromlist=["router"]).router, prefix="/api", tags=["automation"])  # basic rules + hooks for OSS
+app.include_router(__import__("apps.api.routes.webhooks", fromlist=["router"]).router, prefix="/api", tags=["webhooks"])  # admin for OSS integrations
 
 
 

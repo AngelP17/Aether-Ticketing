@@ -2,13 +2,18 @@ from collections.abc import Callable
 
 from fastapi import Header, HTTPException
 
+from apps.api.config import settings
 from apps.api.services.auth_service import AuthService
 
 
 CurrentUser = dict[str, str]
 
+SERVICE_ROLE = {"username": "service", "role": "service"}
 
-def get_current_user(authorization: str | None = Header(default=None)) -> CurrentUser:
+
+def get_current_user(authorization: str | None = Header(default=None), x_service_token: str | None = Header(default=None)) -> CurrentUser:
+    if x_service_token and x_service_token in (settings.SERVICE_TOKENS or "").split(","):
+        return SERVICE_ROLE
     if authorization is None or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
 
