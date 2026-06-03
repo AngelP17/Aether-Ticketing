@@ -659,6 +659,7 @@ def _ticket_list_sql(db: Session, *, where_clause: str = "", limit_clause: str =
             {site_id_expr} AS site_id,
             {asset_id_expr} AS asset_id,
             {category_id_expr} AS category_id,
+            t.custom_fields AS custom_fields,
             {category_select}
         FROM tickets t
         {category_join}
@@ -717,6 +718,7 @@ def _fallback_ticket_snapshot(ticket: dict[str, Any]) -> dict[str, Any]:
         "description": _safe_text(ticket.get("description")) or None,
         "resolution_notes": _safe_text(ticket.get("resolution_notes")) or None,
         "requester": _safe_text(ticket.get("requester")) or None,
+        "custom_fields": ticket.get("custom_fields"),
     }
 
 

@@ -95,7 +95,7 @@ class EventService:
         )
         # Phase 8: realtime WS broadcast (non-blocking best effort)
         try:
-            from apps.api.services.websocket_manager import manager  # type: ignore
+            from apps.api.services.websocket_manager import manager
             import asyncio
             msg = {
                 "type": "event",

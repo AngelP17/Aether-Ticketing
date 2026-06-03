@@ -7,7 +7,7 @@ import json
 import logging
 from typing import Any, Dict, List
 
-from sqlalchemy import text
+from sqlalchemy import RowMapping, text
 from sqlalchemy.orm import Session
 
 from apps.api.services.action_service import ActionService
@@ -38,23 +38,23 @@ class AutomationService:
             }
         ).mappings().first()
         self.db.commit()
-        return {"id": res["id"]}
+        return {"id": res["id"] if res else None}
 
     def evaluate_and_execute(self, trigger: str, ticket: Dict[str, Any], context: Dict[str, Any] | None = None) -> int:
         """Simple engine: load enabled rules for trigger, match conditions, exec actions."""
         rules = self.db.execute(text("SELECT * FROM automation_rules WHERE enabled=true AND trigger_type = :t"), {"t": trigger}).mappings()
         executed = 0
         for rule in rules:
-            rule_dict: Dict[str, Any] = dict(rule) if hasattr(rule, "keys") else rule  # type: ignore[arg-type]
-            conds: Any = rule_dict.get("conditions")  # type: ignore[arg-type]
-            conditions = conds if isinstance(conds, (list, dict)) else json.loads(conds or "[]")
-            acts: Any = rule_dict.get("actions")  # type: ignore[arg-type]
-            actions = acts if isinstance(acts, (list, dict)) else json.loads(acts or "[]")
+            rule_dict: Dict[str, Any] = dict(rule) if isinstance(rule, (dict, RowMapping)) else {}
+            conds_raw: Any = rule_dict.get("conditions")
+            conditions: List[Dict[str, Any]] = conds_raw if isinstance(conds_raw, list) else (json.loads(conds_raw or "[]") if isinstance(conds_raw, str) else [])
+            acts_raw: Any = rule_dict.get("actions")
+            actions: List[Dict[str, Any]] = acts_raw if isinstance(acts_raw, list) else (json.loads(acts_raw or "[]") if isinstance(acts_raw, str) else [])
             if self._matches(ticket, conditions):
                 for act in actions:
                     self._execute_action(ticket, act, context)
                 executed += 1
-                self.db.execute(text("UPDATE automation_rules SET execution_count = execution_count + 1, last_executed_at = NOW() WHERE id = :id"), {"id": rule["id"]})
+                self.db.execute(text("UPDATE automation_rules SET execution_count = execution_count + 1, last_executed_at = NOW() WHERE id = :id"), {"id": rule_dict.get("id")})
         self.db.commit()
         return executed
 
@@ -62,10 +62,12 @@ class AutomationService:
         if not conditions:
             return True
         for cond in conditions:
-            field = cond.get("field")
-            op = cond.get("op", "equals")
-            val = cond.get("value")
-            tval = ticket.get(field) or (ticket.get("decision") or {}).get(field)
+            field: Any = cond.get("field")
+            op: str = str(cond.get("op", "equals"))
+            val: Any = cond.get("value")
+            tval: Any = ticket.get(field) if field else None
+            if not tval and isinstance(ticket.get("decision"), dict):
+                tval = ticket.get("decision", {}).get(field)
             if op == "equals" and str(tval) != str(val):
                 return False
             if op == "greater_than" and (tval or 0) <= (val or 0):

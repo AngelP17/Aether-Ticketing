@@ -52,7 +52,7 @@ class EmailService:
             if html_body:
                 msg.attach(MIMEText(html_body, "html"))
 
-            with smtplib.SMTP(self.host, self.port) as server:
+            with smtplib.SMTP(self.host or "localhost", self.port or 25) as server:
                 if self.use_tls:
                     server.starttls()
                 if self.user and self.password:

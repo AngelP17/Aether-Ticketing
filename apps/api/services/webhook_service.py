@@ -8,9 +8,9 @@ import hmac
 import json
 import logging
 import time
-from typing import Any, Optional
-
-import requests  # type: ignore  # may not be in minimal; fallback to urllib if missing
+import urllib.error
+import urllib.request
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -37,7 +37,7 @@ class WebhookService:
         body = json.dumps(full_payload, separators=(",", ":"), default=str).encode("utf-8")
 
         for hook in hooks:
-            events = hook.events or []
+            events: Any = hook.events or []
             if isinstance(events, str):
                 try:
                     events = json.loads(events)
@@ -65,14 +65,8 @@ class WebhookService:
         if sig:
             headers["X-Aether-Signature"] = sig
 
+        req = urllib.request.Request(str(hook.url), data=body, headers=headers, method="POST")
         try:
-            requests.post(hook.url, data=body, headers=headers, timeout=self.timeout)
-        except NameError:
-            # no requests; fallback urllib (stdlib)
-            import urllib.request
-            import urllib.error
-            req = urllib.request.Request(hook.url, data=body, headers=headers, method="POST")
-            try:
-                urllib.request.urlopen(req, timeout=self.timeout)
-            except urllib.error.URLError as e:
-                raise e
+            urllib.request.urlopen(req, timeout=self.timeout)
+        except urllib.error.URLError as e:
+            raise e

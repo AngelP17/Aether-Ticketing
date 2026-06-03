@@ -47,6 +47,7 @@ def fetch_ticket_row(db: Session, ticket_id: str) -> dict[str, Any] | None:
     site_id_expr = column_expr(db, "tickets", "site_id")
     asset_id_expr = column_expr(db, "tickets", "asset_id")
     category_id_expr = column_expr(db, "tickets", "category_id")
+    custom_fields_expr = "t.custom_fields"  # force after ensure; column_expr may cache old schema in long-lived
     row = (
         db.execute(
             text(
@@ -69,6 +70,7 @@ def fetch_ticket_row(db: Session, ticket_id: str) -> dict[str, Any] | None:
                 {site_id_expr} AS site_id,
                 {asset_id_expr} AS asset_id,
                 {category_id_expr} AS category_id,
+                {custom_fields_expr} AS custom_fields,
                 {category_select}
             FROM tickets t
             {category_join}
@@ -228,6 +230,7 @@ def build_ticket_snapshot(
         "description": ticket.get("description"),
         "resolution_notes": ticket.get("resolution_notes"),
         "requester": ticket.get("requester"),
+        "custom_fields": ticket.get("custom_fields"),
     }
 
 
