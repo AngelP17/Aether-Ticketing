@@ -16,6 +16,8 @@ type ReplayPayload = {
   latest_decision?: {
     priority_score?: number;
     root_cause_hypothesis?: string;
+    decision_band?: string | null;
+    decision_hash?: string | null;
   };
   decision_history: Array<{
     id: number;
@@ -23,6 +25,14 @@ type ReplayPayload = {
     priority_score: number;
     root_cause_hypothesis: string;
     confidence_score: number;
+    decision_band?: string | null;
+    decision_hash?: string | null;
+    priority_interval_low?: number | null;
+    priority_interval_high?: number | null;
+    graph_degree?: number | null;
+    graph_weighted_degree?: number | null;
+    anomaly_zscore?: number | null;
+    explanation_json?: Record<string, unknown> | null;
   }>;
   events: Array<{ event_type: string; event_ts: string; actor_type: string }>;
   operator_feedback: Array<{
@@ -32,6 +42,14 @@ type ReplayPayload = {
     operator_id?: string;
   }>;
   similar_cases: Array<{ ticket_id: string; title: string; status: string }>;
+  action_runs?: Array<{
+    id: number;
+    status: string;
+    action_type: string;
+    started_at?: string | null;
+    finished_at?: string | null;
+    operator_note?: string | null;
+  }>;
 };
 
 export default function ReplayPage() {

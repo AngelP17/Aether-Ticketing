@@ -256,12 +256,20 @@ function IncidentCard({ incident }: { incident: Incident }) {
             <span className="mono-data rounded-full border border-zinc-800/70 bg-black/30 px-2.5 py-1 uppercase tracking-[0.2em]">
               Confidence {Math.round(Number(incident.confidence ?? 0))}%
             </span>
+            {incident.graph_evidence?.edge_counts ? (
+              <span className="mono-data rounded-full border border-amber-500/30 bg-amber-500/5 px-2 py-0.5 text-amber-200">
+                graph:{Object.keys(incident.graph_evidence.edge_counts).length}
+              </span>
+            ) : null}
           </div>
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-300 opacity-0 transition group-hover:opacity-100">
             Open detail
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </span>
         </div>
+        {incident.graph_evidence && (incident.graph_evidence.shared_site || incident.graph_evidence.shared_requester_count) ? (
+          <div className="text-[10px] text-zinc-500">links: {incident.graph_evidence.shared_site || "multi"} · req {incident.graph_evidence.shared_requester_count ?? 0} · asg {incident.graph_evidence.shared_assignee_count ?? 0}</div>
+        ) : null}
       </div>
     </Link>
   );

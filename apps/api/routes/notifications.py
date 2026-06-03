@@ -16,7 +16,7 @@ def list_notifications(
     limit: int = Query(50, ge=1, le=200),
     unread_only: bool = Query(False),
 ) -> Any:
-    """List notifications for current user. Stub for Phase 5."""
+    """List notifications for current user (Phase 8 wired; creation via events/email)."""
     user = current_user.get("username", "unknown")
     where = "user_id = :user"
     params: dict[str, Any] = {"user": user, "limit": limit}

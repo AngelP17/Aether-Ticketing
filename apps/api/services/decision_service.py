@@ -326,6 +326,73 @@ class DecisionService:
         self.db.commit()
 
         recommendations = self._load_recommendations(decision_id)
+
+        # Phase 8 email (config gated)
+        try:
+            from apps.api.services.email_service import EmailService
+            es = EmailService()
+            if es.is_configured:
+                es.send_decision_notification(
+                    ticket_id=ticket_id,
+                    to="admin@example.local",
+                    priority=decision["priority_score"],
+                    band=band_info.get("decision_band", ""),
+                    root_cause=decision.get("root_cause_hypothesis", ""),
+                )
+        except Exception:
+            pass
+
+        return {
+            "id": decision_id,
+            "ticket_id": ticket["ticket_id"],
+            "priority_score": decision["priority_score"],
+            "severity_score": decision["severity_score"],
+            "urgency_score": decision["urgency_score"],
+            "business_impact_score": decision["business_impact_score"],
+            "sla_risk_score": decision["sla_risk_score"],
+            "recurrence_score": decision["recurrence_score"],
+            "dependency_criticality_score": decision["dependency_criticality_score"],
+            "graph_centrality_score": decision.get("graph_centrality_score", 0.0),
+            "actionability_score": decision["actionability_score"],
+            "uncertainty_penalty": decision["uncertainty_penalty"],
+            "root_cause_hypothesis": decision["root_cause_hypothesis"],
+            "confidence_score": decision["confidence_score"],
+            "decision_ts": decision_ts,
+            "decision_version": decision_version,
+            "rule_version": rule_version,
+            "model_version": model_version,
+            "decision_band": band_info["decision_band"],
+            "priority_interval_low": band_info["priority_interval_low"],
+            "priority_interval_high": band_info["priority_interval_high"],
+            "decision_hash": decision_hash,
+            "graph_degree": graph_features.get("graph_degree", 0),
+            "graph_weighted_degree": graph_features.get("graph_weighted_degree", 0.0),
+            "graph_centrality": graph_centrality,
+            "anomaly_zscore": anomaly_zscore,
+            "graph_signal_density": graph_features.get("signal_density", 0.0),
+            "graph_reasoning": graph_features.get("graph_reasoning", ""),
+            "band_rationale": band_info["band_rationale"],
+            "operator_action": band_info["operator_action"],
+            "feature_snapshot_json": feature_snapshot_json,
+            "explanation_json": explanation_json,
+            "recommendations": recommendations,
+        }
+
+        # Phase 8 email (config gated)
+        try:
+            from apps.api.services.email_service import EmailService
+            es = EmailService()
+            if es.is_configured:
+                es.send_decision_notification(
+                    ticket_id=ticket_id,
+                    to="admin@example.local",
+                    priority=decision["priority_score"],
+                    band=band_info.get("decision_band", ""),
+                    root_cause=decision.get("root_cause_hypothesis", ""),
+                )
+        except Exception:
+            pass
+
         return {
             "id": decision_id,
             "ticket_id": ticket["ticket_id"],

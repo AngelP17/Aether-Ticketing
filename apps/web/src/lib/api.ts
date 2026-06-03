@@ -93,6 +93,17 @@ export const governanceApi = {
   card: () => api.get("/governance/card"),
 };
 
+export const portalApi = {
+  create: (p: any) => api.post("/portal/tickets", p),
+  get: (id: string) => api.get(`/portal/tickets/${id}`),
+};
+
+export const kbApi = {
+  list: (q?: string) => api.get("/kb", { params: q ? { q } : {} }),
+  create: (p: any) => api.post("/kb", p),
+};
+
+
 export const replayApi = {
   get: (ticketId: string) => api.get(`/replay/${ticketId}`),
 };

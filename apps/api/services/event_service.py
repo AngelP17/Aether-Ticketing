@@ -93,6 +93,21 @@ class EventService:
                 "payload_json": json.dumps(payload or {}),
             },
         )
+        # Phase 8: realtime WS broadcast (non-blocking best effort)
+        try:
+            from apps.api.services.websocket_manager import manager  # type: ignore
+            import asyncio
+            msg = {
+                "type": "event",
+                "ticket_id": str(ticket_pk),
+                "event_type": event_type,
+                "actor_id": actor_id,
+                "payload": payload or {},
+            }
+            # Fire and forget (in real: use background task or queue)
+            asyncio.create_task(manager.broadcast_ticket_update(str(ticket_pk), msg))
+        except Exception:
+            pass  # WS optional
 
     def _deserialize_payload(self, payload: object) -> object:
         if isinstance(payload, str):

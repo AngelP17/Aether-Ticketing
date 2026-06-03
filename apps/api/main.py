@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.config import settings, validate_production_settings
@@ -16,6 +16,8 @@ from apps.api.routes.decisions import router as decisions_router
 from apps.api.routes.diagnostics import router as diagnostics_router
 from apps.api.routes.events import router as events_router
 from apps.api.routes.governance import router as governance_router
+from apps.api.services.websocket_manager import manager  # Phase 8 WS
+
 from apps.api.routes.incidents import router as incidents_router
 from apps.api.routes.intelligence import router as intelligence_router
 from apps.api.routes.metrics import router as metrics_router
@@ -70,6 +72,10 @@ app.include_router(governance_router, prefix="/api/governance", tags=["governanc
 app.include_router(diagnostics_router, prefix="/api/diagnostics", tags=["diagnostics"])
 app.include_router(__import__("apps.api.routes.notifications", fromlist=["router"]).router, prefix="/api/notifications", tags=["notifications"])
 app.include_router(__import__("apps.api.routes.audit", fromlist=["router"]).router, prefix="/api/audit", tags=["audit"])
+app.include_router(__import__("apps.api.routes.portal", fromlist=["router"]).router, prefix="/api/portal", tags=["portal"])  # Phase 8 public-ish
+app.include_router(__import__("apps/api.routes.kb", fromlist=["router"]).router, prefix="/api/kb", tags=["kb"])  # Phase 8
+
+
 
 
 @app.get("/health")
@@ -84,3 +90,28 @@ async def root() -> Any:
         "version": "0.1.0",
         "docs": "/docs",
     }
+
+
+# Phase 8: WebSocket realtime (pub/sub for ticket/incident/decision updates)
+# Clients connect e.g. ws://.../ws/tickets/IT-xxx or /ws/global
+# Auth is header-based or query token (simple for now; production should verify JWT).
+@app.websocket("/ws/{topic}")
+async def ws_endpoint(websocket: WebSocket, topic: str = "global") -> None:
+    # Minimal: accept all for demo (in prod: parse token from query or subprotocol, call get_current_user logic)
+    await manager.connect(websocket, topic)
+    try:
+        while True:
+            # Echo or handle client pings/sub; for broadcast-only server push, just keep alive
+            data = await websocket.receive_text()
+            # Optional: allow client to request resync or specific topic change
+            if data.startswith("subscribe:"):
+                new_topic = data.split(":", 1)[1].strip()
+                manager.disconnect(websocket, topic)
+                await manager.connect(websocket, new_topic)
+                topic = new_topic
+            else:
+                await manager.send_personal({"type": "echo", "data": data}, websocket)
+    except Exception:
+        pass
+    finally:
+        manager.disconnect(websocket, topic)

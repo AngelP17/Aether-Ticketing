@@ -23,6 +23,26 @@ class Settings(BaseSettings):
     RATE_LIMIT_BACKEND: str = "memory"
     REDIS_URL: str | None = None
 
+    # Phase 8: email (outbound + inbound config; creds external, no defaults for secrets)
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM: str = "aether@ops.local"
+    SMTP_USE_TLS: bool = True
+    # Inbound email (for ticket creation; IMAP or webhook receiver stub)
+    IMAP_HOST: str | None = None
+    IMAP_USER: str | None = None
+    IMAP_PASSWORD: str | None = None
+    IMAP_MAILBOX: str = "INBOX"
+
+    # WS / realtime (future scale with redis)
+    WS_ENABLED: bool = True
+
+    # Webhooks (signing etc)
+    WEBHOOK_TIMEOUT_SEC: int = 10
+
+
     @property
     def is_production(self) -> bool:
         return self.ENV == "production"

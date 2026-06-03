@@ -401,6 +401,15 @@ export default function CommandCenterPage() {
       .map(([name, value]) => ({ name: name.length > 14 ? name.slice(0, 12) + "…" : name, value }));
   }, [feed.tickets]);
 
+  const edgeData = useMemo(() => {
+    const g = feed.governance?.graph || (feed.intelligence as any)?.subsystems?.graph;
+    const et = g?.edges_by_type || {};
+    return Object.entries(et as Record<string, number>)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, value]) => ({ name: name.replace(/_/g, " ").slice(0, 14), value }));
+  }, [feed.governance, feed.intelligence]);
+
   const ticketRows = [...feed.tickets]
     .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
     .map(toQueueTicketFromLive)
@@ -753,7 +762,7 @@ export default function CommandCenterPage() {
 
             {/* Dashboard charts (Phase 4 remaining, using existing Recharts) - category + assignee snapshot for density */}
             {feed.tickets.length > 0 && (
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="ops-card rounded-[22px] p-4">
                   <h3 className="text-xs font-medium text-zinc-300 mb-2">Top categories</h3>
                   <div style={{ width: "100%", height: 160 }}>
@@ -785,6 +794,21 @@ export default function CommandCenterPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                </div>
+
+                <div className="ops-card rounded-[22px] p-4">
+                  <h3 className="text-xs font-medium text-zinc-300 mb-2">Graph relation types</h3>
+                  <div style={{ width: "100%", height: 160 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={edgeData.length ? edgeData : [{name:"(no graph)", value:0}]}>
+                        <XAxis dataKey="name" tick={{ fontSize: 8 }} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 9 }} />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#f59e0b" radius={2} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="mt-1 text-[10px] text-zinc-400">from live ticket graph (deterministic)</div>
                 </div>
               </div>
             )}
@@ -926,6 +950,28 @@ function DecisionIntelligencePanel({
         <IntelStat label="Recommendations" value={String(recommendationCount)} />
         <IntelStat label="Feedback / runs" value={`${feedbackCount} / ${actionRuns}`} />
       </div>
+
+      {/* More graph intel: edges breakdown + drift signals for visibility (no new deps, dense mono) */}
+      {graph && !graphUnavailable && graph.edges_by_type && Object.keys(graph.edges_by_type).length > 0 ? (
+        <div className="mt-4 rounded-2xl border border-zinc-800/70 bg-black/20 p-3">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Relation types (ticket graph)</div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {Object.entries(graph.edges_by_type as Record<string, number>).map(([k, v]) => (
+              <span key={k} className="rounded border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 text-[10px] font-mono text-amber-100">{k.replace(/_/g, " ")}: {v}</span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {drift && driftStatus !== "unavailable" && (drift.priority_shift || drift.uncertainty_shift || (drift.root_cause_spikes && drift.root_cause_spikes.length)) ? (
+        <div className="mt-3 rounded-2xl border border-zinc-800/70 bg-black/20 p-3 text-xs">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 mb-1">Drift signals (weekly)</div>
+          {drift.priority_shift ? <div>priority Δ {drift.priority_shift.delta} ({drift.priority_shift.pct_change}%)</div> : null}
+          {drift.uncertainty_shift ? <div>uncertainty Δ {drift.uncertainty_shift.delta} ({drift.uncertainty_shift.pct_change}%)</div> : null}
+          {drift.review_needed_rate_shift ? <div>review-needed rate Δ {drift.review_needed_rate_shift.delta}</div> : null}
+          {drift.root_cause_spikes && drift.root_cause_spikes.length ? <div>root spikes: {drift.root_cause_spikes.map((s: any) => s.root_cause).slice(0,2).join(", ")}</div> : null}
+        </div>
+      ) : null}
 
       {driftStatus === "unavailable" || graphUnavailable ? (
         <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm leading-6 text-rose-100">

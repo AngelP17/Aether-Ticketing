@@ -82,6 +82,7 @@ export interface GraphEvidence {
   primary_requesters?: string[];
   primary_assignees?: string[];
   evidence_basis?: string;
+  edge_counts?: Record<string, number>;
 }
 
 export interface Decision {

@@ -100,5 +100,5 @@ gantt
     Phase 6 Excel + CSV Reports  :done, p6, after p5, 10d
     section Hardening
     Phase 7 Graph + Governance   :active, p7, after p6, 14d
-    Phase 8 Endpoint Test Suite  :p8, after p7, 5d
+    Phase 8 Competitor Parity (email/WS/portal/RBAC/builder/SLA/KB/webhooks) :p8, after p7, 14d
 ```

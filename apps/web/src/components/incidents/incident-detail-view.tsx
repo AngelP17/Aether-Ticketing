@@ -18,11 +18,12 @@ type IncidentDetailPayload = {
   graph_evidence?: {
     evidence_basis?: string;
     shared_site?: string | null;
-    distinct_sites?: number;
+    distinct_sites?: number | string[] | null;
     shared_requester_count?: number;
     shared_assignee_count?: number;
     primary_requesters?: string[];
     primary_assignees?: string[];
+    edge_counts?: Record<string, number>;
   };
   tickets: Array<{
     ticket_id: string;
@@ -186,8 +187,9 @@ export function IncidentDetailView({
                   <p className="text-sm leading-7 text-slate-300">{payload.common_cause}</p>
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-5">
-                  <p className="text-sm leading-7 text-cyan-50">{payload.recommended_action}</p>
+                <div className="mt-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-amber-300">Recommended action (from graph evidence)</div>
+                  <p className="text-sm leading-7 text-amber-50">{payload.recommended_action}</p>
                 </div>
               </section>
 
@@ -261,6 +263,18 @@ export function IncidentDetailView({
                         </dd>
                       </div>
                     </dl>
+                    {payload.graph_evidence.edge_counts && Object.keys(payload.graph_evidence.edge_counts).length > 0 ? (
+                      <div className="mt-3">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Edge signals</div>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {Object.entries(payload.graph_evidence.edge_counts).map(([k, v]) => (
+                            <span key={k} className="rounded border border-amber-500/30 bg-black/30 px-1.5 py-0.5 text-[10px] font-mono text-amber-200">
+                              {k.replace(/_/g, " ")}: {v}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                     {payload.graph_evidence.primary_requesters?.length ||
                     payload.graph_evidence.primary_assignees?.length ? (
                       <div className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
