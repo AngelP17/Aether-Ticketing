@@ -72,7 +72,7 @@ flowchart TB
     Ingest --> Events[(ticket_events\nappend-only)]
     Events --> Current[(tickets\ncurrent state)]
     Current --> Features[Feature Derivation]
-    Features --> DE[Decision Engine\ngraph + rules]
+    Features --> DE["Decision Engine\n(deterministic rules + graph)"]
     DE --> Decisions[(decision_records)]
     DE --> Recs[(recommendations)]
     DE --> Graph[(graph_edges + nodes)]
@@ -84,17 +84,33 @@ flowchart TB
     Graph --> Gov[Governance\ndrift + card]
     Decisions --> Gov
     Web --> Feedback[Operator Feedback]
-    Web --> Portal[Customer Portal (Phase 8)]
+    Web --> Portal["Customer Portal (Phase 8)"]
     Feedback --> FeedbackLog[(operator_feedback)]
     FeedbackLog --> Apply[ActionService.apply_runbook]
     Apply --> TicketMutation[Safe ticket mutation]
     TicketMutation --> Current
     TicketMutation --> Events
     FeedbackLog --> DE
-    DE --> Email[Email Notifications (Phase 8)]
-    Events --> WS[WebSocket Realtime (Phase 8)]
-    DE --> KB[Knowledge Base (Phase 8)]
+    DE --> Email["Email Notifications (Phase 8)"]
+    Events --> WS["WebSocket Realtime (Phase 8)"]
+    DE --> KB["Knowledge Base (Phase 8)"]
 ```
+
+**Decision intelligence uses only deterministic rules, graph links (7 edge types), drift checks, and recommendation feedback.** No trained ML model, no external LLM.
+
+Example live state (recent run on seeded data):
+
+- Graph nodes: 23
+- Graph edges: 458
+  - shared requester: 77
+  - shared assignee: 253
+  - shared site: 5
+  - within time window: 123
+- Recommendations: 229
+- Feedback / runs: 0 / 0
+- Drift status: drift
+- Similar links: 0
+- Drift signals (weekly): priority Δ 50.27, uncertainty Δ 8.57 (deltas common on small/demo sets)
 
 ## Tech Stack
 
