@@ -20,47 +20,27 @@ class ReplayService:
 
         latest_decision = DecisionService(self.db).get_latest_decision(ticket_id)
 
-        decisions = self.db.execute(
-            text(
-                """
-                SELECT
-                    dr.id,
-                    dr.decision_ts,
-                    dr.priority_score,
-                    dr.root_cause_hypothesis,
-                    dr.confidence_score,
-                    dr.explanation_json
-                FROM decision_records dr
-                JOIN tickets t ON t.id = dr.ticket_id
-                WHERE t.ticket_id = :ticket_id
-                ORDER BY dr.decision_ts ASC, dr.id ASC
-                """
-            ),
-            {"ticket_id": ticket_id},
-        ).mappings()
-
-        feedback = self.db.execute(
-            text(
-                """
-                SELECT
-                    ofe.feedback_type,
-                    ofe.feedback_note,
-                    ofe.feedback_ts,
-                    ofe.operator_id
-                FROM operator_feedback ofe
-                JOIN recommendations r ON r.id = ofe.recommendation_id
-                JOIN decision_records dr ON dr.id = r.decision_record_id
-                JOIN tickets t ON t.id = dr.ticket_id
-                WHERE t.ticket_id = :ticket_id
-                ORDER BY ofe.feedback_ts ASC, ofe.id ASC
-                """
-            ),
-            {"ticket_id": ticket_id},
-        ).mappings()
-        return {
-            "ticket_id": ticket_id,
-            "latest_decision": latest_decision,
-            "decision_history": [
+        decision_history: list[dict[str, Any]] = []
+        try:
+            decisions = self.db.execute(
+                text(
+                    """
+                    SELECT
+                        dr.id,
+                        dr.decision_ts,
+                        dr.priority_score,
+                        dr.root_cause_hypothesis,
+                        dr.confidence_score,
+                        dr.explanation_json
+                    FROM decision_records dr
+                    JOIN tickets t ON t.id = dr.ticket_id
+                    WHERE t.ticket_id = :ticket_id
+                    ORDER BY dr.decision_ts ASC, dr.id ASC
+                    """
+                ),
+                {"ticket_id": ticket_id},
+            ).mappings()
+            decision_history = [
                 {
                     "id": row["id"],
                     "decision_ts": row["decision_ts"].isoformat() if row["decision_ts"] else None,
@@ -70,9 +50,31 @@ class ReplayService:
                     "explanation_json": row["explanation_json"],
                 }
                 for row in decisions
-            ],
-            "events": EventService(self.db).get_ticket_event_stream(ticket_id),
-            "operator_feedback": [
+            ]
+        except Exception:
+            decision_history = []
+
+        operator_feedback: list[dict[str, Any]] = []
+        try:
+            feedback = self.db.execute(
+                text(
+                    """
+                    SELECT
+                        ofe.feedback_type,
+                        ofe.feedback_note,
+                        ofe.feedback_ts,
+                        ofe.operator_id
+                    FROM operator_feedback ofe
+                    JOIN recommendations r ON r.id = ofe.recommendation_id
+                    JOIN decision_records dr ON dr.id = r.decision_record_id
+                    JOIN tickets t ON t.id = dr.ticket_id
+                    WHERE t.ticket_id = :ticket_id
+                    ORDER BY ofe.feedback_ts ASC, ofe.id ASC
+                    """
+                ),
+                {"ticket_id": ticket_id},
+            ).mappings()
+            operator_feedback = [
                 {
                     "feedback_type": row["feedback_type"],
                     "feedback_note": row["feedback_note"],
@@ -80,6 +82,28 @@ class ReplayService:
                     "operator_id": row["operator_id"],
                 }
                 for row in feedback
-            ],
-            "similar_cases": fetch_similar_cases(self.db, ticket),
+            ]
+        except Exception:
+            operator_feedback = []
+
+        events: list[dict[str, Any]] = []
+        try:
+            events = EventService(self.db).get_ticket_event_stream(ticket_id) or []
+        except Exception:
+            events = []
+
+        similar_cases: list[dict[str, Any]] = []
+        try:
+            similar_cases = fetch_similar_cases(self.db, ticket) or []
+        except Exception:
+            similar_cases = []
+
+        return {
+            "ticket_id": ticket_id,
+            "latest_decision": latest_decision,
+            "decision_history": decision_history,
+            "events": events,
+            "operator_feedback": operator_feedback,
+            "similar_cases": similar_cases,
+            "note": "Partial data returned if some subsystems were unavailable (defensive).",
         }

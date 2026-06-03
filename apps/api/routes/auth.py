@@ -45,17 +45,10 @@ def logout() -> dict[str, Any]:
 
 
 @router.get("/me")
-def get_me(authorization: str | None = Header(default=None)) -> dict[str, Any]:
-    if authorization is None or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing bearer token")
-    token = authorization.replace("Bearer ", "", 1)
-    try:
-        user = AuthService().current_user(token)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=503, detail="Auth user store unavailable") from exc
-    if user is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return user
+def get_me(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+    # Delegates to get_current_user which produces only 401 for missing/expired/malformed/invalid.
+    # No 500/503 paths for token lifecycle issues.
+    return current_user
 
 
 @router.get("/users")
