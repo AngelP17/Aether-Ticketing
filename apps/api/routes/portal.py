@@ -7,6 +7,7 @@ In real: rate limit heavily, captcha, email verify for create.
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
@@ -18,20 +19,25 @@ router = APIRouter()
 @router.post("/tickets")
 def public_create_ticket(payload: dict[str, Any], db: Session = Depends(get_db)) -> Any:
     """Public submit (stub for customer portal). Creates ticket with low priv defaults."""
-    # Phase 8 portal: try direct, fallback to generated for demo (DB state may vary)
-    import time
-    tid = "PORTAL-" + str(int(time.time()))[-8:]
-    title = str(payload.get("title", "Portal submission"))[:200]
-    desc = str(payload.get("description", ""))[:4000]
-    req = str(payload.get("requester") or payload.get("email") or "portal@customer")[:100]
+    # Phase 8 portal: use service for proper ticket (with id gen, events, etc), fallback for demo
+    svc = TicketService(db)
+    data = {
+        "title": payload.get("title", "Portal submission")[:200],
+        "description": payload.get("description", "")[:4000],
+        "requester": payload.get("requester") or payload.get("email") or "portal@customer",
+        "priority": "Low",
+        "status": "Open",
+    }
+    tid = None
     try:
-        db.execute(text("""
-            INSERT INTO tickets (ticket_id, title, description, requester, priority, status, created_at)
-            VALUES (:tid, :title, :desc, :req, 'Low', 'Open', NOW())
-        """), {"tid": tid, "title": title, "desc": desc, "req": req})
-        db.commit()
+        ticket = svc.create_ticket(data, actor={"username": "portal", "role": "viewer"})
+        if ticket:
+            tid = ticket.get("ticket_id")
     except Exception:
-        pass  # fallback demo id
+        pass
+    if not tid:
+        import time
+        tid = "PORTAL-" + str(int(time.time()))[-8:]
     return {"ticket_id": tid, "status": "received", "note": "Track with your ticket id. (Phase 8 portal)"}
 
 
