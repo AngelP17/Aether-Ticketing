@@ -31,7 +31,14 @@ class ReplayService:
                         dr.priority_score,
                         dr.root_cause_hypothesis,
                         dr.confidence_score,
-                        dr.explanation_json
+                        dr.explanation_json,
+                        dr.decision_band,
+                        dr.decision_hash,
+                        dr.priority_interval_low,
+                        dr.priority_interval_high,
+                        dr.graph_degree,
+                        dr.graph_weighted_degree,
+                        dr.anomaly_zscore
                     FROM decision_records dr
                     JOIN tickets t ON t.id = dr.ticket_id
                     WHERE t.ticket_id = :ticket_id
@@ -48,6 +55,13 @@ class ReplayService:
                     "root_cause_hypothesis": row["root_cause_hypothesis"],
                     "confidence_score": row["confidence_score"],
                     "explanation_json": row["explanation_json"],
+                    "decision_band": row["decision_band"],
+                    "decision_hash": row["decision_hash"],
+                    "priority_interval_low": row["priority_interval_low"],
+                    "priority_interval_high": row["priority_interval_high"],
+                    "graph_degree": row["graph_degree"],
+                    "graph_weighted_degree": row["graph_weighted_degree"],
+                    "anomaly_zscore": row["anomaly_zscore"],
                 }
                 for row in decisions
             ]
@@ -98,6 +112,45 @@ class ReplayService:
         except Exception:
             similar_cases = []
 
+        action_runs: list[dict[str, Any]] = []
+        try:
+            ars = self.db.execute(
+                text(
+                    """
+                    SELECT
+                        ar.id,
+                        ar.status,
+                        ar.action_type,
+                        ar.started_at,
+                        ar.finished_at,
+                        ar.operator_note,
+                        r.rank as recommendation_rank
+                    FROM action_runs ar
+                    JOIN recommendations r ON r.id = ar.recommendation_id
+                    JOIN decision_records dr ON dr.id = r.decision_record_id
+                    JOIN tickets t ON t.id = dr.ticket_id
+                    WHERE t.ticket_id = :ticket_id
+                    ORDER BY ar.started_at DESC NULLS LAST
+                    LIMIT 20
+                    """
+                ),
+                {"ticket_id": ticket_id},
+            ).mappings()
+            action_runs = [
+                {
+                    "id": row["id"],
+                    "status": row["status"],
+                    "action_type": row["action_type"],
+                    "started_at": row["started_at"].isoformat() if row["started_at"] else None,
+                    "finished_at": row["finished_at"].isoformat() if row["finished_at"] else None,
+                    "operator_note": row["operator_note"],
+                    "recommendation_rank": row["recommendation_rank"],
+                }
+                for row in ars
+            ]
+        except Exception:
+            action_runs = []
+
         return {
             "ticket_id": ticket_id,
             "latest_decision": latest_decision,
@@ -105,5 +158,6 @@ class ReplayService:
             "events": events,
             "operator_feedback": operator_feedback,
             "similar_cases": similar_cases,
+            "action_runs": action_runs,
             "note": "Partial data returned if some subsystems were unavailable (defensive).",
         }

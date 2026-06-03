@@ -27,6 +27,7 @@ def get_replay(ticket_id: str, db: Session = Depends(get_db), _user: dict[str, A
             "events": [],
             "operator_feedback": [],
             "similar_cases": [],
+            "action_runs": [],
             "error": "replay_subsystem_unavailable",
             "detail": "Some replay sections are temporarily unavailable; core ticket context may still render.",
         }

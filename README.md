@@ -31,6 +31,7 @@ Aether OpsCenter turns live service tickets into ranked, explainable actions acr
 - **Replay & Audit** — Event-sourced replay timeline with decision history, operator feedback, and similar-case traceability
 - **Styled Reporting** — Backend-generated Excel workbook for executive summaries, queue review, incident review, and audit handoff
 - **Authenticated Operations UI** — Login flow, protected routes, logout, persisted notifications, and JWT-backed user validation
+- **Phase 8 Competitor Parity** — Full email (outbound + inbound stub), WebSocket realtime, customer portal (submit/status), KB/articles, webhooks, SLA policies, RBAC extensions, dashboard builder scaffolding, theme prefs. See Phase 8 in docs/implementation/phased-roadmap.md.
 
 ## Architecture
 
