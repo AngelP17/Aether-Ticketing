@@ -717,7 +717,7 @@ export default function CommandCenterPage() {
             })}
           </section>
 
-          <section id="decision" className="mt-6 grid gap-6 2xl:grid-cols-[1.15fr,0.85fr]">
+          <section id="decision" className="mt-6 grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
             <QueueTable
               tickets={filteredQueue}
               selectedId={selectedTicket?.ticketId ?? null}
