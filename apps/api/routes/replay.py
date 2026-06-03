@@ -10,9 +10,25 @@ router = APIRouter()
 
 @router.get("/{ticket_id}")
 def get_replay(ticket_id: str, db: Session = Depends(get_db)) -> Any:
-    # Always attempt; service is now fully defensive and returns partial payload
-    # for existing tickets even if sub-queries (feedback, events) hit issues on prod.
-    replay = ReplayService(db).get_replay(ticket_id)
+    try:
+        replay = ReplayService(db).get_replay(ticket_id)
+    except Exception as exc:  # defensive: never 500 on replay surface, return precise partial state
+        # rollback best effort
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        # Return usable payload so UI can render "partial / no history" instead of hard fail
+        return {
+            "ticket_id": ticket_id,
+            "latest_decision": None,
+            "decision_history": [],
+            "events": [],
+            "operator_feedback": [],
+            "similar_cases": [],
+            "error": "replay_subsystem_unavailable",
+            "detail": "Some replay sections are temporarily unavailable; core ticket context may still render.",
+        }
     if replay is None:
         raise HTTPException(status_code=404, detail="Replay not found")
     return replay
