@@ -54,15 +54,13 @@ def test_get_asset_404_when_missing(admin_client: Any) -> None:
     assert response.status_code == 404
 
 
-def test_assets_list_does_not_require_authentication(anon_client: Any) -> None:
-    # /api/assets is a read-only inventory route used by the command center
-    # before login. The UI gate handles auth, so the API is open.
+def test_assets_reads_require_authentication(anon_client: Any) -> None:
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(
             assets_routes.AssetService, "list_assets", lambda self: []
         )
-        assert anon_client.get("/api/assets").status_code == 200
+        assert anon_client.get("/api/assets").status_code == 401
         monkeypatch.setattr(
             assets_routes.AssetService, "get_asset", lambda self, asset_id: None
         )
-        assert anon_client.get("/api/assets/1").status_code == 404
+        assert anon_client.get("/api/assets/1").status_code == 401
