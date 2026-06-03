@@ -7,7 +7,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = '20260604_120000'
-down_revision = '20260604_110000_add_ticket_custom_fields'
+down_revision = '20260604_110000'
 branch_labels = None
 depends_on = None
 

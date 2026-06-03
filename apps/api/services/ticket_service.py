@@ -88,6 +88,9 @@ class TicketService:
             )
         except Exception:
             logger.exception("ticket list compatibility query failed; using base ticket query")
+            rollback = getattr(self.db, "rollback", None)
+            if callable(rollback):
+                rollback()
             rows = list(
                 self.db.execute(
                     text(

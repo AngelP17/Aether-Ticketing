@@ -164,6 +164,43 @@ def _ensure_legacy_compatibility() -> None:
 
         compatibility_statements = [
             """
+            CREATE TABLE IF NOT EXISTS automation_rules (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                description TEXT,
+                enabled BOOLEAN DEFAULT TRUE,
+                trigger_type VARCHAR(50) NOT NULL,
+                conditions JSONB NOT NULL DEFAULT '[]',
+                actions JSONB NOT NULL DEFAULT '[]',
+                execution_count INTEGER DEFAULT 0,
+                last_executed_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS ix_automation_rules_enabled_trigger
+            ON automation_rules (enabled, trigger_type)
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS automation_execution_log (
+                id SERIAL PRIMARY KEY,
+                rule_id INTEGER REFERENCES automation_rules(id) ON DELETE SET NULL,
+                ticket_id VARCHAR(50),
+                trigger_event JSONB,
+                actions_taken JSONB,
+                executed_at TIMESTAMP DEFAULT NOW()
+            )
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS ix_automation_execution_log_rule_id
+            ON automation_execution_log (rule_id)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS ix_automation_execution_log_ticket_id
+            ON automation_execution_log (ticket_id)
+            """,
+            """
             CREATE TABLE IF NOT EXISTS ticket_labels (
                 ticket_id VARCHAR(20) REFERENCES tickets(ticket_id) ON DELETE CASCADE,
                 label_id INTEGER REFERENCES labels(id) ON DELETE CASCADE,
