@@ -81,24 +81,7 @@ def test_get_feedback_summary_returns_patterns(admin_client: Any) -> None:
     assert body["by_root_cause"]["file_share_permissions"]["accepted"] == 6
 
 
-def test_metrics_does_not_require_authentication(anon_client: Any) -> None:
-    # /api/metrics is consumed by the command center which is gated by the UI.
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(
-            metrics_service.MetricsService,
-            "get_queue_metrics",
-            lambda self: {"total_open": 0, "critical": 0, "sla_breach_risk": 0, "incident_clusters": 0},
-        )
-        monkeypatch.setattr(
-            accuracy_service.AccuracyService,
-            "get_all_accuracy_metrics",
-            lambda self, days: {"window_days": days},
-        )
-        monkeypatch.setattr(
-            feedback_learner.FeedbackLearner,
-            "get_pattern_summary",
-            lambda self: {},
-        )
-        assert anon_client.get("/api/metrics").status_code == 200
-        assert anon_client.get("/api/metrics/accuracy").status_code == 200
-        assert anon_client.get("/api/metrics/feedback/summary").status_code == 200
+def test_metrics_requires_auth(anon_client: Any) -> None:
+    # Phase1 guard: metrics now requires token (command center passes it).
+    response = anon_client.get("/api/metrics")
+    assert response.status_code == 401

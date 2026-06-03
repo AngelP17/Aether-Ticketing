@@ -11,7 +11,7 @@ from apps.api.schemas.management import (
     TicketMoveRequest,
     TicketUpdateRequest,
 )
-from apps.api.security import require_ticket_write
+from apps.api.security import get_current_user, require_ticket_write
 from apps.api.services.ticket_service import TicketService as TicketService
 
 router = APIRouter()
@@ -28,6 +28,7 @@ def list_tickets(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
+    _user: dict[str, Any] = Depends(get_current_user),
 ) -> Any:
     service = TicketService(db)
     return service.list_tickets(
@@ -42,7 +43,7 @@ def list_tickets(
 
 
 @router.get("/{ticket_id}")
-def get_ticket(ticket_id: str, db: Session = Depends(get_db)) -> Any:
+def get_ticket(ticket_id: str, db: Session = Depends(get_db), _user: dict[str, Any] = Depends(get_current_user)) -> Any:
     service = TicketService(db)
     ticket = service.get_ticket_detail(ticket_id)
     if not ticket:
@@ -51,7 +52,7 @@ def get_ticket(ticket_id: str, db: Session = Depends(get_db)) -> Any:
 
 
 @router.get("/{ticket_id}/events")
-def get_ticket_events(ticket_id: str, db: Session = Depends(get_db)) -> Any:
+def get_ticket_events(ticket_id: str, db: Session = Depends(get_db), _user: dict[str, Any] = Depends(get_current_user)) -> Any:
     service = TicketService(db)
     return service.get_ticket_events(ticket_id)
 

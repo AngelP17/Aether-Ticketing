@@ -1,14 +1,16 @@
 from typing import Any
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
+from apps.api.security import get_current_user
 from apps.api.services.event_service import EventService as EventService
 
 router = APIRouter()
 
 
 @router.get("/{ticket_id}")
-def get_ticket_events(ticket_id: str, db: Session = Depends(get_db)) -> Any:
+def get_ticket_events(ticket_id: str, db: Session = Depends(get_db), _user: dict[str, Any] = Depends(get_current_user)) -> Any:
     service = EventService(db)
     return service.get_ticket_event_stream(ticket_id)

@@ -70,7 +70,6 @@ def test_get_incident_404_when_missing(admin_client: Any) -> None:
     assert response.json()["detail"] == "Incident not found"
 
 
-def test_incidents_does_not_require_authentication(anon_client: Any) -> None:
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        _patch_incident_service(monkeypatch, list_incidents=[])
-        assert anon_client.get("/api/incidents").status_code == 200
+def test_incidents_requires_auth(anon_client: Any) -> None:
+    response = anon_client.get("/api/incidents")
+    assert response.status_code == 401

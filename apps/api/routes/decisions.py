@@ -4,14 +4,14 @@ from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
 from apps.api.schemas.decision import DecisionResponse
-from apps.api.security import require_ticket_write
+from apps.api.security import get_current_user, require_ticket_write
 from apps.api.services.decision_service import DecisionService as DecisionService
 
 router = APIRouter()
 
 
 @router.get("/{ticket_id}", response_model=DecisionResponse)
-def get_decision(ticket_id: str, db: Session = Depends(get_db)) -> Any:
+def get_decision(ticket_id: str, db: Session = Depends(get_db), _user: dict[str, Any] = Depends(get_current_user)) -> Any:
     service = DecisionService(db)
     decision = service.get_latest_decision(ticket_id)
     if not decision:

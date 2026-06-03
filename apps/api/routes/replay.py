@@ -3,16 +3,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
+from apps.api.security import get_current_user
 from apps.api.services.replay_service import ReplayService as ReplayService
 
 router = APIRouter()
 
 
 @router.get("/{ticket_id}")
-def get_replay(ticket_id: str, db: Session = Depends(get_db)) -> Any:
+def get_replay(ticket_id: str, db: Session = Depends(get_db), _user: dict[str, Any] = Depends(get_current_user)) -> Any:
     try:
         replay = ReplayService(db).get_replay(ticket_id)
-    except Exception as exc:  # defensive: never 500 on replay surface, return precise partial state
+    except Exception:  # defensive: never 500 on replay surface, return precise partial state
         # rollback best effort
         try:
             db.rollback()

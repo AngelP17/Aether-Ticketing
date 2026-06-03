@@ -74,10 +74,7 @@ def test_recompute_decision_returns_404_when_ticket_missing(admin_client: Any) -
     assert "not found" in response.json()["detail"].lower()
 
 
-def test_decisions_does_not_require_authentication(anon_client: Any) -> None:
-    # Decisions are read-only and used by the command center pre-auth.
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(
-            decisions_routes.DecisionService, "get_latest_decision", lambda *a, **k: None
-        )
-        assert anon_client.get("/api/decisions/IT-1").status_code == 404
+def test_decisions_requires_auth(anon_client: Any) -> None:
+    # Phase1: decisions now require auth (command center uses token).
+    response = anon_client.get("/api/decisions/IT-1")
+    assert response.status_code == 401

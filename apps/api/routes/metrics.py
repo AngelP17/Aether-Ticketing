@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
+from apps.api.security import get_current_user
 from apps.api.services.accuracy_service import AccuracyService as AccuracyService
 from apps.api.services.metrics_service import MetricsService as MetricsService
 from infrastructure.logging.feedback_learner import FeedbackLearner
@@ -12,7 +13,7 @@ router = APIRouter()
 
 @router.get("/", include_in_schema=False)
 @router.get("")
-def get_metrics(db: Session = Depends(get_db)) -> Any:
+def get_metrics(db: Session = Depends(get_db), _user: dict[str, Any] = Depends(get_current_user)) -> Any:
     service = MetricsService(db)
     return service.get_queue_metrics()
 

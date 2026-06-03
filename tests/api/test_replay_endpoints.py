@@ -40,12 +40,10 @@ def test_get_replay_404_when_missing(admin_client: Any) -> None:
     assert response.json()["detail"] == "Replay not found"
 
 
-def test_replay_does_not_require_authentication(anon_client: Any) -> None:
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(
-            replay_routes.ReplayService, "get_replay", lambda self, ticket_id: None
-        )
-        assert anon_client.get("/api/replay/IT-1").status_code == 404
+def test_replay_requires_auth(anon_client: Any) -> None:
+    # After Phase1 guards: replay is protected (401 for anon), 404 only for missing after auth.
+    response = anon_client.get("/api/replay/IT-1")
+    assert response.status_code == 401
 
 
 def test_get_replay_returns_partial_on_internal_error(admin_client: Any) -> None:
