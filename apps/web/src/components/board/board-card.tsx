@@ -24,6 +24,7 @@ export function BoardCard({
   onDragStart,
   onDragEnd,
   onMove,
+  onSelect,
 }: {
   ticket: Ticket;
   isDragging: boolean;
@@ -31,6 +32,7 @@ export function BoardCard({
   onDragStart: (event: DragEvent<HTMLDivElement>, ticketId: string) => void;
   onDragEnd: () => void;
   onMove: (ticketId: string, status: string) => void;
+  onSelect?: (ticketId: string) => void;
 }) {
   const tone = priorityTone(ticket.priority_raw);
   const [moveOpen, setMoveOpen] = useState(false);
@@ -42,11 +44,22 @@ export function BoardCard({
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // ignore clicks on interactive move controls or during drag
+    if (isDragging || isMoving || (e.target as HTMLElement).closest("select, button")) {
+      return;
+    }
+    if (onSelect) {
+      onSelect(ticket.ticket_id);
+    }
+  };
+
   return (
     <div
       draggable
       onDragStart={(event) => onDragStart(event, ticket.ticket_id)}
       onDragEnd={onDragEnd}
+      onClick={handleCardClick}
       className={`group relative rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 transition ${
         isDragging
           ? "cursor-grabbing border-amber-400/40 opacity-60 shadow-[0_18px_40px_rgba(0,0,0,0.35)]"
@@ -56,6 +69,14 @@ export function BoardCard({
       }`}
       aria-grabbed={isDragging}
       aria-busy={isMoving}
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (onSelect && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onSelect(ticket.ticket_id);
+        }
+      }}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">

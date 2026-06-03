@@ -7,6 +7,7 @@ import {
   startTransition,
   useDeferredValue,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -39,6 +40,7 @@ import { governanceApi, intelligenceApi, metricsApi, ticketsApi, incidentsApi } 
 import { clearStoredSession } from "@/lib/auth";
 import { parseFilename, readExportError } from "@/lib/export-utils";
 import type { GovernanceSummaryResponse, Incident, IntelligenceHealthResponse, Ticket } from "@/types";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 type QueueMetrics = {
   total_open: number;
@@ -373,6 +375,31 @@ export default function CommandCenterPage() {
       .toLowerCase()
       .includes(searchTerm);
   });
+
+  // Derived for dashboard charts (Recharts, client-side from live feed)
+  const categoryData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    feed.tickets.forEach((t) => {
+      const c = (t.category || t.root_cause_hypothesis || "Unknown").toString();
+      counts[c] = (counts[c] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, value]) => ({ name, value }));
+  }, [feed.tickets]);
+
+  const assigneeData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    feed.tickets.forEach((t) => {
+      const a = (t.assignee || "Unassigned").toString();
+      counts[a] = (counts[a] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, value]) => ({ name: name.length > 14 ? name.slice(0, 12) + "…" : name, value }));
+  }, [feed.tickets]);
 
   const ticketRows = [...feed.tickets]
     .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
@@ -724,6 +751,44 @@ export default function CommandCenterPage() {
               onSelect={setSelectedTicketId}
               searchTerm={searchTerm}
             />
+
+            {/* Dashboard charts (Phase 4 remaining, using existing Recharts) - category + assignee snapshot for density */}
+            {feed.tickets.length > 0 && (
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="ops-card rounded-[22px] p-4">
+                  <div className="text-[11px] mono-data uppercase tracking-[0.18em] text-zinc-400 mb-2">Top categories (live)</div>
+                  <div style={{ width: "100%", height: 160 }}>
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie dataKey="value" data={categoryData} cx="50%" cy="50%" innerRadius={38} outerRadius={58} paddingAngle={2}>
+                          {categoryData.map((entry: { name: string; value: number }, idx: number) => (
+                            <Cell key={`c-${idx}`} fill={["#f59e0b", "#22b8cf", "#22c55e", "#f43f5e", "#64748b"][idx % 5]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-zinc-400">
+                    {categoryData.map((d: { name: string; value: number }, i: number) => <span key={i}>{d.name}: {d.value}</span>)}
+                  </div>
+                </div>
+
+                <div className="ops-card rounded-[22px] p-4">
+                  <div className="text-[11px] mono-data uppercase tracking-[0.18em] text-zinc-400 mb-2">Assignee load</div>
+                  <div style={{ width: "100%", height: 160 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={assigneeData}>
+                        <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 9 }} />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#f59e0b" radius={2} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="min-h-0 space-y-6 2xl:max-h-[760px] 2xl:overflow-y-auto 2xl:pr-1">
               <DecisionDetailPanel
                 selectedTicket={selectedTicket}

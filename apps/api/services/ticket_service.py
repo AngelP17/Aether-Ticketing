@@ -218,17 +218,94 @@ class TicketService:
         return _json_safe_value(payload)
 
     def _linked_incident_for_ticket(self, ticket_id: str) -> dict[str, Any] | None:
+        """Optimized linked incident lookup.
+
+        Fast path: use persisted incident_ticket_links (avoids full table scan).
+        Fallback: only load a small bounded set of *candidate* open tickets that share
+        site/asset/category/requester with the target (instead of unconditional LIMIT 200).
+        This eliminates the previous N+1/perf killer on every ticket detail view.
+        """
         try:
-            all_rows = list(
+            # 1. Fast persisted link path (post-persistence)
+            link_row = self.db.execute(
+                text(
+                    """
+                    SELECT
+                        i.id,
+                        i.incident_key,
+                        i.title,
+                        i.status,
+                        i.root_cause_hypothesis,
+                        i.site_scope,
+                        i.ticket_count,
+                        i.confidence,
+                        i.opened_at
+                    FROM incidents i
+                    JOIN incident_ticket_links itl ON itl.incident_id = i.id
+                    WHERE itl.ticket_id = (
+                        SELECT id FROM tickets WHERE ticket_id = :ticket_id LIMIT 1
+                    )
+                    LIMIT 1
+                    """
+                ),
+                {"ticket_id": ticket_id},
+            ).mappings().first()
+
+            if link_row:
+                return dict(link_row)
+        except Exception:
+            logger.exception("persisted linked incident lookup failed", extra={"ticket_id": ticket_id})
+
+        # 2. Bounded fallback synthesis only on relevant candidates
+        try:
+            ticket = fetch_ticket_row(self.db, ticket_id)
+            if ticket is None:
+                return None
+
+            # Small candidate pool: recent open tickets sharing key attributes
+            # (prevents OOM and N+1 on detail views)
+            site = ticket.get("site_id")
+            asset = ticket.get("asset_id")
+            cat = ticket.get("request_type") or ticket.get("category_name")
+            req = ticket.get("requester")
+
+            where_parts = ["t.status NOT IN ('Resolved', 'Closed')"]
+            params: dict[str, Any] = {"ticket_id": ticket_id}
+            if site:
+                where_parts.append("t.site_id = :site")
+                params["site"] = site
+            if asset:
+                where_parts.append("t.asset_id = :asset")
+                params["asset"] = asset
+            if cat:
+                where_parts.append("COALESCE(t.request_type, '') = :cat")
+                params["cat"] = cat
+            if req:
+                where_parts.append("t.requester = :req")
+                params["req"] = req
+
+            where_clause = "WHERE " + " OR ".join(where_parts) if len(where_parts) > 1 else where_parts[0]
+            # also include the target ticket itself for synthesis
+            where_clause = f"({where_clause}) OR t.ticket_id = :ticket_id"
+
+            rows = list(
                 self.db.execute(
-                    text(_ticket_list_sql(self.db, limit_clause="LIMIT 200"))
+                    text(
+                        _ticket_list_sql(
+                            self.db,
+                            where_clause=where_clause,
+                            limit_clause="LIMIT 40",  # bounded, attribute-filtered
+                        )
+                    ),
+                    params,
                 ).mappings()
             )
-            incident_rows = [dict(row) for row in all_rows]
+            incident_rows = [dict(row) for row in rows]
+
             try:
                 incident_decision_map = build_live_decision_map(incident_rows)
             except Exception:
-                logger.exception("ticket detail incident decision enrichment failed")
+                logger.exception("ticket detail incident decision enrichment failed (bounded)")
                 incident_decision_map = {}
 
             snapshots = []
@@ -242,7 +319,7 @@ class TicketService:
                     )
                 except Exception:
                     logger.exception(
-                        "ticket detail incident snapshot failed",
+                        "ticket detail incident snapshot failed (bounded)",
                         extra={"ticket_id": row.get("ticket_id")},
                     )
                     snapshots.append(_fallback_ticket_snapshot(row))
@@ -256,7 +333,7 @@ class TicketService:
                 None,
             )
         except Exception:
-            logger.exception("ticket linked incident lookup failed", extra={"ticket_id": ticket_id})
+            logger.exception("ticket linked incident lookup failed (bounded)", extra={"ticket_id": ticket_id})
             return None
 
     def get_ticket_events(self, ticket_id: str) -> Any:

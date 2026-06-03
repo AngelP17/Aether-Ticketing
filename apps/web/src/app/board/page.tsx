@@ -98,6 +98,23 @@ export default function BoardPage() {
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [movingTicketId, setMovingTicketId] = useState<string | null>(null);
 
+  // Board inline drawer state (high impact remaining): select from card -> slide in detail (uses local data)
+  const [drawerId, setDrawerId] = useState<string | null>(null);
+
+  const openBoardDrawer = useCallback((id: string) => setDrawerId(id), []);
+  const closeBoardDrawer = useCallback(() => setDrawerId(null), []);
+
+  const selectedBoardTicket = useMemo(() => tickets.find((x) => x.ticket_id === drawerId), [tickets, drawerId]);
+
+  // Keyboard escape for drawer + general
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && drawerId) closeBoardDrawer();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerId, closeBoardDrawer]);
+
   useEffect(() => {
     toastRef.current = toast;
   }, [toast]);
@@ -495,6 +512,7 @@ export default function BoardPage() {
                           onDragStart={handleDragStart}
                           onDragEnd={handleDragEnd}
                           onMove={moveTicket}
+                          onSelect={openBoardDrawer}
                         />
                       ))}
                       {hiddenCount > 0 || expanded ? (
@@ -582,6 +600,7 @@ function BoardError({ message, onRetry }: { message: string; onRetry: () => void
           </Link>
         </div>
       </div>
+
     </div>
   );
 }
