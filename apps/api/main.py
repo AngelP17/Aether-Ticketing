@@ -73,7 +73,7 @@ app.include_router(diagnostics_router, prefix="/api/diagnostics", tags=["diagnos
 app.include_router(__import__("apps.api.routes.notifications", fromlist=["router"]).router, prefix="/api/notifications", tags=["notifications"])
 app.include_router(__import__("apps.api.routes.audit", fromlist=["router"]).router, prefix="/api/audit", tags=["audit"])
 app.include_router(__import__("apps.api.routes.portal", fromlist=["router"]).router, prefix="/api/portal", tags=["portal"])  # Phase 8 public-ish
-app.include_router(__import__("apps/api.routes.kb", fromlist=["router"]).router, prefix="/api/kb", tags=["kb"])  # Phase 8
+app.include_router(__import__("apps.api.routes.kb", fromlist=["router"]).router, prefix="/api/kb", tags=["kb"])  # Phase 8
 
 
 
