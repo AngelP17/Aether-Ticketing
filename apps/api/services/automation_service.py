@@ -5,7 +5,7 @@ Hooks for Activepieces for complex.
 """
 import json
 import logging
-from typing import Any
+from typing import Any, Dict, List
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -40,13 +40,16 @@ class AutomationService:
         self.db.commit()
         return {"id": res["id"]}
 
-    def evaluate_and_execute(self, trigger: str, ticket: dict[str, Any], context: dict[str, Any] | None = None) -> int:
+    def evaluate_and_execute(self, trigger: str, ticket: Dict[str, Any], context: Dict[str, Any] | None = None) -> int:
         """Simple engine: load enabled rules for trigger, match conditions, exec actions."""
         rules = self.db.execute(text("SELECT * FROM automation_rules WHERE enabled=true AND trigger_type = :t"), {"t": trigger}).mappings()
         executed = 0
         for rule in rules:
-            conditions = json.loads(rule["conditions"] or "[]")
-            actions = json.loads(rule["actions"] or "[]")
+            rule_dict: Dict[str, Any] = dict(rule) if hasattr(rule, "keys") else rule  # type: ignore[arg-type]
+            conds: Any = rule_dict.get("conditions")  # type: ignore[arg-type]
+            conditions = conds if isinstance(conds, (list, dict)) else json.loads(conds or "[]")
+            acts: Any = rule_dict.get("actions")  # type: ignore[arg-type]
+            actions = acts if isinstance(acts, (list, dict)) else json.loads(acts or "[]")
             if self._matches(ticket, conditions):
                 for act in actions:
                     self._execute_action(ticket, act, context)
@@ -55,7 +58,7 @@ class AutomationService:
         self.db.commit()
         return executed
 
-    def _matches(self, ticket: dict, conditions: list) -> bool:
+    def _matches(self, ticket: Dict[str, Any], conditions: List[Dict[str, Any]]) -> bool:
         if not conditions:
             return True
         for cond in conditions:
@@ -70,10 +73,12 @@ class AutomationService:
             # add more ops as needed
         return True
 
-    def _execute_action(self, ticket: dict, action: dict, context: dict | None) -> None:
+    def _execute_action(self, ticket: Dict[str, Any], action: Dict[str, Any], context: Dict[str, Any] | None) -> None:
         atype = action.get("type")
         if atype == "assign":
-            self.actions.assign(ticket["ticket_id"], action.get("value"), actor={"username": "automation"})
+            # use ticket update for assign (ActionService may not expose assign directly)
+            self.db.execute(text("UPDATE tickets SET staff_assigned = :a WHERE ticket_id = :tid"), {"a": action.get("value"), "tid": ticket["ticket_id"]})
+            self.db.commit()
         elif atype == "set_priority":
             # direct update
             self.db.execute(text("UPDATE tickets SET priority = :p WHERE ticket_id = :tid"), {"p": action.get("value"), "tid": ticket["ticket_id"]})

@@ -819,6 +819,64 @@ export default function AdminPage() {
           <div className="text-lg font-semibold">Phase 8 parity (portal / KB / realtime / email)</div>
           <div className="mt-2 text-sm text-zinc-400">Portal submit/status: <a className="underline" href="/portal">/portal</a>. KB admin/search wired. WS at /ws/{'{topic}'}. Email via SMTP_* config (see .env.example). Full builder/RBAC/SLA in follow-ups.</div>
         </section>
+
+        {/* Real admin controls for SLA / Automation / Webhooks (replaced placeholder; uses existing /api routes) */}
+        <section className="ops-card rounded-[22px] p-6 mt-4">
+          <div className="text-lg font-semibold text-zinc-50 mb-3">SLA / Automation / Webhooks</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            {/* SLA */}
+            <div className="rounded border border-zinc-800/60 bg-black/10 p-3">
+              <div className="mono-data text-[10px] text-amber-400 mb-1">SLA Policies</div>
+              <button onClick={async () => {
+                const t = localStorage.getItem('access_token');
+                const res = await fetch('/api/sla/policies', {headers: t ? {Authorization: `Bearer ${t}`} : {}});
+                const data = await res.json();
+                alert('SLA Policies:\n' + JSON.stringify(data, null, 2));
+              }} className="text-xs underline text-zinc-400 hover:text-amber-300">Load</button>
+              <button onClick={async () => {
+                const t = localStorage.getItem('access_token');
+                const name = prompt('Policy name?') || 'Test';
+                const pri = prompt('Priority (Critical/High)?') || 'High';
+                const h = parseFloat(prompt('Target hours?') || '4');
+                await fetch('/api/sla/policies', {method:'POST', headers: {'Content-Type':'application/json', ...(t?{Authorization:`Bearer ${t}`}: {})}, body: JSON.stringify({name, priority: pri, target_hours: h})});
+                alert('Created (reload list)');
+              }} className="ml-2 text-xs underline text-zinc-400 hover:text-amber-300">+ Add</button>
+            </div>
+            {/* Automation */}
+            <div className="rounded border border-zinc-800/60 bg-black/10 p-3">
+              <div className="mono-data text-[10px] text-amber-400 mb-1">Automation Rules</div>
+              <button onClick={async () => {
+                const t = localStorage.getItem('access_token');
+                const res = await fetch('/api/automation/rules', {headers: t ? {Authorization: `Bearer ${t}`} : {}});
+                const data = await res.json();
+                alert('Rules:\n' + JSON.stringify(data, null, 2));
+              }} className="text-xs underline text-zinc-400 hover:text-amber-300">Load</button>
+              <button onClick={async () => {
+                const t = localStorage.getItem('access_token');
+                const name = prompt('Rule name?') || 'Auto High';
+                await fetch('/api/automation/rules', {method:'POST', headers: {'Content-Type':'application/json', ...(t?{Authorization:`Bearer ${t}`}: {})}, body: JSON.stringify({name, trigger_type: 'ticket_created', conditions: [{field:'priority', op:'equals', value:'High'}], actions: [{type:'set_priority', value:'Critical'}]})});
+                alert('Created');
+              }} className="ml-2 text-xs underline text-zinc-400 hover:text-amber-300">+ Add</button>
+            </div>
+            {/* Webhooks */}
+            <div className="rounded border border-zinc-800/60 bg-black/10 p-3">
+              <div className="mono-data text-[10px] text-amber-400 mb-1">Webhooks (OSS)</div>
+              <button onClick={async () => {
+                const t = localStorage.getItem('access_token');
+                const res = await fetch('/api/webhooks', {headers: t ? {Authorization: `Bearer ${t}`} : {}});
+                const data = await res.json();
+                alert('Webhooks:\n' + JSON.stringify(data, null, 2));
+              }} className="text-xs underline text-zinc-400 hover:text-amber-300">Load</button>
+              <button onClick={async () => {
+                const t = localStorage.getItem('access_token');
+                const url = prompt('URL (e.g. http://localhost:8080/webhook)?') || 'http://example.com/h';
+                await fetch('/api/webhooks', {method:'POST', headers: {'Content-Type':'application/json', ...(t?{Authorization:`Bearer ${t}`}: {})}, body: JSON.stringify({url, events: ['ticket.created', 'sla.breached'], secret: 'demo'})});
+                alert('Created');
+              }} className="ml-2 text-xs underline text-zinc-400 hover:text-amber-300">+ Add</button>
+            </div>
+          </div>
+          <div className="mt-2 text-[10px] text-zinc-500">Dense ops style. Intel from Aether applied on events. Use with local OSS (Activepieces etc).</div>
+        </section>
       </div>
     </OpsShell>
   );

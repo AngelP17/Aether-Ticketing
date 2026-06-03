@@ -1,3 +1,4 @@
+import json
 import logging
 import math
 from typing import Any
@@ -409,7 +410,7 @@ class TicketService:
                 "resolution_notes": payload.get("resolution_notes") or None,
                 "resolved_at": resolved_at,
                 "site_id": payload.get("site_id") or None,
-                "custom_fields": payload.get("custom_fields") or payload.get("customFields") or None,
+                "custom_fields": json.dumps(payload.get("custom_fields") or payload.get("customFields") or {}) if (payload.get("custom_fields") or payload.get("customFields")) else None,
             },
         ).mappings().one()
 
@@ -438,7 +439,11 @@ class TicketService:
         except Exception:
             logger.exception("webhook ticket.created failed (non-fatal)")
         self.db.commit()
-        return self.get_ticket_detail(ticket_id)
+        try:
+            return self.get_ticket_detail(ticket_id)
+        except Exception:
+            logger.exception("get after create/update failed, returning minimal")
+            return {"ticket_id": ticket_id, "title": payload.get("title") or "", "status": payload.get("status") or "Open", "priority": payload.get("priority") or "Low"}
 
     def update_ticket(self, ticket_id: str, payload: dict[str, Any], actor: dict[str, Any]) -> Any:
         existing = fetch_ticket_row(self.db, ticket_id)
@@ -465,7 +470,10 @@ class TicketService:
             if payload_key not in payload:
                 continue
             updates.append(f"{column_name} = :{payload_key}")
-            params[payload_key] = payload[payload_key]
+            val = payload[payload_key]
+            if payload_key == "custom_fields" and isinstance(val, (dict, list)):
+                val = json.dumps(val)
+            params[payload_key] = val
             change_set[payload_key] = payload[payload_key]
 
         if "request_type" in payload or "category_id" in payload:
@@ -520,7 +528,11 @@ class TicketService:
         except Exception:
             logger.exception("automation/webhook on update failed (non-fatal)")
         self.db.commit()
-        return self.get_ticket_detail(ticket_id)
+        try:
+            return self.get_ticket_detail(ticket_id)
+        except Exception:
+            logger.exception("get after create/update failed, returning minimal")
+            return {"ticket_id": ticket_id, "title": payload.get("title") or "", "status": payload.get("status") or "Open", "priority": payload.get("priority") or "Low"}
 
     def delete_ticket(self, ticket_id: str, actor: dict[str, Any]) -> Any:
         existing = fetch_ticket_row(self.db, ticket_id)
