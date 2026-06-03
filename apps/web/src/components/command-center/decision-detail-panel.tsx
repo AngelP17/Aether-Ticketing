@@ -60,9 +60,11 @@ function bandTone(band?: string | null) {
 export function DecisionDetailPanel({
   selectedTicket,
   linkedIncident,
+  rail = false,
 }: {
   selectedTicket: QueueTicket | undefined;
   linkedIncident: IncidentCard | undefined;
+  rail?: boolean;
 }) {
   const ticketId = selectedTicket?.ticketId;
   const [detail, setDetail] = useState<TicketDetailPayload | null>(null);
@@ -145,10 +147,14 @@ export function DecisionDetailPanel({
   );
 
   return (
-    <div className="ops-card max-h-[72vh] overflow-y-auto rounded-[22px] p-5 sm:p-6 lg:max-h-[760px]">
+    <div
+      className={`ops-card overflow-y-auto rounded-[22px] ${
+        rail ? "max-h-none p-4" : "max-h-[72vh] p-5 sm:p-6 lg:max-h-[760px]"
+      }`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-zinc-50">
+          <h2 className={`${rail ? "text-xl" : "text-2xl"} font-semibold text-zinc-50`}>
             {selectedTicket?.ticketId || "No active ticket"}
           </h2>
           <p className="mt-2 text-sm leading-6 text-zinc-300">
@@ -190,7 +196,7 @@ export function DecisionDetailPanel({
         ) : null}
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+      <div className={`${rail ? "mt-4" : "mt-5"} grid gap-3 sm:grid-cols-2`}>
         <div className="rounded-2xl border border-zinc-800/60 bg-black/20 p-4">
           <div className="mono-data text-3xl font-bold text-zinc-50">
             {selectedTicket ? selectedTicket.score.toFixed(0) : "--"}
@@ -206,7 +212,7 @@ export function DecisionDetailPanel({
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 text-sm text-zinc-300">
+      <div className={`${rail ? "mt-4" : "mt-5"} grid gap-2 text-sm text-zinc-300`}>
         <div className="flex items-center justify-between rounded-2xl border border-zinc-800/60 bg-black/20 px-4 py-3">
           <div className="flex items-center gap-3">
             <Clock3 className="h-4 w-4 text-zinc-500" />
@@ -237,7 +243,7 @@ export function DecisionDetailPanel({
       </div>
 
       {decision ? (
-        <div className={`mt-5 rounded-2xl border p-4 text-xs ${tone.box}`}>
+        <div className={`${rail ? "mt-4" : "mt-5"} rounded-2xl border p-4 text-xs ${tone.box}`}>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex items-center gap-2">
               <Cpu className={`h-3.5 w-3.5 ${tone.label}`} />
@@ -382,7 +388,7 @@ export function DecisionDetailPanel({
       ) : null}
 
       {detail?.recommendations?.length ? (
-        <div className="mt-5 space-y-2">
+        <div className={`${rail ? "mt-4" : "mt-5"} space-y-2`}>
           {detail.recommendations.slice(0, 3).map((rec) => (
             <div
               key={rec.id}

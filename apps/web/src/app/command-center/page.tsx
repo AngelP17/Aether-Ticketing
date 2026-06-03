@@ -308,7 +308,6 @@ export default function CommandCenterPage() {
   const incidentCards = getLiveIncidents(feed.incidents);
   const searchTerm = deferredSearch.trim().toLowerCase();
 
-  const totalTickets = feed.tickets.length;
   const openTickets = feed.metrics?.total_open ?? rankedQueue.length;
   const closedResolved = feed.tickets.filter((ticket) => isClosedStatus(ticket.status)).length;
   const criticalOpen =
@@ -445,6 +444,22 @@ export default function CommandCenterPage() {
     incidentCards.find((incident) =>
       selectedTicket ? incident.rootCause.toLowerCase().includes(selectedTicket.category.toLowerCase()) : false,
     );
+  const relatedTickets = selectedTicket
+    ? rankedQueue
+        .filter((ticket) => ticket.ticketId !== selectedTicket.ticketId)
+        .map((ticket) => {
+          const relationScore =
+            (ticket.incidentId && ticket.incidentId === selectedTicket.incidentId ? 4 : 0) +
+            (ticket.category === selectedTicket.category ? 3 : 0) +
+            (ticket.assignee === selectedTicket.assignee ? 2 : 0) +
+            (ticket.priority === selectedTicket.priority ? 1 : 0);
+          return { ticket, relationScore };
+        })
+        .filter((item) => item.relationScore > 0)
+        .sort((left, right) => right.relationScore - left.relationScore || right.ticket.score - left.ticket.score)
+        .slice(0, 5)
+        .map((item) => item.ticket)
+    : [];
 
   async function handleWorkbookDownload() {
     if (isExporting) {
@@ -622,30 +637,6 @@ export default function CommandCenterPage() {
         </>
       }
     >
-      <section className="ops-command-strip rise">
-        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="aether-chip border-amber-400/25 bg-amber-500/10 text-amber-100">Live ops</span>
-              <span className="aether-chip border-amber-400/25 bg-amber-500/10 text-amber-100">
-                {feed.status === "ready" ? `${totalTickets} tickets indexed` : "sync pending"}
-              </span>
-              <span className="aether-chip">
-                {feed.status === "ready" ? `${lastSyncSeconds}s since sync` : feed.status}
-              </span>
-            </div>
-            <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-              <h2 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
-                Command Center
-              </h2>
-              <p className="text-sm text-zinc-400">
-                Ranked queue, incident clusters, and operator actions.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {feed.status === "loading" ? (
         <div className="mt-6 grid gap-4">
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -737,7 +728,7 @@ export default function CommandCenterPage() {
             })}
           </section>
 
-          <section id="decision" className="mt-6 grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
+          <section id="decision" className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.18fr),minmax(360px,0.82fr)]">
             <QueueTable
               tickets={filteredQueue}
               selectedId={selectedTicket?.ticketId ?? null}
@@ -745,90 +736,17 @@ export default function CommandCenterPage() {
               searchTerm={searchTerm}
             />
 
-            {/* Snapshot density — custom hairline bars (not Recharts generic).
-                 Follows OpsCenter design-taste-frontend: DENSITY 8 cockpit data, hairline separators,
-                 mono counts, single amber accent for primary data viz, no rainbow, no default tooltips/cards for micro data.
-                 The "Graph relation types" is the live output of the deterministic 7-edge ticket_graph (PageRank input). */}
-            {feed.tickets.length > 0 && (
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {/* Top categories — ranked dense bars, amber only, hairline */}
-                <div className="rounded-2xl border border-zinc-800/60 bg-black/10 p-3">
-                  <div className="text-[10px] mono-data text-zinc-500 mb-1.5">Top categories</div>
-                  <div className="space-y-1">
-                    {categoryData.length ? categoryData.map((d: { name: string; value: number }, i: number) => {
-                      const max = Math.max(...categoryData.map((x: any) => x.value));
-                      const w = max > 0 ? (d.value / max) * 100 : 0;
-                      return (
-                        <div key={i} className="flex items-center gap-2 text-[11px]">
-                          <span className="w-20 truncate text-zinc-400 shrink-0">{d.name}</span>
-                          <div className="h-[3px] flex-1 bg-zinc-900/70 rounded overflow-hidden">
-                            <div className="h-full bg-amber-500 transition-all" style={{ width: `${w}%` }} />
-                          </div>
-                          <span className="mono-data w-6 text-right text-zinc-300 shrink-0">{d.value}</span>
-                        </div>
-                      );
-                    }) : <div className="text-[10px] text-zinc-500">—</div>}
-                  </div>
-                </div>
-
-                {/* Assignee load — same dense treatment */}
-                <div className="rounded-2xl border border-zinc-800/60 bg-black/10 p-3">
-                  <div className="text-[10px] mono-data text-zinc-500 mb-1.5">Assignee load</div>
-                  <div className="space-y-1">
-                    {assigneeData.length ? assigneeData.map((d: { name: string; value: number }, i: number) => {
-                      const max = Math.max(...assigneeData.map((x: any) => x.value));
-                      const w = max > 0 ? (d.value / max) * 100 : 0;
-                      return (
-                        <div key={i} className="flex items-center gap-2 text-[11px]">
-                          <span className="w-20 truncate text-zinc-400 shrink-0">{d.name}</span>
-                          <div className="h-[3px] flex-1 bg-zinc-900/70 rounded overflow-hidden">
-                            <div className="h-full bg-amber-500 transition-all" style={{ width: `${w}%` }} />
-                          </div>
-                          <span className="mono-data w-6 text-right text-zinc-300 shrink-0">{d.value}</span>
-                        </div>
-                      );
-                    }) : <div className="text-[10px] text-zinc-500">—</div>}
-                  </div>
-                </div>
-
-                {/* Graph relation types — the real one. Enhanced for the Rift graph intelligence.
-                    Shows the 7 edge types from ticket_graph.build_ticket_graph that feed PageRank + centrality scoring.
-                    Hairline bars + mono + total from governance for density. */}
-                <div className="rounded-2xl border border-amber-500/20 bg-black/10 p-3">
-                  <div className="flex items-baseline justify-between mb-1.5">
-                    <div className="text-[10px] mono-data text-amber-400">Graph relation types</div>
-                    <div className="text-[10px] mono-data text-zinc-500">live deterministic</div>
-                  </div>
-                  <div className="space-y-1">
-                    {edgeData.length ? edgeData.map((d: { name: string; value: number }, i: number) => {
-                      const max = Math.max(...edgeData.map((x: any) => x.value));
-                      const w = max > 0 ? (d.value / max) * 100 : 0;
-                      return (
-                        <div key={i} className="flex items-center gap-2 text-[11px]">
-                          <span className="w-[92px] truncate text-zinc-400 shrink-0 font-mono text-[10px]">{d.name}</span>
-                          <div className="h-[3px] flex-1 bg-zinc-900/70 rounded overflow-hidden">
-                            <div className="h-full bg-amber-500 transition-all" style={{ width: `${w}%` }} />
-                          </div>
-                          <span className="mono-data w-7 text-right text-amber-300 shrink-0 font-medium">{d.value}</span>
-                        </div>
-                      );
-                    }) : <div className="text-[10px] text-zinc-500">no graph edges yet</div>}
-                  </div>
-                  <div className="mt-1.5 text-[9px] mono-data text-zinc-600">7 edge types • PageRank input • centrality 0.10 weight</div>
-                </div>
-              </div>
-            )}
-            <div className="min-h-0 space-y-6 2xl:max-h-[760px] 2xl:overflow-y-auto 2xl:pr-1">
-              <DecisionDetailPanel
-                selectedTicket={selectedTicket}
-                linkedIncident={linkedIncident}
-              />
-              <DecisionIntelligencePanel
-                intelligence={feed.intelligence}
-                governance={feed.governance}
-              />
-              <IncidentList incidents={incidentCards} />
-            </div>
+            <GraphCommandLens
+              selectedTicket={selectedTicket}
+              linkedIncident={linkedIncident}
+              relatedTickets={relatedTickets}
+              categoryData={categoryData}
+              assigneeData={assigneeData}
+              edgeData={edgeData}
+              intelligence={feed.intelligence}
+              governance={feed.governance}
+              incidents={incidentCards}
+            />
           </section>
 
           <section id="tickets" className="mt-6 ops-card rounded-[22px] p-5 sm:p-6">
@@ -907,6 +825,217 @@ export default function CommandCenterPage() {
         </>
       )}
     </OpsShell>
+  );
+}
+
+type DenseBarDatum = { name: string; value: number };
+
+function DenseBarList({
+  title,
+  data,
+  valueTone = "text-zinc-300",
+  emptyLabel = "No data yet",
+}: {
+  title: string;
+  data: DenseBarDatum[];
+  valueTone?: string;
+  emptyLabel?: string;
+}) {
+  const maxValue = Math.max(...data.map((item) => item.value), 0);
+
+  return (
+    <div className="border-t border-zinc-800/60 pt-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="text-xs font-medium text-zinc-300">{title}</div>
+        <div className="mono-data text-[10px] text-zinc-600">{data.length} rows</div>
+      </div>
+      <div className="space-y-1.5">
+        {data.length ? (
+          data.map((item) => {
+            const width = maxValue > 0 ? Math.max(3, (item.value / maxValue) * 100) : 0;
+
+            return (
+              <div key={`${title}-${item.name}`} className="grid grid-cols-[96px,minmax(0,1fr),36px] items-center gap-2 text-[11px]">
+                <span className="truncate text-zinc-500">{item.name}</span>
+                <div className="h-[3px] overflow-hidden rounded-full bg-zinc-900/80">
+                  <div className="h-full rounded-full bg-amber-500" style={{ width: `${width}%` }} />
+                </div>
+                <span className={`mono-data text-right ${valueTone}`}>{item.value}</span>
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-xs text-zinc-600">{emptyLabel}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GraphCommandLens({
+  selectedTicket,
+  linkedIncident,
+  relatedTickets,
+  categoryData,
+  assigneeData,
+  edgeData,
+  intelligence,
+  governance,
+  incidents,
+}: {
+  selectedTicket: QueueTicket | undefined;
+  linkedIncident: IncidentCard | undefined;
+  relatedTickets: QueueTicket[];
+  categoryData: DenseBarDatum[];
+  assigneeData: DenseBarDatum[];
+  edgeData: DenseBarDatum[];
+  intelligence: IntelligenceHealthResponse | null;
+  governance: GovernanceSummaryResponse | null;
+  incidents: IncidentCard[];
+}) {
+  const graph = intelligence?.subsystems.graph ?? governance?.graph;
+  const graphUnavailable =
+    graph && "status" in graph && graph.status === "unavailable";
+  const graphNodes = graphUnavailable ? 0 : graph?.node_count ?? 0;
+  const graphEdges = graphUnavailable ? 0 : graph?.edge_count ?? 0;
+  const averageDegree = graphUnavailable ? 0 : graph?.average_degree ?? 0;
+  const driftStatus = governance?.drift?.status ?? intelligence?.drift?.status ?? "unavailable";
+  const incidentLabel = linkedIncident
+    ? `${linkedIncident.ticketCount} linked ticket${linkedIncident.ticketCount === 1 ? "" : "s"}`
+    : "No active incident";
+  const selectedScore = selectedTicket ? selectedTicket.score.toFixed(0) : "--";
+  const graphSignal = edgeData[0];
+
+  return (
+    <aside className="min-h-0 space-y-5 xl:sticky xl:top-6 xl:max-h-[calc(100dvh-3rem)] xl:overflow-y-auto xl:pr-1">
+      <section className="ops-card overflow-hidden rounded-[22px] border-amber-500/20 p-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-zinc-50">Graph Command Lens</h2>
+          </div>
+          <span className="mono-data shrink-0 rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-1.5 text-[10px] text-amber-200">
+            live graph
+          </span>
+        </div>
+
+        <div className="mt-3 rounded-[18px] border border-zinc-800/70 bg-black/25 p-2.5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mono-data text-[11px] text-zinc-500">
+                {selectedTicket?.ticketId ?? "No ticket selected"}
+              </div>
+              <div className="mt-1 truncate text-sm font-medium text-zinc-100">
+                {selectedTicket?.title ?? "Select a ranked ticket to load the command lens."}
+              </div>
+            </div>
+            <div className="mono-data shrink-0 text-4xl font-bold leading-none text-amber-200">
+              {selectedScore}
+            </div>
+          </div>
+          <div className="mt-2 grid grid-cols-3 divide-x divide-zinc-800/70 border-t border-zinc-800/70 pt-2 text-center">
+            <div className="px-2">
+              <div className="mono-data text-sm font-semibold text-zinc-50">{graphNodes}</div>
+              <div className="mt-1 text-[10px] text-zinc-500">nodes</div>
+            </div>
+            <div className="px-2">
+              <div className="mono-data text-sm font-semibold text-zinc-50">{graphEdges}</div>
+              <div className="mt-1 text-[10px] text-zinc-500">edges</div>
+            </div>
+            <div className="px-2">
+              <div className="mono-data text-sm font-semibold text-amber-200">
+                {averageDegree.toFixed(1)}
+              </div>
+              <div className="mt-1 text-[10px] text-zinc-500">avg degree</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-2 text-sm 2xl:grid-cols-4">
+          <div className="rounded-2xl border border-zinc-800/60 bg-black/15 p-2.5">
+            <div className="text-[11px] text-zinc-500">Blast radius</div>
+            <div className="mono-data mt-1 truncate text-amber-200">{incidentLabel}</div>
+          </div>
+          <div className="rounded-2xl border border-zinc-800/60 bg-black/15 p-2.5">
+            <div className="text-[11px] text-zinc-500">Drift status</div>
+            <div className="mono-data mt-1 text-zinc-200">{formatStatus(driftStatus)}</div>
+          </div>
+          <div className="rounded-2xl border border-zinc-800/60 bg-black/15 p-2.5">
+            <div className="text-[11px] text-zinc-500">Primary relation</div>
+            <div className="mono-data mt-1 truncate text-zinc-200">
+              {graphSignal ? graphSignal.name : "none"}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-zinc-800/60 bg-black/15 p-2.5">
+            <div className="text-[11px] text-zinc-500">Related work</div>
+            <div className="mono-data mt-1 text-zinc-200">{relatedTickets.length} matches</div>
+          </div>
+        </div>
+
+        <div className="mt-2 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] p-2.5">
+          <div className="text-xs font-medium text-amber-100">Next action</div>
+          <p className="mt-1 line-clamp-2 text-sm leading-6 text-zinc-300">
+            {selectedTicket?.recommendation ?? "Select a ticket to inspect the next operational move."}
+          </p>
+        </div>
+
+      </section>
+
+      <DecisionDetailPanel
+        selectedTicket={selectedTicket}
+        linkedIncident={linkedIncident}
+        rail
+      />
+
+      <section className="ops-card rounded-[22px] p-4">
+        <div className="flex items-start justify-between gap-4 border-b border-zinc-800/60 pb-3">
+          <div>
+            <h3 className="text-lg font-semibold text-zinc-50">Signal Matrix</h3>
+            <p className="mt-1 text-sm leading-6 text-zinc-400">
+              Queue shape, owner load, and graph edge mix from the live workspace.
+            </p>
+          </div>
+          <span className="mono-data rounded-full border border-zinc-800 bg-black/20 px-3 py-1.5 text-[10px] text-zinc-500">
+            {graphEdges} edges
+          </span>
+        </div>
+        <div className="mt-4 space-y-4">
+          <DenseBarList title="Graph relation types" data={edgeData} valueTone="text-amber-300" emptyLabel="No graph edges yet" />
+          <DenseBarList title="Top categories" data={categoryData} />
+          <DenseBarList title="Assignee load" data={assigneeData} />
+        </div>
+        <div className="mt-4 border-t border-zinc-800/60 pt-3">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="text-xs font-medium text-zinc-300">Related work</div>
+            <div className="mono-data text-[10px] text-zinc-600">{relatedTickets.length} matches</div>
+          </div>
+          <div className="space-y-2">
+            {relatedTickets.length ? (
+              relatedTickets.map((ticket) => (
+                <Link
+                  key={ticket.ticketId}
+                  href={`/tickets/${ticket.ticketId}`}
+                  className="grid grid-cols-[88px,minmax(0,1fr),36px] items-center gap-2 rounded-2xl border border-zinc-800/60 bg-black/20 px-3 py-2 text-xs transition hover:border-amber-400/30 hover:bg-amber-500/[0.03]"
+                >
+                  <span className="mono-data truncate text-zinc-500">{ticket.ticketId}</span>
+                  <span className="truncate text-zinc-300">{ticket.title}</span>
+                  <span className="mono-data text-right text-amber-200">{ticket.score.toFixed(0)}</span>
+                </Link>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-zinc-800/60 bg-black/20 px-3 py-3 text-xs text-zinc-500">
+                No category, owner, priority, or incident neighbors in the active queue.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <DecisionIntelligencePanel
+        intelligence={intelligence}
+        governance={governance}
+      />
+      <IncidentList incidents={incidents} />
+    </aside>
   );
 }
 
