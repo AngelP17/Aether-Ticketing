@@ -110,7 +110,7 @@ Example live state (recent run on seeded data):
 - Feedback / runs: 0 / 0
 - Drift status: drift
 - Similar links: 0
-- Drift signals (weekly): priority Δ 50.27, uncertainty Δ 8.57 (deltas common on small/demo sets)
+- Drift signals (weekly): priority Δ 50.2714 (502714%), uncertainty Δ 8.5714 (85714%) (deltas common on small/demo sets)
 
 ## Tech Stack
 
