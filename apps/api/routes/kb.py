@@ -1,7 +1,7 @@
 """Phase 8 KB (articles) admin + search (linked to root causes)."""
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 

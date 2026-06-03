@@ -7,7 +7,6 @@ In real: rate limit heavily, captcha, email verify for create.
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db

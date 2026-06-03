@@ -84,7 +84,7 @@ Review in Command Center or replay the ticket.
     def parse_inbound_to_ticket(self, raw_email: str) -> dict[str, Any]:
         """Very basic parser stub. In real: use email lib + header parse for requester, subject->title, body->desc, look for [IT-xxx] key to update."""
         # Placeholder: extract first lines
-        lines = [l.strip() for l in raw_email.splitlines() if l.strip()]
+        lines = [line.strip() for line in raw_email.splitlines() if line.strip()]
         title = lines[0][:200] if lines else "Inbound email ticket"
         desc = "\n".join(lines[1:10])
         return {
