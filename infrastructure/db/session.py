@@ -108,6 +108,7 @@ def _ensure_legacy_compatibility() -> None:
         "resolved_at": "ALTER TABLE tickets ADD COLUMN resolved_at TIMESTAMP",
         "source_system": "ALTER TABLE tickets ADD COLUMN source_system VARCHAR(50) DEFAULT 'legacy'",
         "is_active": "ALTER TABLE tickets ADD COLUMN is_active BOOLEAN DEFAULT TRUE",
+        "custom_fields": "ALTER TABLE tickets ADD COLUMN custom_fields JSONB",
     }
 
     decision_statements = {
@@ -117,6 +118,10 @@ def _ensure_legacy_compatibility() -> None:
         "decision_hash": "ALTER TABLE decision_records ADD COLUMN decision_hash VARCHAR(64)",
         "graph_degree": "ALTER TABLE decision_records ADD COLUMN graph_degree INTEGER DEFAULT 0",
         "graph_weighted_degree": "ALTER TABLE decision_records ADD COLUMN graph_weighted_degree FLOAT DEFAULT 0.0",
+        "anomaly_zscore": "ALTER TABLE decision_records ADD COLUMN anomaly_zscore FLOAT",
+        "graph_signal_density": "ALTER TABLE decision_records ADD COLUMN graph_signal_density FLOAT DEFAULT 0.0",
+        "band_rationale": "ALTER TABLE decision_records ADD COLUMN band_rationale TEXT",
+        "operator_action": "ALTER TABLE decision_records ADD COLUMN operator_action TEXT",
         "explanation_json": "ALTER TABLE decision_records ADD COLUMN explanation_json JSONB",
     }
 

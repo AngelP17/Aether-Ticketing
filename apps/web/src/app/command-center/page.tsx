@@ -22,7 +22,6 @@ import {
   Gauge,
   LogOut,
   Plus,
-  Radar,
   Shield,
   ShieldAlert,
 } from "lucide-react";
@@ -168,13 +167,6 @@ function statusPillFor(status: FeedStatus) {
     return { kind: "loading" as const, label: "Syncing live data" };
   }
   return { kind: "error" as const, label: "Live data unavailable" };
-}
-
-function scrollToSection(id: string) {
-  if (typeof document === "undefined") {
-    return;
-  }
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export default function CommandCenterPage() {
@@ -516,14 +508,6 @@ export default function CommandCenterPage() {
     }
   }
 
-  const railItems = [
-    { kind: "action" as const, label: "Queue", onClick: () => scrollToSection("decision"), icon: Radar },
-    { kind: "action" as const, label: "Full Queue", onClick: () => scrollToSection("tickets"), icon: Columns3 },
-    { kind: "link" as const, href: "/board", label: "Board", icon: Columns3 },
-    { kind: "link" as const, href: "/reports", label: "Reports", icon: FileSpreadsheet },
-    { kind: "link" as const, href: "/admin", label: "Admin", icon: Shield },
-  ];
-
   const sheetItems = [
     { kind: "link" as const, href: "/tickets/new", label: "New ticket", icon: Plus, tone: "amber" as const },
     { kind: "link" as const, href: "/board", label: "Workflow board", icon: Columns3, tone: "default" as const },
@@ -557,7 +541,6 @@ export default function CommandCenterPage() {
         onChange: setSearch,
         placeholder: "Search queue, owner, category, or ticket",
       }}
-      railItems={railItems}
       sheetItems={sheetItems}
       exportButton={{ isExporting, onClick: handleWorkbookDownload, label: "Export workbook" }}
       showNotificationBell

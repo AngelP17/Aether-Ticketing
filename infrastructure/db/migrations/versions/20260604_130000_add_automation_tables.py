@@ -13,6 +13,11 @@ depends_on = None
 
 
 def upgrade() -> None:
+    op.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS custom_fields JSONB")
+    op.execute("ALTER TABLE decision_records ADD COLUMN IF NOT EXISTS anomaly_zscore FLOAT")
+    op.execute("ALTER TABLE decision_records ADD COLUMN IF NOT EXISTS graph_signal_density FLOAT DEFAULT 0.0")
+    op.execute("ALTER TABLE decision_records ADD COLUMN IF NOT EXISTS band_rationale TEXT")
+    op.execute("ALTER TABLE decision_records ADD COLUMN IF NOT EXISTS operator_action TEXT")
     op.execute(
         """
         CREATE TABLE IF NOT EXISTS automation_rules (
