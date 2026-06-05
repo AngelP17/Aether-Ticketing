@@ -14,6 +14,8 @@
 - `domain/`, `pipelines/`, and `infrastructure/` contain scoring, ingestion, reporting, SQLAlchemy models, migrations, and support code.
 - `infrastructure/db/migrations/` contains Alembic migration config and versions.
 - `users.json` is the current local/demo auth user store. It is not a generated cache, but avoid editing real credentials casually.
+- `tickets.xlsx` is the tracked sanitized demo ticket workbook. It must contain
+  fake demo records only. Never replace it with real workplace data.
 
 ## Commands
 
@@ -100,9 +102,10 @@ inside the container:
 docker compose -f docker/docker-compose.yml exec -T db psql -U aether -d aether
 ```
 
-The shipped `tickets.xlsx` and `schema.sql` are the byte-identical
-source of truth the API reads on boot; they live at the repo root and
-must not drift from `origin/main`.
+The tracked `tickets.xlsx` workbook is the Excel import seed for public demos.
+It must stay sanitized and safe for GitHub. Keep private workplace exports under
+ignored names such as `tickets.private.xlsx` or in `private-data/`; never stage
+those files.
 
 ## Conventions And Constraints
 
@@ -110,6 +113,9 @@ must not drift from `origin/main`.
 - Password hashes should be created through `AuthService`; legacy SHA-256 hashes are only accepted for migration on successful login.
 - Login throttling is in-memory and suitable for local/demo use. Use a shared store such as Redis before relying on it in multi-process production.
 - Production config must not use the default `SECRET_KEY` or wildcard CORS with credentials.
+- Do not commit live deployment hostnames, including Render URLs. Use
+  placeholders such as `<deployed-host>` in docs and final notes unless the user
+  explicitly asks to publish the URL.
 - Frontend is a dense B2B operations UI. Preserve the dark operations theme, existing routes, and Lucide icon family.
 - Keep motion restrained and respect reduced-motion behavior. Prefer stable app UI over landing-page flourish.
 
@@ -178,6 +184,9 @@ do not apply; do not use them as a justification for redesigning chrome.
 ## Files To Avoid Unless Asked
 
 - Do not edit generated or local cache output: `.next/`, `node_modules/`, `.pytest_cache/`, `__pycache__/`, coverage artifacts, or temporary report outputs.
+- Do not stage or commit real/local data files such as `tickets.private.xlsx`,
+  `tickets*.xlsx` other than the sanitized root `tickets.xlsx`, files under
+  `private-data/`, or `local_infra.db`.
 - Do not regenerate or replace `docs/screenshots/*.png` unless the task is specifically about screenshots.
 - Do not alter lockfiles unless dependency changes require it.
 

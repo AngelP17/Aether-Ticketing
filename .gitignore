@@ -23,6 +23,12 @@ coverage/
 
 .snapshots/
 .tmp-logs/
+local_infra.db
+private-data/
+
+# Sensitive/local ticket workbooks. Keep real workplace data out of GitHub.
+tickets*.xlsx
+!tickets.xlsx
 
 # Microsoft Office lock files (Excel/Word/PowerPoint editor temp files)
 ~$

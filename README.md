@@ -64,7 +64,7 @@ Styled Excel for queue/incidents/audit including current decision fields and gra
 ```mermaid
 flowchart TB
     subgraph Sources
-        XLSX[tickets.xlsx]
+        XLSX["tickets.xlsx\nsanitized demo fixture"]
         APIW[API writes]
     end
     XLSX --> Ingest[Ingest Pipeline]
@@ -144,6 +144,22 @@ make web
 ```
 
 The API runs on port 8000. The web app runs on the port selected by Next.js, usually 3000.
+
+### Demo And Private Ticket Data
+
+The repo includes a sanitized demo workbook at `tickets.xlsx` with fake tickets,
+people, sites, and assets. The Excel import path expects that filename at the
+repo root and the `IT Service Tickets` sheet, so the public fixture lets a fresh
+clone run the demo import path.
+
+Do not overwrite the tracked demo workbook with real workplace data. Keep
+private exports under ignored names such as `tickets.private.xlsx` or in
+`private-data/`. If the public demo data needs to change, replace it only with
+sanitized records.
+
+Deployment URLs are operational details, not public docs. Do not commit the
+live Render hostname or other private deployment links; use placeholders such
+as `<deployed-host>` in documentation.
 
 ### Local Auth Credentials
 
