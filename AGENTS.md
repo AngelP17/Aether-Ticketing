@@ -61,16 +61,35 @@ are gone in the browser network/console checks.
 
 ### Local Auth + Port Flexibility
 
-Default credentials after `make seed-auth`:
+The committed `users.json` should contain only the safe demo viewer account.
+For local admin maintenance, run `make seed-auth`; it prints a one-time local
+admin password and rewrites `users.json`.
 
-- Username: `admin`
-- Password: `admin123` (the legacy SHA-256 hash in `users.json` matches this
-  plaintext, so the first successful login migrates the record to bcrypt via
-  `AuthService`.)
+Default viewer credentials:
+
+- Viewer username: `viewer`
+- Viewer password: `viewer123`
 
 The login page also surfaces a `Demo` badge with a `Fill` action in
-non-production builds so mobile browser checks do not require a manual
-credential lookup.
+demo/local builds so browser checks do not require a manual credential lookup.
+The badge must fill the viewer account only; never expose admin credentials in
+public demo UI or public application material.
+
+### Safe Demo Mode
+
+The public demo should be safe to share with `viewer` credentials. In demo mode,
+viewers may browse sanitized data and submit tagged portal demo tickets, but
+must not be able to mutate core operational state. Keep these guards intact:
+
+- `viewer` cannot update/delete/move tickets, change labels, write comments,
+  upload/delete attachments, mutate recommendations, trigger automation, manage
+  users/catalog/SLA/webhooks/KB/diagnostics, or change config.
+- Report exports require authentication and must contain sanitized data only.
+- Portal submit requires auth and only works when `DEMO_MODE=true` and
+  `DEMO_PORTAL_SUBMIT_ENABLED=true`; created records must be tagged
+  `source_system=demo_portal` and `custom_fields.demo=true`.
+- Login should trim username whitespace, keep password exact, and distinguish
+  invalid credentials from rate-limit/server errors.
 
 The default API port is `8000`. If that port is already taken by another
 process (common on developer machines with another Python service running),

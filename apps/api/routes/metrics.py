@@ -22,12 +22,16 @@ def get_metrics(db: Session = Depends(get_db), _user: dict[str, Any] = Depends(g
 def get_accuracy_metrics(
     db: Session = Depends(get_db),
     days: int = Query(default=7, ge=1, le=90),
+    _user: dict[str, Any] = Depends(get_current_user),
 ) -> Any:
     service = AccuracyService(db)
     return service.get_all_accuracy_metrics(days)
 
 
 @router.get("/feedback/summary")
-def get_feedback_summary(db: Session = Depends(get_db)) -> Any:
+def get_feedback_summary(
+    db: Session = Depends(get_db),
+    _user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
     learner = FeedbackLearner(db)
     return learner.get_pattern_summary()

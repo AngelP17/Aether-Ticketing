@@ -377,6 +377,7 @@ class TicketService:
                     updated_at,
                     resolved_at,
                     site_id,
+                    source_system,
                     custom_fields
                 )
                 VALUES (
@@ -395,6 +396,7 @@ class TicketService:
                     CURRENT_TIMESTAMP,
                     :resolved_at,
                     :site_id,
+                    :source_system,
                     :custom_fields
                 )
                 RETURNING id, ticket_id
@@ -413,6 +415,7 @@ class TicketService:
                 "resolution_notes": payload.get("resolution_notes") or None,
                 "resolved_at": resolved_at,
                 "site_id": payload.get("site_id") or None,
+                "source_system": payload.get("source_system") or "manual",
                 "custom_fields": json.dumps(payload.get("custom_fields") or payload.get("customFields") or {}) if (payload.get("custom_fields") or payload.get("customFields")) else None,
             },
         ).mappings().one()

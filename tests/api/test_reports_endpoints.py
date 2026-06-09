@@ -94,3 +94,20 @@ def test_reports_pass_query_params_through(agent_client: Any) -> None:
     assert captured["args"][1] == "2026-01-01"
     assert captured["args"][2] == "2026-01-31"
     assert captured["args"][3] == "INC-1"
+
+
+def test_reports_require_authentication(anon_client: Any) -> None:
+    assert anon_client.get("/api/reports/excel").status_code == 401
+    assert anon_client.get("/api/reports/csv").status_code == 401
+
+
+def test_viewer_can_download_sanitized_reports(viewer_client: Any) -> None:
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            reports_routes.ReportService,
+            "generate_csv",
+            lambda *args, **kwargs: "ticket_id,title\nIT-1,Demo\n",
+        )
+        response = viewer_client.get("/api/reports/csv")
+    assert response.status_code == 200
+    assert response.text.startswith("ticket_id")

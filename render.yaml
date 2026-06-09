@@ -17,3 +17,17 @@ services:
         value: true
       - key: USERS_FILE
         value: /app/users.json
+      - key: DEMO_MODE
+        value: true
+      - key: DEMO_VIEWER_USERNAME
+        value: viewer
+      - key: DEMO_VIEWER_PASSWORD
+        value: viewer123
+      - key: DEMO_PORTAL_SUBMIT_ENABLED
+        value: true
+      - key: NEXT_PUBLIC_DEMO_MODE
+        value: true
+      - key: NEXT_PUBLIC_DEMO_VIEWER_USERNAME
+        value: viewer
+      - key: NEXT_PUBLIC_DEMO_VIEWER_PASSWORD
+        value: viewer123

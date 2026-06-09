@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from apps.api.deps import get_db
+from apps.api.security import require_ticket_write
 from apps.api.services.recommendation_service import RecommendationService as RecommendationService
 
 router = APIRouter()
@@ -27,6 +28,7 @@ def accept_recommendation(
     recommendation_id: int,
     body: AcceptRequest,
     db: Session = Depends(get_db),
+    _user: dict[str, Any] = Depends(require_ticket_write),
 ) -> Any:
     service = RecommendationService(db)
     result = service.accept_recommendation(recommendation_id, body.note)
@@ -40,6 +42,7 @@ def reject_recommendation(
     recommendation_id: int,
     body: RejectRequest,
     db: Session = Depends(get_db),
+    _user: dict[str, Any] = Depends(require_ticket_write),
 ) -> Any:
     service = RecommendationService(db)
     result = service.reject_recommendation(recommendation_id, body.reason)
@@ -53,6 +56,7 @@ def override_recommendation(
     recommendation_id: int,
     body: OverrideRequest,
     db: Session = Depends(get_db),
+    _user: dict[str, Any] = Depends(require_ticket_write),
 ) -> Any:
     service = RecommendationService(db)
     result = service.override_recommendation(

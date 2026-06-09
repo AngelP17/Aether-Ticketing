@@ -159,20 +159,40 @@ login_rate_limiter: LoginRateLimiter = build_login_rate_limiter()
 
 class AuthService:
     def login(self, username: str, password: str) -> dict[str, Any] | None:
-        user = self._get_user(username)
+        normalized_username = username.strip()
+        user = self._get_user(normalized_username)
         if user is None:
+            logger.info(
+                "login failed: username=%s matched_user=false reason=user_not_found",
+                normalized_username,
+            )
             return None
         verified, needs_migration = self._verify_password(password, user["password_hash"])
         if not verified:
+            logger.info(
+                "login failed: username=%s matched_user=true role=%s reason=bad_password",
+                normalized_username,
+                user.get("role", "viewer"),
+            )
             return None
         if needs_migration:
             self.update_user(username=user["username"], password=password)
+            logger.info(
+                "login password hash migrated: username=%s role=%s",
+                normalized_username,
+                user.get("role", "viewer"),
+            )
 
         public_user = {
             "username": user["username"],
             "role": user["role"],
             "display_name": user["display_name"],
         }
+        logger.info(
+            "login succeeded: username=%s role=%s",
+            public_user["username"],
+            public_user["role"],
+        )
         return {
             "access_token": self._create_token(public_user),
             "token_type": "bearer",
@@ -281,8 +301,9 @@ class AuthService:
         return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
     def _get_user(self, username: str) -> dict[str, Any] | None:
+        normalized_username = username.strip()
         for user in self._load_users():
-            if user["username"] == username:
+            if user["username"] == normalized_username:
                 return user
         return None
 

@@ -163,17 +163,33 @@ as `<deployed-host>` in documentation.
 
 ### Local Auth Credentials
 
-The shipped `users.json` ships with one admin account. The legacy SHA-256
-hash in the file matches the plaintext `admin123`, so a first successful
-login migrates the record to bcrypt automatically.
+The shipped `users.json` includes only the safe viewer demo account. Share only
+the viewer account for public demos.
 
-- Username: `admin`
-- Password: `admin123`
+- Viewer username: `viewer`
+- Viewer password: `viewer123`
 
-If `users.json` ever drifts, `make seed-auth` rewrites it to the documented
-default. The login page also surfaces a `Demo` badge with a `Fill` action in
-non-production builds so mobile browser checks do not require a manual
-credential lookup.
+If you need a local admin account, run `make seed-auth`. It rewrites
+`users.json`, prints a one-time local admin password, and keeps the viewer demo
+account. The login page demo badge fills the viewer account only; admin
+credentials are for private/local maintenance and must not be published.
+
+### Safe Public Demo Mode
+
+The public demo is designed to be shareable with sanitized data. Set
+`DEMO_MODE=true`, `DEMO_PORTAL_SUBMIT_ENABLED=true`, and
+`NEXT_PUBLIC_DEMO_MODE=true` for the demo deployment. In this mode:
+
+- Shared credentials should be `viewer` / `viewer123`.
+- Viewers can browse the command center, board, incidents, replay, governance,
+  assets, and sanitized reports.
+- Viewers cannot edit, delete, move, label, comment on, attach files to, or
+  apply actions to tickets.
+- Viewers cannot manage users, catalog options, SLA policies, webhooks,
+  diagnostics, KB articles, automation rules, or recommendation state.
+- Portal submissions require a signed-in viewer and are tagged as demo records
+  (`source_system=demo_portal`, `custom_fields.demo=true`).
+- Do not publish admin credentials or live deployment hostnames in repo docs.
 
 ### Port Flexibility
 
@@ -211,7 +227,7 @@ port without code changes.
 | `make rollback` | Downgrade one Alembic migration |
 | `make build-docker` | Build Docker images with `docker/docker-compose.yml` |
 | `make run-docker` | Start the Docker stack with `docker/docker-compose.yml` |
-| `make seed-auth` | Rewrite `users.json` to the documented `admin` / `admin123` default |
+| `make seed-auth` | Rewrite `users.json` with a generated local admin password and the documented viewer demo account |
 | `cd apps/web && npm run typecheck` | Run TypeScript typecheck |
 | `cd apps/web && npm run build` | Build the production Next.js app |
  

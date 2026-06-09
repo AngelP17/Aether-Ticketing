@@ -28,14 +28,15 @@ class LoginResponse(BaseModel):
 @router.post("/login", response_model=LoginResponse)
 def login(body: LoginRequest, request: Request) -> dict[str, Any]:
     client_id = request.client.host if request.client else "unknown"
-    if login_rate_limiter.is_limited(body.username, client_id):
+    username = body.username.strip()
+    if login_rate_limiter.is_limited(username, client_id):
         raise HTTPException(status_code=429, detail="Too many failed login attempts")
 
-    payload = AuthService().login(body.username, body.password)
+    payload = AuthService().login(username, body.password)
     if payload is None:
-        login_rate_limiter.record_failure(body.username, client_id)
+        login_rate_limiter.record_failure(username, client_id)
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    login_rate_limiter.reset(body.username, client_id)
+    login_rate_limiter.reset(username, client_id)
     return payload
 
 

@@ -14,6 +14,10 @@ import {
 import { useToast } from "@/components/notifications";
 import { ACCESS_TOKEN_KEY, USER_STORAGE_KEY } from "@/lib/auth";
 
+const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+const demoUsername = process.env.NEXT_PUBLIC_DEMO_VIEWER_USERNAME || "viewer";
+const demoPassword = process.env.NEXT_PUBLIC_DEMO_VIEWER_PASSWORD || "viewer123";
+
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -42,11 +46,12 @@ export default function LoginPage() {
     clearErrors();
 
     let hasError = false;
+    const normalizedUsername = username.trim();
 
-    if (!username.trim()) {
+    if (!normalizedUsername) {
       setErrors((prev) => ({ ...prev, username: "Username is required" }));
       hasError = true;
-    } else if (username.length < 2) {
+    } else if (normalizedUsername.length < 2) {
       setErrors((prev) => ({ ...prev, username: "Username must be at least 2 characters" }));
       hasError = true;
     }
@@ -64,12 +69,18 @@ export default function LoginPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/api"}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: normalizedUsername, password }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || "Invalid credentials");
+        if (response.status === 401) {
+          throw new Error("Invalid username or password.");
+        }
+        if (response.status === 429) {
+          throw new Error("Too many failed attempts. Wait a few minutes and try again.");
+        }
+        throw new Error(data.detail || `Login failed with status ${response.status}.`);
       }
 
       const data = await response.json();
@@ -91,7 +102,6 @@ export default function LoginPage() {
         void (form as HTMLElement).offsetWidth;
         form.classList.add("shake");
       }
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -573,7 +583,7 @@ export default function LoginPage() {
               <p className="text-sm text-zinc-500">Sign in to your OpsCenter account</p>
             </div>
 
-            {process.env.NODE_ENV !== "production" ? (
+            {process.env.NODE_ENV !== "production" || demoMode ? (
               <div
                 className="fade-up delay-1 mb-6 flex items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-[11px] text-amber-100/80"
                 data-testid="demo-credentials"
@@ -584,18 +594,18 @@ export default function LoginPage() {
                 </div>
                 <div className="flex items-center gap-3 font-mono">
                   <span>
-                    user <span className="text-amber-50">admin</span>
+                    user <span className="text-amber-50">{demoUsername}</span>
                   </span>
                   <span className="text-amber-400/60">/</span>
                   <span>
-                    pass <span className="text-amber-50">admin123</span>
+                    pass <span className="text-amber-50">{demoPassword}</span>
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
-                    setUsername("admin");
-                    setPassword("admin123");
+                    setUsername(demoUsername);
+                    setPassword(demoPassword);
                     clearErrors();
                   }}
                   className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-100 transition hover:bg-amber-500/20"

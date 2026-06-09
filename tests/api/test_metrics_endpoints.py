@@ -85,3 +85,8 @@ def test_metrics_requires_auth(anon_client: Any) -> None:
     # Phase1 guard: metrics now requires token (command center passes it).
     response = anon_client.get("/api/metrics")
     assert response.status_code == 401
+
+
+def test_accuracy_and_feedback_metrics_require_auth(anon_client: Any) -> None:
+    assert anon_client.get("/api/metrics/accuracy").status_code == 401
+    assert anon_client.get("/api/metrics/feedback/summary").status_code == 401

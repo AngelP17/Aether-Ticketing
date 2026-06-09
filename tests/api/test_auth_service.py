@@ -43,6 +43,13 @@ def test_valid_bcrypt_login(users_file: Path) -> None:
     assert payload["access_token"]
 
 
+def test_login_trims_username(users_file: Path) -> None:
+    payload = AuthService().login("  admin  ", "password")
+
+    assert payload is not None
+    assert payload["user"]["username"] == "admin"
+
+
 def test_bad_password_rejected(users_file: Path) -> None:
     assert AuthService().login("admin", "wrong-password") is None
 

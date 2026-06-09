@@ -6,6 +6,7 @@ from io import BytesIO
 from datetime import datetime
 
 from apps.api.deps import get_db
+from apps.api.security import get_current_user
 from apps.api.services.report_service import ReportService as ReportService
 
 router = APIRouter()
@@ -18,6 +19,7 @@ def get_excel_report(
     date_to: str | None = Query(None),
     incident_id: str | None = Query(None),
     db: Session = Depends(get_db),
+    _user: dict[str, Any] = Depends(get_current_user),
 ) -> Any:
     try:
         service = ReportService(db)
@@ -52,6 +54,7 @@ def get_csv_report(
     date_to: str | None = Query(None),
     incident_id: str | None = Query(None),
     db: Session = Depends(get_db),
+    _user: dict[str, Any] = Depends(get_current_user),
 ) -> Any:
     try:
         service = ReportService(db)

@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     USERS_FILE: str | None = None
     RATE_LIMIT_BACKEND: str = "memory"
     REDIS_URL: str | None = None
+    DEMO_MODE: bool = False
+    DEMO_VIEWER_USERNAME: str = "viewer"
+    DEMO_VIEWER_PASSWORD: str = "viewer123"
+    DEMO_PORTAL_SUBMIT_ENABLED: bool = False
 
     # Phase 8: email (outbound + inbound config; creds external, no defaults for secrets)
     SMTP_HOST: str | None = None
@@ -43,7 +47,6 @@ class Settings(BaseSettings):
     WEBHOOK_TIMEOUT_SEC: int = 10
     # Service tokens for OSS integrations (comma sep, zero cost)
     SERVICE_TOKENS: str = ""
-
 
     @property
     def is_production(self) -> bool:

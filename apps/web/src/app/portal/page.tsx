@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { OpsShell } from "@/components/ops-shell";
+import { readAccessToken } from "@/lib/auth";
 
 export default function PortalPage() {
   const [form, setForm] = useState({ title: "", description: "", requester: "", custom_fields: { site: "", asset: "" } as any });
@@ -14,9 +15,13 @@ export default function PortalPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      const token = readAccessToken();
       const res = await fetch("/api/portal/tickets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(form),
       });
       const data = await res.json();

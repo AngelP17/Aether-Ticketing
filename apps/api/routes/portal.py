@@ -11,29 +11,42 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from apps.api.config import settings
 from apps.api.deps import get_db
+from apps.api.security import get_current_user
 from apps.api.services.ticket_service import TicketService
 
 router = APIRouter()
 
 
 @router.post("/tickets")
-def public_create_ticket(payload: dict[str, Any], db: Session = Depends(get_db)) -> Any:
-    """Public submit (stub for customer portal). Creates ticket with low priv defaults."""
-    # Phase 8 portal: use service for proper ticket (with id gen, events, etc), fallback for demo
+def public_create_ticket(
+    payload: dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    """Demo portal submit. Creates tagged sandbox records only when demo submit is enabled."""
+    if not (settings.DEMO_MODE and settings.DEMO_PORTAL_SUBMIT_ENABLED):
+        raise HTTPException(status_code=403, detail="Portal demo submissions are disabled")
+
     svc = TicketService(db)
+    custom_fields = payload.get("custom_fields") or payload.get("customFields") or {}
+    if not isinstance(custom_fields, dict):
+        custom_fields = {}
+    custom_fields.update({"demo": True, "submitted_by": current_user.get("username", "viewer")})
     data = {
         "title": payload.get("title", "Portal submission")[:200],
         "description": payload.get("description", "")[:4000],
         "requester": payload.get("requester") or payload.get("email") or "portal@customer",
         "priority": "Low",
         "status": "Open",
-        "custom_fields": payload.get("custom_fields") or payload.get("customFields"),
+        "custom_fields": custom_fields,
+        "source_system": "demo_portal",
     }
     tid = None
     ticket_resp = None
     try:
-        ticket_resp = svc.create_ticket(data, actor={"username": "portal", "role": "viewer"})
+        ticket_resp = svc.create_ticket(data, actor={"username": current_user.get("username", "viewer"), "role": current_user.get("role", "viewer")})
         if ticket_resp and isinstance(ticket_resp, dict):
             tid = ticket_resp.get("ticket_id") or (ticket_resp.get("ticket") or {}).get("ticket_id")
     except Exception:
@@ -43,14 +56,15 @@ def public_create_ticket(payload: dict[str, Any], db: Session = Depends(get_db))
         tid = "PORTAL-" + str(int(time.time()))[-8:]
         # ensure custom saved even in fallback path for the product loop
         try:
-            db.execute(text("INSERT INTO tickets (ticket_id, title, description, requester, priority, status, custom_fields, created_at, updated_at) VALUES (:tid, :t, :d, :r, :p, :s, :c, NOW(), NOW())"), {
+            db.execute(text("INSERT INTO tickets (ticket_id, title, description, requester, priority, status, source_system, custom_fields, created_at, updated_at) VALUES (:tid, :t, :d, :r, :p, :s, :src, :c, NOW(), NOW())"), {
                 "tid": tid,
                 "t": data.get("title"),
                 "d": data.get("description"),
                 "r": data.get("requester"),
                 "p": data.get("priority", "Low"),
                 "s": data.get("status", "Open"),
-                "c": json.dumps(data.get("custom_fields") or {}) if data.get("custom_fields") else None,
+                "src": "demo_portal",
+                "c": json.dumps(data.get("custom_fields") or {}),
             })
             db.commit()
         except Exception:

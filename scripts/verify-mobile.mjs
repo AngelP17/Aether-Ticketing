@@ -7,8 +7,8 @@ const { chromium, devices } = require(path.resolve(process.cwd(), "apps/web/node
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:8002/api";
-const DEMO_USERNAME = process.env.DEMO_USERNAME ?? "admin";
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "admin123";
+const DEMO_USERNAME = process.env.DEMO_USERNAME ?? "viewer";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "viewer123";
 const SCREENSHOT_DIR = path.resolve(process.cwd(), ".snapshots/mobile-verify");
 
 const PROTECTED_ROUTES = [
@@ -16,9 +16,7 @@ const PROTECTED_ROUTES = [
   { path: "/board", name: "board", waitFor: "Workflow Tracking" },
   { path: "/incidents", name: "incidents", waitFor: "Incidents" },
   { path: "/reports", name: "reports", waitFor: "Reports & Export" },
-  { path: "/admin", name: "admin", waitFor: "Administration" },
   { path: "/tickets/IT-20250049", name: "ticket-detail", waitFor: "Ticket Detail" },
-  { path: "/tickets/new", name: "ticket-new", waitFor: "New Ticket" },
 ];
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

@@ -7,8 +7,8 @@ const { chromium } = require(path.resolve(process.cwd(), "apps/web/node_modules/
 
 const BASE_URL = process.env.BASE_URL ?? "http://127.0.0.1:3001";
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://127.0.0.1:8002/api";
-const DEMO_USERNAME = process.env.DEMO_USERNAME ?? "admin";
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "admin123";
+const DEMO_USERNAME = process.env.DEMO_USERNAME ?? "viewer";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "viewer123";
 const SCREENSHOT_DIR = path.resolve(process.cwd(), "docs/screenshots");
 
 const shots = [

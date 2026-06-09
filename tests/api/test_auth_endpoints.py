@@ -40,10 +40,25 @@ def test_login_returns_token_and_user(anon_client: Any) -> None:
     with pytest.MonkeyPatch.context() as monkeypatch:
         _patch(monkeypatch, login=payload)
         response = anon_client.post(
-            "/api/auth/login", json={"username": "admin", "password": "admin123"}
+            "/api/auth/login", json={"username": "admin", "password": "test-password"}
         )
     assert response.status_code == 200
     assert response.json() == payload
+
+
+def test_login_strips_username_whitespace(anon_client: Any) -> None:
+    payload = {
+        "access_token": "tkn-1",
+        "token_type": "bearer",
+        "user": {"username": "admin", "role": "admin"},
+    }
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        calls = _patch(monkeypatch, login=payload)
+        response = anon_client.post(
+            "/api/auth/login", json={"username": "  admin  ", "password": "test-password"}
+        )
+    assert response.status_code == 200
+    assert calls["login"]["args"] == ("admin", "test-password")
 
 
 def test_login_401_on_invalid_credentials(anon_client: Any) -> None:

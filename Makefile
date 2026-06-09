@@ -1,5 +1,7 @@
 .PHONY: dev test lint lint-py lint-web migrate rollback clean deps api web typecheck build-docker run-docker seed-auth verify-mobile
 
+PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
+
 dev:
 	uvicorn apps.api.main:app --reload --port 8000
 
@@ -10,7 +12,7 @@ web:
 	cd apps/web && npm run dev
 
 test:
-	pytest tests/ -v --tb=short
+	PYTHONPATH=. $(PYTHON) -m pytest tests/ -v --tb=short
 
 lint: lint-py lint-web
 
@@ -48,7 +50,7 @@ run-docker:
 	docker compose -f docker/docker-compose.yml up -d
 
 seed-auth:
-	python scripts/seed_auth.py
+	PYTHONPATH=. $(PYTHON) scripts/seed_auth.py
 
 verify-mobile:
 	BASE_URL=$${BASE_URL:-http://localhost:3000} \
