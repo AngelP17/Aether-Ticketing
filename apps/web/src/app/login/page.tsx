@@ -35,6 +35,12 @@ export default function LoginPage() {
     else setGreeting("Good evening");
   }, []);
 
+  useEffect(() => {
+    if (!demoMode) return;
+    setUsername(demoUsername);
+    setPassword(demoPassword);
+  }, []);
+
   const clearErrors = useCallback(() => {
     setErrors({});
   }, []);

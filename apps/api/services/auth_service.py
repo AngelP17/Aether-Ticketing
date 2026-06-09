@@ -278,6 +278,13 @@ class AuthService:
     def change_password(self, username: str, current_password: str, new_password: str) -> None:
         if not new_password:
             raise ValueError("New password required")
+        if username == "admin" and settings.ADMIN_BOOTSTRAP_PASSWORD:
+            verified, _ = self._verify_password(
+                current_password, self._hash_password(settings.ADMIN_BOOTSTRAP_PASSWORD)
+            )
+            if not verified:
+                raise PermissionError("Current password incorrect")
+            raise ValueError("Admin password is managed by deployment configuration")
         users = self._load_users()
         for user in users:
             if user["username"] != username:
@@ -323,18 +330,33 @@ class AuthService:
                 data = json.load(file)
             users = cast(list[dict[str, Any]], data.get("users", []))
             break
-        return self._with_demo_viewer(users)
+        return self._with_runtime_users(users)
 
-    def _with_demo_viewer(self, users: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _with_runtime_users(self, users: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        runtime_users = list(users)
+
+        if settings.ADMIN_BOOTSTRAP_PASSWORD:
+            runtime_users = [
+                user for user in runtime_users if user.get("username") != "admin"
+            ]
+            runtime_users.append(
+                {
+                    "username": "admin",
+                    "password_hash": self._hash_password(settings.ADMIN_BOOTSTRAP_PASSWORD),
+                    "role": "admin",
+                    "display_name": "Admin",
+                }
+            )
+
         if not settings.DEMO_MODE:
-            return users
+            return runtime_users
 
         demo_username = settings.DEMO_VIEWER_USERNAME.strip()
-        if not demo_username or any(user.get("username") == demo_username for user in users):
-            return users
+        if not demo_username or any(user.get("username") == demo_username for user in runtime_users):
+            return runtime_users
 
         return [
-            *users,
+            *runtime_users,
             {
                 "username": demo_username,
                 "password_hash": self._hash_password(settings.DEMO_VIEWER_PASSWORD),

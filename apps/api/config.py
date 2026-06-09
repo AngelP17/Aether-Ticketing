@@ -22,10 +22,12 @@ class Settings(BaseSettings):
     USERS_FILE: str | None = None
     RATE_LIMIT_BACKEND: str = "memory"
     REDIS_URL: str | None = None
+    ADMIN_BOOTSTRAP_PASSWORD: str | None = None
     DEMO_MODE: bool = False
     DEMO_VIEWER_USERNAME: str = "viewer"
     DEMO_VIEWER_PASSWORD: str = "viewer123"
     DEMO_PORTAL_SUBMIT_ENABLED: bool = False
+    DEMO_RESET_DATA_ON_START: bool = False
 
     # Phase 8: email (outbound + inbound config; creds external, no defaults for secrets)
     SMTP_HOST: str | None = None

@@ -72,6 +72,33 @@ def test_demo_mode_injects_viewer_when_user_file_omits_it(
     }
 
 
+def test_admin_bootstrap_password_overrides_public_user_file(
+    users_file: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(auth_module.settings, "ADMIN_BOOTSTRAP_PASSWORD", "private-admin-pass")
+
+    assert AuthService().login("admin", "password") is None
+    payload = AuthService().login("admin", "private-admin-pass")
+
+    assert payload is not None
+    assert payload["user"] == {
+        "username": "admin",
+        "role": "admin",
+        "display_name": "Admin",
+    }
+
+
+def test_env_backed_admin_password_change_does_not_report_persistent_success(
+    users_file: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(auth_module.settings, "ADMIN_BOOTSTRAP_PASSWORD", "private-admin-pass")
+
+    with pytest.raises(ValueError, match="deployment configuration"):
+        AuthService().change_password("admin", "private-admin-pass", "new-password")
+
+
 def test_legacy_sha256_hash_migrates_after_successful_login(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,

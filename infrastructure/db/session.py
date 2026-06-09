@@ -65,6 +65,11 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _ensure_legacy_compatibility()
+    if settings.DEMO_MODE and settings.DEMO_RESET_DATA_ON_START:
+        from apps.api.services.demo_data_service import reset_demo_dataset
+
+        with SessionLocal() as db:
+            reset_demo_dataset(db)
 
 
 def _import_models() -> None:
@@ -168,6 +173,26 @@ def _ensure_legacy_compatibility() -> None:
                 connection.execute(text(statement))
 
         compatibility_statements = [
+            """
+            ALTER TABLE assignees
+            ADD COLUMN IF NOT EXISTS display_name VARCHAR(100)
+            """,
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = 'assignees'
+                      AND column_name = 'name'
+                ) THEN
+                    UPDATE assignees
+                    SET display_name = COALESCE(display_name, name)
+                    WHERE display_name IS NULL;
+                END IF;
+            END $$;
+            """,
             """
             CREATE TABLE IF NOT EXISTS automation_rules (
                 id SERIAL PRIMARY KEY,

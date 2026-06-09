@@ -17,6 +17,8 @@ services:
         value: true
       - key: USERS_FILE
         value: /app/users.json
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
       - key: DEMO_MODE
         value: true
       - key: DEMO_VIEWER_USERNAME
@@ -24,6 +26,8 @@ services:
       - key: DEMO_VIEWER_PASSWORD
         value: viewer123
       - key: DEMO_PORTAL_SUBMIT_ENABLED
+        value: true
+      - key: DEMO_RESET_DATA_ON_START
         value: true
       - key: NEXT_PUBLIC_DEMO_MODE
         value: true
