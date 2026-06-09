@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import {
@@ -64,6 +64,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
+  const verifyingRef = useRef(false);
 
   useEffect(() => {
     if (!requiresAuthCheck) {
@@ -77,12 +78,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     setSettledPathname(null);
     setValidationError(null);
+    verifyingRef.current = true;
 
     const finish = (nextPath: string | null) => {
       if (!active) {
         return;
       }
 
+      verifyingRef.current = false;
       setSettledPathname(nextPath);
     };
 
@@ -92,6 +95,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       if (!token) {
         if (isProtectedPath(pathname)) {
           router.replace("/login");
+          finish(null);
           return;
         }
 
@@ -99,39 +103,52 @@ export function AuthGate({ children }: { children: ReactNode }) {
         return;
       }
 
-      const result = await validateAccessToken(token, controller.signal);
-      if (!active) {
-        return;
-      }
-
-      if (result.status === "valid") {
-        const redirectTo = getAuthRedirectPath(pathname, true);
-        if (redirectTo) {
-          router.replace(redirectTo);
+      try {
+        const result = await validateAccessToken(token, controller.signal);
+        if (!active) {
           return;
         }
 
-        finish(pathname);
-        return;
-      }
+        if (result.status === "valid") {
+          const redirectTo = getAuthRedirectPath(pathname, true);
+          if (redirectTo) {
+            router.replace(redirectTo);
+            finish(null);
+            return;
+          }
 
-      if (result.status === "invalid") {
-        clearStoredSession();
+          finish(pathname);
+          return;
+        }
+
+        if (result.status === "invalid") {
+          clearStoredSession();
+          if (isProtectedPath(pathname)) {
+            router.replace("/login");
+            finish(null);
+            return;
+          }
+
+          finish(pathname);
+          return;
+        }
+
         if (isProtectedPath(pathname)) {
-          router.replace("/login");
+          setValidationError(result.message);
+          finish(null);
           return;
         }
 
         finish(pathname);
-        return;
+      } catch {
+        if (!active) return;
+        if (isProtectedPath(pathname)) {
+          setValidationError("Session verification failed unexpectedly");
+          finish(null);
+          return;
+        }
+        finish(pathname);
       }
-
-      if (isProtectedPath(pathname)) {
-        setValidationError(result.message);
-        return;
-      }
-
-      finish(pathname);
     };
 
     void verifySession();
@@ -139,6 +156,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return () => {
       active = false;
       controller.abort();
+      verifyingRef.current = false;
     };
   }, [pathname, requiresAuthCheck, retryNonce, router]);
 

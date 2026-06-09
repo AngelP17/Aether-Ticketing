@@ -96,8 +96,7 @@ export default function LoginPage() {
 
       toast.success("Authenticated successfully");
 
-      await new Promise(resolve => setTimeout(resolve, 800));
-      router.push("/command-center");
+      router.replace("/command-center");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Authentication failed";
       setErrors((prev) => ({ ...prev, general: message }));
