@@ -315,13 +315,33 @@ class AuthService:
         }
 
     def _load_users(self) -> list[dict[str, Any]]:
+        users: list[dict[str, Any]] = []
         for path in USERS_FILE_LOCATIONS:
             if path is None or not path.exists():
                 continue
             with path.open("r", encoding="utf-8") as file:
                 data = json.load(file)
-            return cast(list[dict[str, Any]], data.get("users", []))
-        return []
+            users = cast(list[dict[str, Any]], data.get("users", []))
+            break
+        return self._with_demo_viewer(users)
+
+    def _with_demo_viewer(self, users: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        if not settings.DEMO_MODE:
+            return users
+
+        demo_username = settings.DEMO_VIEWER_USERNAME.strip()
+        if not demo_username or any(user.get("username") == demo_username for user in users):
+            return users
+
+        return [
+            *users,
+            {
+                "username": demo_username,
+                "password_hash": self._hash_password(settings.DEMO_VIEWER_PASSWORD),
+                "role": "viewer",
+                "display_name": "Demo Viewer",
+            },
+        ]
 
     def _save_users(self, users: list[dict[str, Any]]) -> None:
         destination = self._resolve_users_file()

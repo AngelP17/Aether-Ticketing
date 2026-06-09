@@ -54,6 +54,24 @@ def test_bad_password_rejected(users_file: Path) -> None:
     assert AuthService().login("admin", "wrong-password") is None
 
 
+def test_demo_mode_injects_viewer_when_user_file_omits_it(
+    users_file: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(auth_module.settings, "DEMO_MODE", True)
+    monkeypatch.setattr(auth_module.settings, "DEMO_VIEWER_USERNAME", "viewer")
+    monkeypatch.setattr(auth_module.settings, "DEMO_VIEWER_PASSWORD", "viewer123")
+
+    payload = AuthService().login("viewer", "viewer123")
+
+    assert payload is not None
+    assert payload["user"] == {
+        "username": "viewer",
+        "role": "viewer",
+        "display_name": "Demo Viewer",
+    }
+
+
 def test_legacy_sha256_hash_migrates_after_successful_login(
     tmp_path: Path,
     monkeypatch: MonkeyPatch,
