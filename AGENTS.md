@@ -149,6 +149,10 @@ These are the rules every frontend change in `apps/web/` must follow. They
 are derived from the `design-taste-frontend` skill, scoped to a B2B operations
 console (Cockpit mode: `VARIANCE 6 / MOTION 3 / DENSITY 8`). Landing-page rules
 do not apply; do not use them as a justification for redesigning chrome.
+For taste-skill guidance, read this product as a dense trust-first operations
+tool, not an Awwwards landing page: no cinematic hero rewrites, no GSAP scroll
+hijacks, no decorative marquee sections, and no marketing AIDA structure inside
+the app shell.
 
 - **One accent, locked.** Amber `#f59e0b` is the only accent. Status colors
   (rose/cyan/emerald) are functional, not decorative. No random purple/cyan
@@ -175,8 +179,20 @@ do not apply; do not use them as a justification for redesigning chrome.
 - **No fake ML claims.** The current decision layer is deterministic graph +
   rules. Do not call it ML/RIFT unless a versioned model artifact and backend
   contract exist. See `docs/implementation/rift-ml-integration.md`.
+- **Demo trust is part of the UI.** Public demo surfaces must never show real
+  company names, employee names, private deployment hostnames, admin credentials,
+  or "internal use only" copy tied to a real employer. Use neutral Aether/demo
+  language and keep `tests/api/test_demo_guardrails.py` denylist coverage aligned
+  with any new public text.
+- **Role boundaries must be visible and honest.** Viewer mode should feel like a
+  real read-only role: hide or disable destructive affordances where practical,
+  show clear permission copy on blocked actions, and never let a viewer enter a
+  flow that appears to mutate durable state before failing.
 - **Full UI state cycles on every list/detail.** Skeleton matching the final
   shape, composed empty state, inline error, tactile `:active` press.
+- **No endless authenticating/loading states.** Auth and data fetch flows need a
+  bounded timeout or an error state with retry. Loading overlays must clear before
+  route content is considered healthy in Playwright.
 - **Contrast.** WCAG AA on every status badge, button, input, table cell.
 - **Motion restraint.** Animated only where it communicates (status pulse on
   live feeds, row enter/exit on board DnD). Spring physics, transform +
@@ -185,6 +201,16 @@ do not apply; do not use them as a justification for redesigning chrome.
 - **Layout variety.** The board, command center, incidents, reports, admin,
   ticket workspace should not all be the same panel grid. Vary the surface —
   table, kanban, graph, density table, split-pane.
+- **Data before decoration.** For cockpit pages, prefer dense tables, split
+  panes, status strips, and concise inline summaries over repeated cards. Cards
+  are for repeated entities or contained tools, not every metric.
+- **Main-content testability.** Page titles and primary content markers must be
+  visible inside `<main>` on desktop and mobile. Avoid relying on hidden rail
+  labels or duplicated nav text as the only route identifier.
+- **Motion must prove utility.** Allowed motion: row transitions, drawer open
+  states, live status pulses, tactile button press, skeleton shimmer. Avoid
+  parallax, scroll-pinning, hover physics, or ambient animation that competes
+  with operational scanning.
 - **Z-index restraint.** Documented scale: `z-0` (decorations) → `z-10`
   (content) → `z-20` (rail) → `z-40/45/46` (nav/sheet/export) → `z-50`
   (modals/errors) → `z-[100]` (toasts). No off-scale values without a
