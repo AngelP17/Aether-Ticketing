@@ -190,6 +190,37 @@ The public demo is designed to be shareable with sanitized data. Set
 - Portal submissions require a signed-in viewer and are tagged as demo records
   (`source_system=demo_portal`, `custom_fields.demo=true`).
 - Do not publish admin credentials or live deployment hostnames in repo docs.
+- Production demo deployments must also set `ADMIN_BOOTSTRAP_PASSWORD` and a
+  non-default `SECRET_KEY` through private deployment secrets. These values must
+  not be committed.
+
+### Security And Regression Guardrails
+
+The repo has automated checks for the past public-demo failure modes:
+
+- Production startup fails when `SECRET_KEY` is still the default,
+  `DEBUG=true`, wildcard CORS is configured, or public demo mode is enabled
+  without `ADMIN_BOOTSTRAP_PASSWORD`.
+- API tests include demo canaries for weak admin passwords and synthetic-only
+  demo ticket data.
+- GitHub Actions runs `Secret Scan` with Gitleaks on every push and pull
+  request. The only allowlisted plaintext credential is the intentional public
+  viewer demo password.
+- GitHub Actions runs API lint, MyPy, tests, and coverage on all pushes and pull
+  requests. Web lint, typecheck, and production build also run on all pushes and
+  pull requests.
+- `Live Smoke` can run against a deployed demo using GitHub Actions secrets:
+  `RENDER_APP_URL` is required, and `ADMIN_LIVE_PASSWORD` is optional for
+  private admin verification. The workflow checks viewer login, rejects
+  `admin/admin123`, and fails if the ticket list contains non-synthetic titles.
+
+Optional local hook setup:
+
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
 
 ### Port Flexibility
 

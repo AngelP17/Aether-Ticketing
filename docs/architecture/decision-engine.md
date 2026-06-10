@@ -51,7 +51,7 @@ Maps raw priority + keyword detection:
 - account unlock → 15–30
 - printer/scanner → 20–40
 - email forwarding/shared mailbox → 35–55
-- ERP/Epicor issue → 60–85
+- ERP application issue → 60–85
 - network/infra outage → 75–100
 
 ### Urgency Score (0–100)
@@ -103,7 +103,7 @@ Keyword-based scoring based on ticket content:
 | shared_mailbox_forwarding | shared mailbox, delegate, forwarding |
 | printer_scanner | printer, print, scanner, copier |
 | file_share_permissions | share, permissions, NTFS, file access |
-| erp_application | Epicor, SAP, Oracle, ERP, MRP |
+| erp_application | ERP, MRP, business application |
 | workstation_endpoint | laptop, desktop, workstation, PC |
 | network_connectivity | VPN, network, internet, connectivity, WiFi |
 | infrastructure_service | server, datacenter, DNS, DHCP, domain |

@@ -26,7 +26,7 @@ pip install flask pandas openpyxl
 echo [4/4] Creating .env folder if needed...
 if not exist ".env" mkdir .env
 if not exist ".env\users.json" (
-    echo {"users":[{"username":"admin","password_hash":"240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9","role":"admin","display_name":"Angel Pinzon"}]} > .env\users.json
+    echo {"users":[{"username":"viewer","password_hash":"65375049b9e4d7cad6c9ba286fdeb9394b28135a3e84136404cfccfdcc438894","role":"viewer","display_name":"Demo Viewer"}]} > .env\users.json
 )
 
 echo.

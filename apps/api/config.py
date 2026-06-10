@@ -65,6 +65,12 @@ def validate_production_settings() -> None:
     if settings.SECRET_KEY == "change-me-in-production":
         raise RuntimeError("SECRET_KEY must be set to a deployment-specific value in production")
 
+    if settings.DEBUG:
+        raise RuntimeError("DEBUG must be false in production")
+
+    if settings.DEMO_MODE and not settings.ADMIN_BOOTSTRAP_PASSWORD:
+        raise RuntimeError("ADMIN_BOOTSTRAP_PASSWORD must be set for production demo mode")
+
     allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
     if "*" in allowed_origins:
         raise RuntimeError("ALLOWED_ORIGINS cannot include '*' in production when credentials are enabled")

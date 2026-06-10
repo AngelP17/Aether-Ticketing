@@ -132,6 +132,8 @@ those files.
 - Password hashes should be created through `AuthService`; legacy SHA-256 hashes are only accepted for migration on successful login.
 - Login throttling is in-memory and suitable for local/demo use. Use a shared store such as Redis before relying on it in multi-process production.
 - Production config must not use the default `SECRET_KEY` or wildcard CORS with credentials.
+- Production config also rejects `DEBUG=true` and rejects demo mode unless
+  `ADMIN_BOOTSTRAP_PASSWORD` is supplied privately through deployment secrets.
 - Do not commit live deployment hostnames, including Render URLs. Use
   placeholders such as `<deployed-host>` in docs and final notes unless the user
   explicitly asks to publish the URL.
@@ -206,6 +208,9 @@ do not apply; do not use them as a justification for redesigning chrome.
 - Do not stage or commit real/local data files such as `tickets.private.xlsx`,
   `tickets*.xlsx` other than the sanitized root `tickets.xlsx`, files under
   `private-data/`, or `local_infra.db`.
+- Keep `.gitleaks.toml`, `.pre-commit-config.yaml`, and the GitHub Actions
+  security workflows aligned with demo/auth changes. The only intentional
+  plaintext demo password is `viewer123`.
 - Do not regenerate or replace `docs/screenshots/*.png` unless the task is specifically about screenshots.
 - Do not alter lockfiles unless dependency changes require it.
 

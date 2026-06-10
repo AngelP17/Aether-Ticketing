@@ -2,11 +2,8 @@ name: CI Web
 
 on:
   push:
-    paths:
-      - 'apps/web/**'
   pull_request:
-    paths:
-      - 'apps/web/**'
+  workflow_dispatch:
 
 jobs:
   build:

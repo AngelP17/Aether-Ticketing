@@ -167,15 +167,44 @@ def test_successful_login_resets_rate_limit(users_file: Path) -> None:
 def test_production_validation_rejects_default_secret(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "ENV", "production")
     monkeypatch.setattr(settings, "SECRET_KEY", "change-me-in-production")
+    monkeypatch.setattr(settings, "DEBUG", False)
+    monkeypatch.setattr(settings, "DEMO_MODE", False)
     monkeypatch.setattr(settings, "ALLOWED_ORIGINS", "https://example.com")
 
     with pytest.raises(RuntimeError, match="SECRET_KEY"):
         validate_production_settings()
 
 
+def test_production_validation_rejects_debug_enabled(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "ENV", "production")
+    monkeypatch.setattr(settings, "SECRET_KEY", "not-default")
+    monkeypatch.setattr(settings, "DEBUG", True)
+    monkeypatch.setattr(settings, "DEMO_MODE", False)
+    monkeypatch.setattr(settings, "ALLOWED_ORIGINS", "https://example.com")
+
+    with pytest.raises(RuntimeError, match="DEBUG"):
+        validate_production_settings()
+
+
+def test_production_validation_rejects_demo_without_admin_secret(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "ENV", "production")
+    monkeypatch.setattr(settings, "SECRET_KEY", "not-default")
+    monkeypatch.setattr(settings, "DEBUG", False)
+    monkeypatch.setattr(settings, "DEMO_MODE", True)
+    monkeypatch.setattr(settings, "ADMIN_BOOTSTRAP_PASSWORD", None)
+    monkeypatch.setattr(settings, "ALLOWED_ORIGINS", "https://example.com")
+
+    with pytest.raises(RuntimeError, match="ADMIN_BOOTSTRAP_PASSWORD"):
+        validate_production_settings()
+
+
 def test_production_validation_rejects_wildcard_cors(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "ENV", "production")
     monkeypatch.setattr(settings, "SECRET_KEY", "not-default")
+    monkeypatch.setattr(settings, "DEBUG", False)
+    monkeypatch.setattr(settings, "DEMO_MODE", False)
     monkeypatch.setattr(settings, "ALLOWED_ORIGINS", "https://example.com,*")
 
     with pytest.raises(RuntimeError, match="ALLOWED_ORIGINS"):

@@ -23,7 +23,7 @@ lint-web:
 	cd apps/web && npm run lint
 
 typecheck:
-	mypy --namespace-packages --explicit-package-bases apps/ infrastructure/ pipelines/ domain/ tests/ scripts/ --ignore-missing-imports
+	$(PYTHON) -m mypy --namespace-packages --explicit-package-bases apps/ infrastructure/ pipelines/ domain/ tests/ scripts/ --ignore-missing-imports
 
 migrate:
 	alembic -c infrastructure/db/migrations/alembic.ini upgrade head

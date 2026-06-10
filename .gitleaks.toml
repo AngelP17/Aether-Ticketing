@@ -1,0 +1,7 @@
+title = "Aether OpsCenter gitleaks configuration"
+
+[allowlist]
+description = "Intentional public demo viewer credential only"
+regexes = [
+  '''viewer123''',
+]

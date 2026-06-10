@@ -6,6 +6,8 @@ import pytest
 
 from apps.api.routes import portal as portal_routes
 
+portal_module: Any = portal_routes
+
 
 def test_portal_submit_requires_authentication(anon_client: Any) -> None:
     response = anon_client.post("/api/portal/tickets", json={"title": "demo"})
@@ -15,8 +17,8 @@ def test_portal_submit_requires_authentication(anon_client: Any) -> None:
 
 def test_portal_submit_disabled_without_demo_mode(viewer_client: Any) -> None:
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(portal_routes.settings, "DEMO_MODE", False)
-        monkeypatch.setattr(portal_routes.settings, "DEMO_PORTAL_SUBMIT_ENABLED", False)
+        monkeypatch.setattr(portal_module.settings, "DEMO_MODE", False)
+        monkeypatch.setattr(portal_module.settings, "DEMO_PORTAL_SUBMIT_ENABLED", False)
         response = viewer_client.post("/api/portal/tickets", json={"title": "demo"})
 
     assert response.status_code == 403
@@ -31,9 +33,9 @@ def test_portal_submit_tags_demo_ticket(viewer_client: Any, viewer_user: dict[st
         return {"ticket_id": "IT-20260099"}
 
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(portal_routes.settings, "DEMO_MODE", True)
-        monkeypatch.setattr(portal_routes.settings, "DEMO_PORTAL_SUBMIT_ENABLED", True)
-        monkeypatch.setattr(portal_routes.TicketService, "create_ticket", _create_ticket)
+        monkeypatch.setattr(portal_module.settings, "DEMO_MODE", True)
+        monkeypatch.setattr(portal_module.settings, "DEMO_PORTAL_SUBMIT_ENABLED", True)
+        monkeypatch.setattr(portal_module.TicketService, "create_ticket", _create_ticket)
         response = viewer_client.post(
             "/api/portal/tickets",
             json={

@@ -2,25 +2,8 @@ name: CI API
 
 on:
   push:
-    paths:
-      - 'apps/api/**'
-      - 'infrastructure/**'
-      - 'pipelines/**'
-      - 'domain/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - 'pyproject.toml'
-      - '.github/workflows/ci-api.yml'
   pull_request:
-    paths:
-      - 'apps/api/**'
-      - 'infrastructure/**'
-      - 'pipelines/**'
-      - 'domain/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - 'pyproject.toml'
-      - '.github/workflows/ci-api.yml'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -34,5 +17,6 @@ jobs:
           python-version: '3.11'
       - run: pip install -e ".[dev]"
       - run: python -m compileall apps/api infrastructure pipelines domain scripts tests
-      - run: pytest tests/ -v --tb=short
       - run: ruff check apps/ infrastructure/ pipelines/ domain/ scripts/ tests/
+      - run: python -m mypy --namespace-packages --explicit-package-bases apps/ infrastructure/ pipelines/ domain/ tests/ scripts/ --ignore-missing-imports
+      - run: pytest tests/ -v --tb=short --cov=apps --cov=infrastructure --cov=pipelines --cov=domain --cov-report=term-missing --cov-fail-under=35
