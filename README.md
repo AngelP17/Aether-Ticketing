@@ -203,6 +203,9 @@ The repo has automated checks for the past public-demo failure modes:
   without `ADMIN_BOOTSTRAP_PASSWORD`.
 - API tests include demo canaries for weak admin passwords and synthetic-only
   demo ticket data.
+- API tests include an endpoint sweep (`tests/api/test_endpoint_sweep.py`) that
+  introspects registered FastAPI routes and fails on unexpected `500` responses
+  for anonymous, viewer, and admin request probes.
 - GitHub Actions runs `Secret Scan` with Gitleaks on every push and pull
   request. The only allowlisted plaintext credential is the intentional public
   viewer demo password.
@@ -212,7 +215,28 @@ The repo has automated checks for the past public-demo failure modes:
 - `Live Smoke` can run against a deployed demo using GitHub Actions secrets:
   `RENDER_APP_URL` is required, and `ADMIN_LIVE_PASSWORD` is optional for
   private admin verification. The workflow checks viewer login, rejects
-  `admin/admin123`, and fails if the ticket list contains non-synthetic titles.
+  `admin/admin123`, fails if the ticket list contains non-synthetic titles, and
+  runs the Playwright live smoke against the deployed UI.
+- Playwright smoke tests live in `apps/web/e2e/` and can run against any already
+  running local or deployed stack:
+
+```bash
+cd apps/web
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npm run e2e
+PLAYWRIGHT_BASE_URL=<deployed-host> npm run e2e:live
+```
+
+Install browsers after a fresh checkout or global Playwright upgrade:
+
+```bash
+cd apps/web
+npx playwright install chromium
+```
+
+Current dependency audit note: `npm audit` reports advisories in the Next.js 14
+dependency tree, but the available automated fix is a semver-major upgrade to
+Next.js 16. Treat that as a planned framework upgrade with React/Node
+compatibility testing, not an automatic patch in routine demo hardening work.
 
 Optional local hook setup:
 

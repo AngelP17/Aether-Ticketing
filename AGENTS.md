@@ -25,6 +25,7 @@ Use commands that are already defined in this repo:
 - Run API: `make dev` or `make api`
 - Run web: `make web`
 - Run Python tests: `make test`
+- Run endpoint sweep only: `PYTHONPATH=. .venv/bin/python -m pytest tests/api/test_endpoint_sweep.py -q`
 - Run all lint: `make lint`
 - Run Python lint: `make lint-py`
 - Run web lint: `make lint-web`
@@ -36,6 +37,8 @@ Use commands that are already defined in this repo:
 - Reset local auth user store: `make seed-auth`
 - Web typecheck: `cd apps/web && npm run typecheck`
 - Web production build: `cd apps/web && npm run build`
+- Web Playwright smoke: `cd apps/web && PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npm run e2e`
+- Live Playwright smoke: `cd apps/web && PLAYWRIGHT_BASE_URL=<deployed-host> npm run e2e:live`
 - Mobile layout smoke check: `make verify-mobile` (requires API and web dev servers)
 
 ### Render Verification
@@ -211,6 +214,10 @@ do not apply; do not use them as a justification for redesigning chrome.
 - Keep `.gitleaks.toml`, `.pre-commit-config.yaml`, and the GitHub Actions
   security workflows aligned with demo/auth changes. The only intentional
   plaintext demo password is `viewer123`.
+- `npm audit` currently reports Next.js 14 advisories where npm's automated fix
+  is a semver-major Next.js 16 upgrade. Do not apply that casually inside
+  unrelated tasks; plan it as a framework upgrade with React/Node compatibility
+  verification.
 - Do not regenerate or replace `docs/screenshots/*.png` unless the task is specifically about screenshots.
 - Do not alter lockfiles unless dependency changes require it.
 
@@ -220,4 +227,6 @@ do not apply; do not use them as a justification for redesigning chrome.
 - Security/auth changes include targeted tests.
 - Documentation is updated when behavior, setup, commands, or limitations change.
 - Frontend changes are checked in the browser for affected routes when a dev server can run.
+- Frontend/demo safety changes run the Playwright smoke when a local or deployed
+  stack is available; if skipped, state why.
 - Final responses list files changed, verification run, results, blockers, and recommended follow-up.

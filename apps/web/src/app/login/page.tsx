@@ -70,13 +70,17 @@ export default function LoginPage() {
     if (hasError) return;
 
     setIsSubmitting(true);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15_000);
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/api"}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: normalizedUsername, password }),
+        signal: controller.signal,
       });
+      window.clearTimeout(timeoutId);
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
@@ -98,7 +102,13 @@ export default function LoginPage() {
 
       router.replace("/command-center");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Authentication failed";
+      window.clearTimeout(timeoutId);
+      const message =
+        err instanceof DOMException && err.name === "AbortError"
+          ? "Login request timed out. Try again."
+          : err instanceof Error
+            ? err.message
+            : "Authentication failed";
       setErrors((prev) => ({ ...prev, general: message }));
 
       const form = document.getElementById("login-form");
@@ -757,7 +767,7 @@ export default function LoginPage() {
                 Secured with TLS 1.3. JWT access tokens expire after 8 hours.
               </p>
               <p className="text-[10px] text-zinc-800 mt-2">
-                © 2026 Wallner Expac, Inc. - Internal Use Only
+                © 2026 Aether OpsCenter Demo
               </p>
             </div>
           </div>

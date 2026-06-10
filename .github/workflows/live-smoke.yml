@@ -13,6 +13,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v4.2.2
       - name: Check required secret
         env:
           RENDER_APP_URL: ${{ secrets.RENDER_APP_URL }}
@@ -116,3 +117,20 @@ jobs:
 
           exec(textwrap.dedent(code))
           PY
+      - name: Set up Node
+        uses: actions/setup-node@v4.4.0
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+      - name: Install Playwright browser
+        working-directory: apps/web
+        run: npx playwright install chromium
+      - name: Run Playwright live smoke
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ secrets.RENDER_APP_URL }}
+        run: npm run e2e:live

@@ -23,3 +23,5 @@ jobs:
         run: npm run lint
       - working-directory: apps/web
         run: npm run build
+      - working-directory: apps/web
+        run: npx playwright install chromium

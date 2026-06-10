@@ -91,3 +91,34 @@ def test_viewer_demo_client_cannot_use_representative_admin_routes(
     ]
 
     assert [response.status_code for response in responses] == [403, 403, 403]
+
+
+def test_public_repo_text_does_not_expose_known_private_identifiers() -> None:
+    root = Path(__file__).resolve().parents[2]
+    checked_roots = [root / "apps", root / "docs", root / "README.md", root / "AGENTS.md", root / "setup_windows.bat"]
+    excluded_parts = {"node_modules", ".next", "test-results", "playwright-report", "__pycache__"}
+    sensitive_values = [
+        "wallner",
+        "expac",
+        "angel pinzon",
+        "paula jenkins",
+        "monica lopez",
+        "windstream",
+        "kennesaw",
+        "truelogic",
+    ]
+
+    matches: list[str] = []
+    for candidate in checked_roots:
+        paths = [candidate] if candidate.is_file() else candidate.rglob("*")
+        for path in paths:
+            if not path.is_file() or any(part in excluded_parts for part in path.parts):
+                continue
+            if path.suffix.lower() not in {".py", ".ts", ".tsx", ".js", ".md", ".bat", ".yaml", ".yml", ".json"}:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore").lower()
+            for sensitive_value in sensitive_values:
+                if sensitive_value in text:
+                    matches.append(f"{path.relative_to(root)} contains {sensitive_value!r}")
+
+    assert matches == []
