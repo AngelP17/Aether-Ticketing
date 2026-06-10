@@ -817,7 +817,7 @@ export default function AdminPage() {
         {/* Phase 8 quick links (portal, KB, realtime note) */}
         <section className="ops-card rounded-[22px] p-6 mt-4">
           <div className="text-lg font-semibold">Phase 8 parity (portal / KB / realtime / email)</div>
-          <div className="mt-2 text-sm text-zinc-400">Portal submit/status: <a className="underline" href="/portal">/portal</a>. KB admin/search wired. WS at /ws/{'{topic}'}. Email via SMTP_* config (see .env.example). Full builder/RBAC/SLA in follow-ups.</div>
+          <div className="mt-2 text-sm text-zinc-400">Portal submit/status: <Link className="underline" href="/portal">/portal</Link>. KB admin/search wired. WS at /ws/{'{topic}'}. Email via SMTP_* config (see .env.example). Full builder/RBAC/SLA in follow-ups.</div>
         </section>
 
         {/* Real admin controls for SLA / Automation / Webhooks (replaced placeholder; uses existing /api routes) */}

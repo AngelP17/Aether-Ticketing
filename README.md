@@ -116,7 +116,7 @@ Example live state (recent run on seeded data):
 
 | Layer | Technology |
 |---|---|
-| Frontend Framework | Next.js 14 App Router, React 18, TypeScript |
+| Frontend Framework | Next.js 16 App Router, React 18, TypeScript |
 | UI & Styling | Tailwind CSS, Lucide React, custom glass/ops UI system |
 | Frontend Data & Utilities | Axios, date-fns, Zustand, TanStack Table, Recharts |
 | Backend API | FastAPI, SQLAlchemy 2, Pydantic 2, python-jose, Passlib |
@@ -233,10 +233,9 @@ cd apps/web
 npx playwright install chromium
 ```
 
-Current dependency audit note: `npm audit` reports advisories in the Next.js 14
-dependency tree, but the available automated fix is a semver-major upgrade to
-Next.js 16. Treat that as a planned framework upgrade with React/Node
-compatibility testing, not an automatic patch in routine demo hardening work.
+Dependency audit status: the web app is upgraded to Next.js 16 with a PostCSS
+override for the patched 8.5.x line, and `npm audit` should remain at zero known
+vulnerabilities.
 
 Optional local hook setup:
 
@@ -312,7 +311,7 @@ The new Aether layer enhances the same ticketing dataset and Neon deployment pat
 ```
 apps/
   api/          # FastAPI backend (routes, services, schemas)
-  web/          # Next.js 14 frontend (command center, case views)
+  web/          # Next.js 16 frontend (command center, case views)
 domain/
   enums.py      # All operational enums
   policies.py    # Scoring weights and thresholds

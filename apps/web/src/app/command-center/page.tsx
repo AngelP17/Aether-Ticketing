@@ -37,7 +37,7 @@ import type { IncidentCard, QueueTicket } from "@/components/command-center/type
 import { NotificationBell, useToast } from "@/components/notifications";
 import { governanceApi, intelligenceApi, metricsApi, ticketsApi, incidentsApi, reportsApi } from "@/lib/api";
 import { clearStoredSession } from "@/lib/auth";
-import { parseFilename, readExportError } from "@/lib/export-utils";
+import { parseFilename } from "@/lib/export-utils";
 import type { GovernanceSummaryResponse, Incident, IntelligenceHealthResponse, Ticket } from "@/types";
 // Recharts removed for the snapshot analytics — replaced with custom hairline + mono dense bars
 // to match design-taste-frontend OpsCenter rules (DENSITY 8, hairline data surfaces, one amber accent,

@@ -16,7 +16,7 @@ import {
 import { OpsShell } from "@/components/ops-shell";
 import { useToast } from "@/components/notifications";
 import { reportsApi } from "@/lib/api";
-import { parseFilename, readExportError } from "@/lib/export-utils";
+import { parseFilename } from "@/lib/export-utils";
 
 const workbookTabs = [
   {

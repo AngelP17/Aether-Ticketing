@@ -143,7 +143,7 @@ export function TicketWorkspace({ ticketId }: TicketWorkspaceProps) {
       setIsLoading(true);
       setError(null);
       try {
-        const [loadedOptions, detailResponse] = await Promise.all([
+        const [, detailResponse] = await Promise.all([
           loadOptions(),
           ticketId ? ticketsApi.get(ticketId) : Promise.resolve(null),
         ]);

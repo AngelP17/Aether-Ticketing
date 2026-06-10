@@ -27,10 +27,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends nodejs npm \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY pyproject.toml README.md users.json ./
 COPY apps ./apps
 COPY domain ./domain
@@ -45,6 +41,7 @@ COPY --from=web-builder /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=web-builder /app/apps/web/package.json ./apps/web/package.json
 COPY --from=web-builder /app/apps/web/next.config.js ./apps/web/next.config.js
 COPY --from=web-builder /app/apps/web/public ./apps/web/public
+COPY --from=web-builder /usr/local/bin/node /usr/local/bin/node
 
 RUN chmod +x ./docker/start-render.sh
 

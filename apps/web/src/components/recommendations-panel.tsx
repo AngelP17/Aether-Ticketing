@@ -407,7 +407,6 @@ export function RecommendationsPanel({
                     <button
                       type="button"
                       onClick={() => {
-                        const next = confirmOpen;
                         setConfirmOpen(null);
                         setConfirmNote("");
                         void handleApply(rec, { confirm: true, note: confirmNote });
@@ -593,4 +592,3 @@ function extractErrorMessage(error: unknown): string {
   }
   return "Unknown error";
 }
-

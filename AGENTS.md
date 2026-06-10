@@ -10,7 +10,7 @@
 ## Project Shape
 
 - `apps/api/` contains the FastAPI backend routes, schemas, security dependencies, and services.
-- `apps/web/` contains the Next.js 14 App Router frontend.
+- `apps/web/` contains the Next.js 16 App Router frontend.
 - `domain/`, `pipelines/`, and `infrastructure/` contain scoring, ingestion, reporting, SQLAlchemy models, migrations, and support code.
 - `infrastructure/db/migrations/` contains Alembic migration config and versions.
 - `users.json` is the current local/demo auth user store. It is not a generated cache, but avoid editing real credentials casually.
@@ -240,10 +240,9 @@ the app shell.
 - Keep `.gitleaks.toml`, `.pre-commit-config.yaml`, and the GitHub Actions
   security workflows aligned with demo/auth changes. The only intentional
   plaintext demo password is `viewer123`.
-- `npm audit` currently reports Next.js 14 advisories where npm's automated fix
-  is a semver-major Next.js 16 upgrade. Do not apply that casually inside
-  unrelated tasks; plan it as a framework upgrade with React/Node compatibility
-  verification.
+- The web app is on Next.js 16 and uses ESLint 9 flat config
+  (`apps/web/eslint.config.mjs`). Keep `npm audit` at zero known
+  vulnerabilities after dependency changes.
 - Do not regenerate or replace `docs/screenshots/*.png` unless the task is specifically about screenshots.
 - Do not alter lockfiles unless dependency changes require it.
 
