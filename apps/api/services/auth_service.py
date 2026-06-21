@@ -13,7 +13,6 @@ import redis
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from passlib.exc import UnknownHashError
-from redis import Redis
 
 from apps.api.config import settings
 
@@ -98,11 +97,11 @@ class InMemoryLoginRateLimiter:
 
 
 class RedisLoginRateLimiter:
-    def __init__(self, client: Redis) -> None:
+    def __init__(self, client: Any) -> None:
         self._client = client
 
     def is_limited(self, username: str, client_id: str) -> bool:
-        value = self._client.get(self._key(username, client_id))
+        value = cast(str | None, self._client.get(self._key(username, client_id)))
         if value is None:
             return False
         try:
@@ -124,7 +123,10 @@ class RedisLoginRateLimiter:
         cursor = 0
         pattern = f"{LOGIN_RATE_LIMIT_KEY_PREFIX}*"
         while True:
-            cursor, keys = self._client.scan(cursor=cursor, match=pattern, count=200)
+            cursor, keys = cast(
+                tuple[int, list[str]],
+                self._client.scan(cursor=cursor, match=pattern, count=200),
+            )
             if keys:
                 self._client.delete(*keys)
             if cursor == 0:

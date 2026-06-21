@@ -14,15 +14,19 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4.2.2
-      - name: Check required secret
+      - id: live_config
+        name: Check required secret
         env:
           RENDER_APP_URL: ${{ secrets.RENDER_APP_URL }}
         run: |
           if [ -z "$RENDER_APP_URL" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
             echo "RENDER_APP_URL is not configured; skipping live smoke."
-            exit 0
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Run live demo smoke checks
+        if: steps.live_config.outputs.configured == 'true'
         env:
           RENDER_APP_URL: ${{ secrets.RENDER_APP_URL }}
           ADMIN_LIVE_PASSWORD: ${{ secrets.ADMIN_LIVE_PASSWORD }}
@@ -118,18 +122,22 @@ jobs:
           exec(textwrap.dedent(code))
           PY
       - name: Set up Node
+        if: steps.live_config.outputs.configured == 'true'
         uses: actions/setup-node@v4.4.0
         with:
           node-version: "20"
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - name: Install web dependencies
+        if: steps.live_config.outputs.configured == 'true'
         working-directory: apps/web
         run: npm ci
       - name: Install Playwright browser
+        if: steps.live_config.outputs.configured == 'true'
         working-directory: apps/web
         run: npx playwright install chromium
       - name: Run Playwright live smoke
+        if: steps.live_config.outputs.configured == 'true'
         working-directory: apps/web
         env:
           PLAYWRIGHT_BASE_URL: ${{ secrets.RENDER_APP_URL }}

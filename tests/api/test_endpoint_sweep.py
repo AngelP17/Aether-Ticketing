@@ -384,26 +384,33 @@ def _api_routes() -> list[APIRoute]:
         for route in app.routes
         if isinstance(route, APIRoute)
         and route.path.startswith("/api/")
+        and route.methods is not None
         and "HEAD" not in route.methods
     ]
 
 
+def _route_http_methods(route: APIRoute) -> set[str]:
+    methods = route.methods
+    assert methods is not None
+    return methods - {"HEAD", "OPTIONS"}
+
+
 @pytest.mark.parametrize("route", _api_routes(), ids=lambda route: f"{','.join(sorted(route.methods))} {route.path}")
 def test_admin_route_sweep_has_no_unexpected_500(route: APIRoute, sweep_client: TestClient) -> None:
-    for method in sorted(route.methods - {"HEAD", "OPTIONS"}):
+    for method in sorted(_route_http_methods(route)):
         response = sweep_client.request(method, _path_for(route), json=_json_for(route, method))
         assert response.status_code < 500, f"{method} {route.path} returned {response.status_code}: {response.text[:500]}"
 
 
 @pytest.mark.parametrize("route", _api_routes(), ids=lambda route: f"{','.join(sorted(route.methods))} {route.path}")
 def test_viewer_route_sweep_has_no_unexpected_500(route: APIRoute, sweep_viewer_client: TestClient) -> None:
-    for method in sorted(route.methods - {"HEAD", "OPTIONS"}):
+    for method in sorted(_route_http_methods(route)):
         response = sweep_viewer_client.request(method, _path_for(route), json=_json_for(route, method))
         assert response.status_code < 500, f"{method} {route.path} returned {response.status_code}: {response.text[:500]}"
 
 
 @pytest.mark.parametrize("route", _api_routes(), ids=lambda route: f"{','.join(sorted(route.methods))} {route.path}")
 def test_anonymous_route_sweep_has_no_unexpected_500(route: APIRoute, sweep_anon_client: TestClient) -> None:
-    for method in sorted(route.methods - {"HEAD", "OPTIONS"}):
+    for method in sorted(_route_http_methods(route)):
         response = sweep_anon_client.request(method, _path_for(route), json=_json_for(route, method))
         assert response.status_code < 500, f"{method} {route.path} returned {response.status_code}: {response.text[:500]}"
