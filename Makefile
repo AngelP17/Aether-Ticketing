@@ -17,7 +17,7 @@ test:
 lint: lint-py lint-web
 
 lint-py:
-	ruff check apps/ infrastructure/ pipelines/ domain/ scripts/ tests/
+	$(PYTHON) -m ruff check apps/ infrastructure/ pipelines/ domain/ scripts/ tests/
 
 lint-web:
 	cd apps/web && npm run lint
